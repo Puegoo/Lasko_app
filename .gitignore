@@ -1,0 +1,54 @@
+# Globalne ustawienia
+.DS_Store
+Thumbs.db
+*.log
+
+# Ignorowanie plików środowiskowych
+.env
+.env.local
+.env.*.local
+
+#################################
+# Frontend (Node.js / Vite)
+#################################
+# Foldery z zależnościami i build
+node_modules/
+dist/
+build/
+
+# Pliki tymczasowe
+*.tmp
+*.temp
+
+#################################
+# Backend (Python / Django)
+#################################
+# Folder wirtualnego środowiska
+venv/
+ENV/
+env/
+.venv/
+
+# Pliki wygenerowane przez Pythona
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pliki migracji (opcjonalnie, jeśli chcesz je kontrolować w Git)
+# migrations/
+
+# Pliki statyczne zbierane przez Django
+staticfiles/
+
+# Baza danych (jeśli lokalna, nie chcesz jej w repozytorium)
+*.sqlite3
+
+# Pliki konfiguracyjne IDE
+.vscode/
+.idea/
+
+# Inne
+*.coverage
+.coverage.*
+*.egg-info/
+.eggs/
