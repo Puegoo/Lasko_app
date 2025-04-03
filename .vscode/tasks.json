@@ -1,0 +1,23 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Run Frontend",
+        "type": "shell",
+        "command": "npm run dev",
+        "options": {
+          "cwd": "${workspaceFolder}/frontend/lasko-frontend"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Run Backend",
+        "type": "shell",
+        "command": "python manage.py runserver",
+        "options": {
+          "cwd": "${workspaceFolder}/backend"
+        },
+        "problemMatcher": []
+      }
+    ]
+  }
