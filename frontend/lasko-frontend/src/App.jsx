@@ -25,7 +25,7 @@ const App = () => {
         
         {/* Stworek wychodzący poza kafelek - znika przy szerokości poniżej 930px */}
         <img 
-          src="src/assets/Lasko_Hi.png" 
+          src="src/assets/Lasko_pose/Lasko_Hi.png" 
           alt="Lasko Mascot" 
           className="absolute right-[6%] -bottom-32 w-96 h-96 z-10 hidden lg:block"
         />
@@ -91,7 +91,7 @@ const App = () => {
           </p>
           <div className="flex items-center justify-center gap-4">
           <img 
-            src="src/assets/whoislasko.png" 
+            src="src/assets/Lasko_pose/whoislasko.png" 
             alt="Tajemniczy obrazek Lasko" 
             className="w-full h-auto max-h-64 object-contain"/>
           </div>
@@ -110,7 +110,7 @@ const App = () => {
             <div className="absolute bottom-0 left-0 h-36 w-full">
               {/* Obrazek powiększony i obniżony na sam dół kafelka */}
               <img 
-                src="src/assets/Lasko_crop_Hi.png" 
+                src="src/assets/Lasko_pose/Lasko_crop_Hi.png" 
                 alt="Lasko Icon" 
                 className="absolute left-4 bottom-4 w-50 h-auto transform translate-y-1/5"
                 style={{ aspectRatio: '2982/1195' }}
@@ -153,16 +153,16 @@ const App = () => {
             </div>
             <div className="flex justify-center space-x-3">
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/instagram.svg" alt="Instagram" className="w-8 h-8" />
+                <img src="src/assets/icons/instagram.svg" alt="Instagram" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
+                <img src="src/assets/icons/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/tiktok.svg" alt="TikTok" className="w-8 h-8" />
+                <img src="src/assets/icons/tiktok.svg" alt="TikTok" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/facebook.svg" alt="Facebook" className="w-8 h-8" />
+                <img src="src/assets/icons/facebook.svg" alt="Facebook" className="w-8 h-8" />
               </a>
             </div>
           </div>
@@ -183,16 +183,16 @@ const App = () => {
             {/* Prawa strona: social media */}
             <div className="flex justify-end space-x-3">
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/instagram.svg" alt="Instagram" className="w-8 h-8" />
+                <img src="src/assets/icons/instagram.svg" alt="Instagram" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
+                <img src="src/assets/icons/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/tiktok.svg" alt="TikTok" className="w-8 h-8" />
+                <img src="src/assets/icons/tiktok.svg" alt="TikTok" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/facebook.svg" alt="Facebook" className="w-8 h-8" />
+                <img src="src/assets/icons/facebook.svg" alt="Facebook" className="w-8 h-8" />
               </a>
             </div>
           </div>
