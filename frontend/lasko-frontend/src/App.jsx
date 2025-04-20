@@ -23,30 +23,43 @@ const App = () => {
           </button>
         </div>
         
-        {/* Stworek wychodzący poza kafelek */}
+        {/* Stworek wychodzący poza kafelek - znika przy szerokości poniżej 930px */}
         <img 
           src="src/assets/Lasko_Hi.png" 
           alt="Lasko Mascot" 
-          className="absolute right-[6%] -bottom-32 w-96 h-96 z-10 max-lg930:hidden"
+          className="absolute right-[6%] -bottom-32 w-96 h-96 z-10 hidden lg:block"
         />
       </div>
 
-      {/* Grid layout for content boxes */}
+      {/* Grid layout for content boxes - z poprawionymi wysokościami kafelków */}
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Progress tracking box */}
-        <div className="bg-[#76bbe5] rounded-3xl p-8 text-white shadow-md h-48">
-          <h3 className="text-3xl font-bold mb-3">Śledź swoje postępy</h3>
-          <p className="text-xl">
-            Analizuj wyniki treningów<br />
-            i osiągaj swoje cele
-          </p>
+        {/* Top row with equal heights */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* Progress tracking box - referencyjny kafelek */}
+          <div className="bg-[#76bbe5] rounded-3xl p-8 text-white shadow-md h-48">
+            <h3 className="text-3xl font-bold mb-3">Śledź swoje postępy</h3>
+            <p className="text-xl">
+              Analizuj wyniki treningów<br />
+              i osiągaj swoje cele
+            </p>
+          </div>
         </div>
 
-        {/* Meet Lasko box */}
-        <div className="md:mt-24 bg-[#c3e2a9] rounded-3xl py-3 px-4 shadow-md flex justify-center items-center h-24 max-md768:hidden">
-          <h3 className="text-[#096179] text-3xl font-bold text-center">
-            Poznaj Lasko
-          </h3>
+        {/* Meet Lasko box - dopasowana wysokość */}
+        <div className="hidden md:block relative">
+          {/* Wersja na większe ekrany - tylko dla lg i większych */}
+          <div className="hidden lg:flex bg-[#c3e2a9] rounded-3xl py-3 px-4 shadow-md justify-center items-center h-24 absolute bottom-0 inset-x-0">
+            <h3 className="text-[#096179] text-3xl font-bold text-center">
+              Poznaj Lasko
+            </h3>
+          </div>
+          
+          {/* Wersja na średnie ekrany - tylko dla md do lg */}
+          <div className="hidden md:flex lg:hidden bg-[#c3e2a9] rounded-3xl p-8 shadow-md justify-center items-center h-48">
+            <h3 className="text-[#096179] text-3xl font-bold text-center">
+              Poznaj Lasko
+            </h3>
+          </div>
         </div>
 
         {/* Lewa kolumna z dwoma kafelkami */}
@@ -77,28 +90,35 @@ const App = () => {
             Lasko to stworek który będzie ci towarzyszył w twojej wędrówce aby stać się kimś lepszym.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <img 
-              src="src/assets/whoislasko.png" 
-              alt="Tajemniczy obrazek Lasko" 
-              className="w-full h-auto max-h-64 object-contain"
-            />
-          </div>
-        </div>
-
-        {/* Message from Lasko box */}
-        <div className="bg-[#eff6ef] rounded-3xl p-8 shadow-md relative overflow-visible">
-          <div className="text-[#096179] italic text-lg">
-            <p>Hej, jestem Lasko! Wiem, że zmiana bywa trudna... Dlatego właśnie tu jestem.</p>
-            <p className="text-right mt-2">Razem znajdziemy sposób na Ciebie – ten najlepszy</p>
-          </div>
           <img 
-            src="src/assets/Lasko_crop_Hi.png" 
-            alt="Lasko Icon" 
-            className="absolute left-4 bottom-2 w-36 h-auto -mb-0 transform translate-y-1/8"
-            style={{ aspectRatio: '2982/1195' }}
-          />
+            src="src/assets/whoislasko.png" 
+            alt="Tajemniczy obrazek Lasko" 
+            className="w-full h-auto max-h-64 object-contain"/>
+          </div>
         </div>
 
+        {/* Message from Lasko box - z powiększonym i obniżonym stworkiem */}
+        <div className="bg-[#eff6ef] rounded-3xl p-6 shadow-md relative overflow-visible">
+          <div className="flex flex-col justify-between min-h-[140px] pl-0 md:pl-12 lg:pl-0">
+            {/* Tekst - oddalony od obrazka */}
+            <div className="text-[#096179] italic text-base md:text-lg font-semibold z-10 mb-12">
+              <p className="mb-2">Hej, jestem Lasko! Wiem, że zmiana bywa trudna... Dlatego właśnie tu jestem.</p>
+              <p className="text-right">Razem znajdziemy sposób na Ciebie – ten najlepszy</p>
+            </div>
+            
+            {/* Kontener dla obrazka - na samym dole kafelka */}
+            <div className="absolute bottom-0 left-0 h-36 w-full">
+              {/* Obrazek powiększony i obniżony na sam dół kafelka */}
+              <img 
+                src="src/assets/Lasko_crop_Hi.png" 
+                alt="Lasko Icon" 
+                className="absolute left-4 bottom-4 w-50 h-auto transform translate-y-1/5"
+                style={{ aspectRatio: '2982/1195' }}
+              />
+            </div>
+          </div>
+        </div>
+        
         {/* Train everywhere box */}
         <div className="bg-[#76bbe5] rounded-3xl p-8 text-white shadow-md">
           <h3 className="text-3xl font-bold mb-3">Trenuj wszędzie</h3>
@@ -119,24 +139,49 @@ const App = () => {
         </div>
       </div>
 
-      {/* Stopka */}
+      {/* Poprawiona stopka, aby teksty się nie nakładały */}
       <footer className="relative max-w-6xl mx-auto mt-10 bg-[#eff6ef] rounded-3xl shadow-md">
         <div className="px-6 py-4">
-          <div className="flex items-center justify-between relative">
-            
-            {/* Lewa strona: linki */}
-            <div className="flex space-x-4 text-[#096179] max-md768:hidden">
+          {/* Wersja mobilna (elementy jeden pod drugim) */}
+          <div className="flex flex-col space-y-3 md:hidden">
+            <div className="text-center text-[#096179]">
+              © 2025 Lasko. Wszelkie prawa zastrzeżone.
+            </div>
+            <div className="flex justify-center space-x-4 text-[#096179]">
+              <a href="#" className="hover:text-[#76bbe5] transition">Regulamin</a>
+              <a href="#" className="hover:text-[#76bbe5] transition">Polityka prywatności</a>
+            </div>
+            <div className="flex justify-center space-x-3">
+              <a href="#" className="hover:opacity-80 transition">
+                <img src="src/assets/instagram.svg" alt="Instagram" className="w-8 h-8" />
+              </a>
+              <a href="#" className="hover:opacity-80 transition">
+                <img src="src/assets/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
+              </a>
+              <a href="#" className="hover:opacity-80 transition">
+                <img src="src/assets/tiktok.svg" alt="TikTok" className="w-8 h-8" />
+              </a>
+              <a href="#" className="hover:opacity-80 transition">
+                <img src="src/assets/facebook.svg" alt="Facebook" className="w-8 h-8" />
+              </a>
+            </div>
+          </div>
+
+          {/* Wersja desktopowa (elementy obok siebie) */}
+          <div className="hidden md:grid md:grid-cols-3 md:gap-4 md:items-center">
+            {/* Lewa strona: Regulamin */}
+            <div className="flex space-x-4 text-[#096179]">
               <a href="#" className="hover:text-[#76bbe5] transition">Regulamin</a>
               <a href="#" className="hover:text-[#76bbe5] transition">Polityka prywatności</a>
             </div>
 
             {/* Środek: copyright */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 text-[#096179] whitespace-nowrap max-md768:hidden">
+            <div className="text-center text-[#096179]">
               © 2025 Lasko. Wszelkie prawa zastrzeżone.
             </div>
 
             {/* Prawa strona: social media */}
-            <div className="flex space-x-3">
+            <div className="flex justify-end space-x-3">
               <a href="#" className="hover:opacity-80 transition">
                 <img src="src/assets/instagram.svg" alt="Instagram" className="w-8 h-8" />
               </a>
