@@ -25,15 +25,15 @@ const App = () => {
         
         {/* Stworek wychodzący poza kafelek */}
         <img 
-          src="src/assets/Lasko_Hi.svg" 
+          src="src/assets/Lasko_Hi.png" 
           alt="Lasko Mascot" 
-          className="absolute right-[6%] -bottom-32 w-96 h-96 z-10"
+          className="absolute right-[6%] -bottom-32 w-96 h-96 z-10 max-lg930:hidden"
         />
       </div>
 
       {/* Grid layout for content boxes */}
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Progress tracking box - większy kafelek */}
+        {/* Progress tracking box */}
         <div className="bg-[#76bbe5] rounded-3xl p-8 text-white shadow-md h-48">
           <h3 className="text-3xl font-bold mb-3">Śledź swoje postępy</h3>
           <p className="text-xl">
@@ -42,8 +42,8 @@ const App = () => {
           </p>
         </div>
 
-        {/* Meet Lasko box - mniejsza wysokość, bez zdjęcia */}
-        <div className="md:mt-24 bg-[#c3e2a9] rounded-3xl py-3 px-4 shadow-md flex justify-center items-center h-24">
+        {/* Meet Lasko box */}
+        <div className="md:mt-24 bg-[#c3e2a9] rounded-3xl py-3 px-4 shadow-md flex justify-center items-center h-24 max-md768:hidden">
           <h3 className="text-[#096179] text-3xl font-bold text-center">
             Poznaj Lasko
           </h3>
@@ -77,28 +77,28 @@ const App = () => {
             Lasko to stworek który będzie ci towarzyszył w twojej wędrówce aby stać się kimś lepszym.
           </p>
           <div className="flex items-center justify-center gap-4">
-          <img 
-            src="src/assets/whoislasko.png" 
-            alt="Tajemniczy obrazek Lasko" 
-            className="w-full h-auto max-h-64 object-contain"/>
+            <img 
+              src="src/assets/whoislasko.png" 
+              alt="Tajemniczy obrazek Lasko" 
+              className="w-full h-auto max-h-64 object-contain"
+            />
           </div>
         </div>
 
-        {/* Message from Lasko box - nowy układ z wyższym obrazkiem */}
+        {/* Message from Lasko box */}
         <div className="bg-[#eff6ef] rounded-3xl p-8 shadow-md relative overflow-visible">
           <div className="text-[#096179] italic text-lg">
             <p>Hej, jestem Lasko! Wiem, że zmiana bywa trudna... Dlatego właśnie tu jestem.</p>
             <p className="text-right mt-2">Razem znajdziemy sposób na Ciebie – ten najlepszy</p>
           </div>
-          {/* Obrazek wyżej w kafelku, ale nadal wychodzący poza */}
           <img 
-            src="src/assets/Lasko_Mascot.png" 
+            src="src/assets/Lasko_crop_Hi.png" 
             alt="Lasko Icon" 
             className="absolute left-4 bottom-2 w-36 h-auto -mb-0 transform translate-y-1/8"
             style={{ aspectRatio: '2982/1195' }}
           />
         </div>
-        
+
         {/* Train everywhere box */}
         <div className="bg-[#76bbe5] rounded-3xl p-8 text-white shadow-md">
           <h3 className="text-3xl font-bold mb-3">Trenuj wszędzie</h3>
@@ -118,39 +118,41 @@ const App = () => {
           <p>Lorem impsum, lorem ipsum, lorem</p>
         </div>
       </div>
-    <footer className="relative max-w-6xl mx-auto mt-10 bg-[#eff6ef] rounded-3xl shadow-md">
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between relative">
-          
-          {/* Lewa strona: linki */}
-          <div className="flex space-x-4 text-[#096179]">
-            <a href="#" className="hover:text-[#76bbe5] transition">Regulamin</a>
-            <a href="#" className="hover:text-[#76bbe5] transition">Polityka prywatności</a>
-          </div>
 
-          {/* Środek: copyright */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 text-[#096179] whitespace-nowrap">
-            © 2025 Lasko. Wszelkie prawa zastrzeżone.
-          </div>
+      {/* Stopka */}
+      <footer className="relative max-w-6xl mx-auto mt-10 bg-[#eff6ef] rounded-3xl shadow-md">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between relative">
+            
+            {/* Lewa strona: linki */}
+            <div className="flex space-x-4 text-[#096179] max-md768:hidden">
+              <a href="#" className="hover:text-[#76bbe5] transition">Regulamin</a>
+              <a href="#" className="hover:text-[#76bbe5] transition">Polityka prywatności</a>
+            </div>
 
-          {/* Prawa strona: social media */}
-          <div className="flex space-x-3">
-            <a href="#" className="hover:opacity-80 transition">
-              <img src="src/assets/instagram.svg" alt="Instagram" className="w-8 h-8" />
-            </a>
-            <a href="#" className="hover:opacity-80 transition">
-              <img src="src/assets/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
-            </a>
-            <a href="#" className="hover:opacity-80 transition">
-              <img src="src/assets/tiktok.svg" alt="TikTok" className="w-8 h-8" />
-            </a>
-            <a href="#" className="hover:opacity-80 transition">
-              <img src="src/assets/facebook.svg" alt="Facebook" className="w-8 h-8" />
-            </a>
+            {/* Środek: copyright */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 text-[#096179] whitespace-nowrap max-md768:hidden">
+              © 2025 Lasko. Wszelkie prawa zastrzeżone.
+            </div>
+
+            {/* Prawa strona: social media */}
+            <div className="flex space-x-3">
+              <a href="#" className="hover:opacity-80 transition">
+                <img src="src/assets/instagram.svg" alt="Instagram" className="w-8 h-8" />
+              </a>
+              <a href="#" className="hover:opacity-80 transition">
+                <img src="src/assets/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
+              </a>
+              <a href="#" className="hover:opacity-80 transition">
+                <img src="src/assets/tiktok.svg" alt="TikTok" className="w-8 h-8" />
+              </a>
+              <a href="#" className="hover:opacity-80 transition">
+                <img src="src/assets/facebook.svg" alt="Facebook" className="w-8 h-8" />
+              </a>
+            </div>
           </div>
         </div>
-      </div>
-    </footer>
+      </footer>
     </div>
   );
 };
