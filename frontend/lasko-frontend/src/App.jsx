@@ -76,12 +76,11 @@ const App = () => {
           <p className="text-xl mb-5">
             Lasko to stworek który będzie ci towarzyszył w twojej wędrówce aby stać się kimś lepszym.
           </p>
-          <div className="flex justify-center mt-6">
-            <div className="flex items-center justify-center">
-              <span className="text-[#76bbe5] text-6xl mr-5">?</span>
-              <span className="text-[#76bbe5] text-8xl">?</span>
-              <span className="text-[#76bbe5] text-6xl ml-5">?</span>
-            </div>
+          <div className="flex items-center justify-center gap-4">
+          <img 
+            src="src/assets/whoislasko.png" 
+            alt="Tajemniczy obrazek Lasko" 
+            className="w-full h-auto max-h-64 object-contain"/>
           </div>
         </div>
 
@@ -119,50 +118,39 @@ const App = () => {
           <p>Lorem impsum, lorem ipsum, lorem</p>
         </div>
       </div>
-
-      {/* Nowa, minimalistyczna stopka */}
-      <footer className="max-w-6xl mx-auto mt-10 bg-[#eff6ef] rounded-3xl shadow-md">
-        <div className="px-6 py-5">
-          <div className="flex flex-wrap items-center justify-between">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <span className="text-[#096179] font-medium mr-1">Śledź nas:</span>
-              <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/instagram.svg" alt="Instagram" className="w-8 h-8" />
-              </a>
-              <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
-              </a>
-              <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/tiktok.svg" alt="TikTok" className="w-8 h-8" />
-              </a>
-              <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/facebook.svg" alt="Facebook" className="w-8 h-8" />
-              </a>
-            </div>
-            
-            <div className="flex items-center mb-4 md:mb-0">
-              <span className="text-[#096179] font-medium mr-3">O nas:</span>
-              <a href="#" className="text-[#096179] hover:text-[#76bbe5] transition mr-3">Nasza misja</a>
-              <a href="#" className="text-[#096179] hover:text-[#76bbe5] transition">Zespół</a>
-            </div>
-            
-            <div className="flex items-center">
-              <div className="mr-4">
-                <span className="text-[#096179] font-medium block mb-1">Kontakt:</span>
-                <a href="mailto:Kontakt@lasko.pl" className="text-[#096179] hover:text-[#76bbe5] transition">Kontakt@lasko.pl</a>
-              </div>
-              <div className="border-l border-[#096179] pl-4">
-                <a href="#" className="block text-[#096179] hover:text-[#76bbe5] transition mb-1">Regulamin</a>
-                <a href="#" className="block text-[#096179] hover:text-[#76bbe5] transition">Polityka prywatności</a>
-              </div>
-            </div>
-          </div>
+    <footer className="relative max-w-6xl mx-auto mt-10 bg-[#eff6ef] rounded-3xl shadow-md">
+      <div className="px-6 py-4">
+        <div className="flex items-center justify-between relative">
           
-          <div className="text-center text-[#096179] mt-4 text-sm">
+          {/* Lewa strona: linki */}
+          <div className="flex space-x-4 text-[#096179]">
+            <a href="#" className="hover:text-[#76bbe5] transition">Regulamin</a>
+            <a href="#" className="hover:text-[#76bbe5] transition">Polityka prywatności</a>
+          </div>
+
+          {/* Środek: copyright */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 text-[#096179] whitespace-nowrap">
             © 2025 Lasko. Wszelkie prawa zastrzeżone.
           </div>
+
+          {/* Prawa strona: social media */}
+          <div className="flex space-x-3">
+            <a href="#" className="hover:opacity-80 transition">
+              <img src="src/assets/instagram.svg" alt="Instagram" className="w-8 h-8" />
+            </a>
+            <a href="#" className="hover:opacity-80 transition">
+              <img src="src/assets/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
+            </a>
+            <a href="#" className="hover:opacity-80 transition">
+              <img src="src/assets/tiktok.svg" alt="TikTok" className="w-8 h-8" />
+            </a>
+            <a href="#" className="hover:opacity-80 transition">
+              <img src="src/assets/facebook.svg" alt="Facebook" className="w-8 h-8" />
+            </a>
+          </div>
         </div>
-      </footer>
+      </div>
+    </footer>
     </div>
   );
 };
