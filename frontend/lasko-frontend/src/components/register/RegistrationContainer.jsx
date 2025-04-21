@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import AccountCard from './AccountCard';
 import NameCard from './NameCard';
 import BirthdateCard from './BirthdateCard';
+import UsernameCard from './UserNameCard';
 
 const RegistrationContainer = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -14,6 +15,7 @@ const RegistrationContainer = () => {
     password: '',
     name: '',
     birthDate: '',
+    username: '@',
   });
 
   // Aktualizacja danych formularza - używana przez wszystkie karty
@@ -26,7 +28,7 @@ const RegistrationContainer = () => {
 
   // Funkcja do przejścia do następnego kroku z animacją
   function goToNextStep() {
-    if (animating || currentStep >= 2) return; // 2 to ostatni indeks
+    if (animating || currentStep >= 3) return; // 3 to ostatni indeks (teraz mamy 4 karty)
     
     setAnimating(true);
     setDirection('next');
@@ -81,6 +83,15 @@ const RegistrationContainer = () => {
             onPrev={goToPrevStep}
           />
         );
+      case 3:
+        return (
+          <UsernameCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
       default:
         return null;
     }
@@ -108,6 +119,15 @@ const RegistrationContainer = () => {
               onPrev={goToPrevStep}
             />
           );
+        case 2:
+          return (
+            <UsernameCard
+              formData={formData}
+              updateFormData={updateFormData}
+              onNext={goToNextStep}
+              onPrev={goToPrevStep}
+            />
+          );
         default:
           return null;
       }
@@ -125,6 +145,15 @@ const RegistrationContainer = () => {
         case 2:
           return (
             <NameCard
+              formData={formData}
+              updateFormData={updateFormData}
+              onNext={goToNextStep}
+              onPrev={goToPrevStep}
+            />
+          );
+        case 3:
+          return (
+            <BirthdateCard
               formData={formData}
               updateFormData={updateFormData}
               onNext={goToNextStep}
