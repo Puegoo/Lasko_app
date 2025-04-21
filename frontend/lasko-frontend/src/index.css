@@ -1,18 +1,33 @@
 @import "tailwindcss";
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Dodaj te style do Twojego pliku CSS (np. index.css lub App.css) */
+
+@keyframes cardSlideUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
+@keyframes cardSlideDown {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-.lasko-gradient {
-  @apply bg-gradient-to-r from-[#d9ece8] to-[#c3e2a9];
+.animate-card-slide-up {
+  animation: cardSlideUp 500ms forwards ease-out;
+}
+
+.animate-card-slide-down {
+  animation: cardSlideDown 500ms forwards ease-out;
 }

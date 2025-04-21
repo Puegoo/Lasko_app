@@ -1,14 +1,70 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import RegistrationContainer from './components/register/RegistrationContainer.jsx';
 
 const App = () => {
+  // State to control mobile menu visibility
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Toggle mobile menu
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/register" element={<RegistrationContainer />} />
+        <Route path="/" element={<HomePage toggleMobileMenu={toggleMobileMenu} mobileMenuOpen={mobileMenuOpen} />} />
+      </Routes>
+    </Router>
+  );
+};
+
+const HomePage = ({ toggleMobileMenu, mobileMenuOpen }) => {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen bg-[#0a0a0a] p-6">
       {/* Hero section with logo and mascot */}
       <div className="max-w-6xl mx-auto bg-[#1D1D1D] rounded-3xl shadow-md border border-[#222222] p-10 mb-8 relative overflow-visible">
-        <div className="absolute top-6 right-10 z-20">
-          <div className="flex gap-4 justify-end">
-            <a href="#" className="text-[#e0e0e0] hover:text-[#1DCD9F] text-lg font-bold">Zaloguj się</a>
-            <a href="#" className="text-[#e0e0e0] hover:text-[#1DCD9F] text-lg font-bold">Zapisz się</a>
+        <div className="absolute top-2 right-2 z-20">
+          {/* Desktop navigation buttons - visible above 768px */}
+          <div className="hidden md:flex gap-1 justify-end">
+            <Link to="/" className="text-[#e0e0e0] px-6 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white hover:shadow-[0_0_15px_rgba(29,205,159,0.5)] text-medium font-black">Zaloguj się</Link>
+            <Link to="/register" className="text-[#e0e0e0] px-6 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white hover:shadow-[0_0_15px_rgba(29,205,159,0.5)] text-medium font-black">Zapisz się</Link>
+          </div>
+          
+          {/* Mobile hamburger menu - visible below 768px */}
+          <div className="md:hidden">
+            <button
+              onClick={toggleMobileMenu}
+              className="text-[#e0e0e0] p-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white"
+              aria-label="Menu"
+            >
+              {/* Hamburger icon */}
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            {/* Mobile menu dropdown */}
+            {mobileMenuOpen && (
+              <div className="absolute right-0 top-12 w-48 bg-[#1D1D1D] rounded-xl shadow-md border border-[#292929] p-2 z-30">
+                <Link 
+                  to="/" 
+                  className="block text-[#e0e0e0] px-4 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white font-black"
+                >
+                  Zaloguj się
+                </Link>
+                <Link 
+                  to="/register" 
+                  className="block text-[#e0e0e0] px-4 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white font-black"
+                >
+                  Zapisz się
+                </Link>
+              </div>
+            )}
           </div>
         </div>
         
@@ -18,7 +74,10 @@ const App = () => {
             Dynamiczny Trening,<br />
             Planowanie i Optymalizacja
           </h2>
-          <button className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white font-semibold py-3 px-12 rounded-full hover:opacity-90 transition text-lg">
+          <button 
+            onClick={() => navigate('/register')}
+            className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-lg text-white font-bold py-3 px-12 rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110 active:brightness-90 active:scale-[0.98]"
+          >
             Zaczynajmy
           </button>
         </div>
@@ -27,7 +86,7 @@ const App = () => {
         <img 
           src="src/assets/Lasko_pose/Lasko_Hi.png" 
           alt="Lasko Mascot" 
-          className="absolute right-[6%] -bottom-40 w-96 h-auto z-10 hidden lg:block"
+          className="absolute right-[6%] -bottom-38 w-92 h-auto z-10 hidden lg:block"
         />
       </div>
 
