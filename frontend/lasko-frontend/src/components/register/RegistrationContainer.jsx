@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import AccountCard from './AccountCard';
 import NameCard from './NameCard';
 import BirthdateCard from './BirthdateCard';
-import UsernameCard from './UserNameCard';
+import UserNameCard from './UserNameCard';
 
 const RegistrationContainer = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -85,7 +85,7 @@ const RegistrationContainer = () => {
         );
       case 3:
         return (
-          <UsernameCard
+          <UserNameCard
             formData={formData}
             updateFormData={updateFormData}
             onNext={goToNextStep}
@@ -121,7 +121,7 @@ const RegistrationContainer = () => {
           );
         case 2:
           return (
-            <UsernameCard
+            <UserNameCard
               formData={formData}
               updateFormData={updateFormData}
               onNext={goToNextStep}

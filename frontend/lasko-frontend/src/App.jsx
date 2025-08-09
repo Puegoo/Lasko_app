@@ -2,6 +2,18 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import RegistrationContainer from './components/register/RegistrationContainer.jsx';
 
+// --- POPRAWKA: Importowanie obrazków ---
+// Importujemy każdy obrazek, aby Vite mógł poprawnie przetworzyć ścieżki
+import laskoHi from './assets/Lasko_pose/Lasko_Hi.png';
+import whoIsLasko from './assets/Lasko_pose/whoislasko.png';
+import laskoCropHi from './assets/Lasko_pose/Lasko_crop_Hi.png';
+import instagramIcon from './assets/icons/instagram.svg';
+import twitterIcon from './assets/icons/twitter.svg';
+import tiktokIcon from './assets/icons/tiktok.svg';
+import facebookIcon from './assets/icons/facebook.svg';
+// --- KONIEC POPRAWKI ---
+
+
 const App = () => {
   // State to control mobile menu visibility
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -83,8 +95,9 @@ const HomePage = ({ toggleMobileMenu, mobileMenuOpen }) => {
         </div>
         
         {/* Stworek wychodzący poza kafelek - znika przy szerokości poniżej 930px */}
+        {/* --- POPRAWKA: Użycie zaimportowanej zmiennej --- */}
         <img 
-          src="src/assets/Lasko_pose/Lasko_Hi.png" 
+          src={laskoHi} 
           alt="Lasko Mascot" 
           className="absolute right-[6%] -bottom-38 w-92 h-auto z-10 hidden lg:block"
         />
@@ -149,8 +162,9 @@ const HomePage = ({ toggleMobileMenu, mobileMenuOpen }) => {
             Lasko to stworek który będzie ci towarzyszył w twojej wędrówce aby stać się kimś lepszym.
           </p>
           <div className="flex items-center justify-center gap-4">
+          {/* --- POPRAWKA: Użycie zaimportowanej zmiennej --- */}
           <img 
-            src="src/assets/Lasko_pose/whoislasko.png" 
+            src={whoIsLasko} 
             alt="Tajemniczy obrazek Lasko" 
             className="w-full h-auto max-h-64 object-contain"/>
           </div>
@@ -168,8 +182,9 @@ const HomePage = ({ toggleMobileMenu, mobileMenuOpen }) => {
             {/* Kontener dla obrazka - na samym dole kafelka */}
             <div className="absolute bottom-0 left-0 h-36 w-full">
               {/* Obrazek powiększony i obniżony na sam dół kafelka */}
+              {/* --- POPRAWKA: Użycie zaimportowanej zmiennej --- */}
               <img 
-                src="src/assets/Lasko_pose/Lasko_crop_Hi.png" 
+                src={laskoCropHi} 
                 alt="Lasko Icon" 
                 className="absolute left-4 bottom-4 w-50 h-auto transform translate-y-1/5"
                 style={{ aspectRatio: '2982/1195' }}
@@ -211,17 +226,18 @@ const HomePage = ({ toggleMobileMenu, mobileMenuOpen }) => {
               <a href="#" className="hover:text-[#1DCD9F] transition">Polityka prywatności</a>
             </div>
             <div className="flex justify-center space-x-3">
+              {/* --- POPRAWKA: Użycie zaimportowanych zmiennych --- */}
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/icons/instagram.svg" alt="Instagram" className="w-8 h-8" />
+                <img src={instagramIcon} alt="Instagram" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/icons/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
+                <img src={twitterIcon} alt="X (Twitter)" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/icons/tiktok.svg" alt="TikTok" className="w-8 h-8" />
+                <img src={tiktokIcon} alt="TikTok" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/icons/facebook.svg" alt="Facebook" className="w-8 h-8" />
+                <img src={facebookIcon} alt="Facebook" className="w-8 h-8" />
               </a>
             </div>
           </div>
@@ -241,17 +257,18 @@ const HomePage = ({ toggleMobileMenu, mobileMenuOpen }) => {
 
             {/* Prawa strona: social media */}
             <div className="flex justify-end space-x-3">
+              {/* --- POPRAWKA: Użycie zaimportowanych zmiennych --- */}
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/icons/instagram.svg" alt="Instagram" className="w-8 h-8" />
+                <img src={instagramIcon} alt="Instagram" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/icons/twitter.svg" alt="X (Twitter)" className="w-8 h-8" />
+                <img src={twitterIcon} alt="X (Twitter)" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/icons/tiktok.svg" alt="TikTok" className="w-8 h-8" />
+                <img src={tiktokIcon} alt="TikTok" className="w-8 h-8" />
               </a>
               <a href="#" className="hover:opacity-80 transition">
-                <img src="src/assets/icons/facebook.svg" alt="Facebook" className="w-8 h-8" />
+                <img src={facebookIcon} alt="Facebook" className="w-8 h-8" />
               </a>
             </div>
           </div>
