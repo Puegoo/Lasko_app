@@ -1,20 +1,26 @@
-# docker-compose.yml (umieść w głównym katalogu projektu)
+# docker-compose.dev.yml (umieść w głównym katalogu projektu)
 version: '3.9'
 
 services:
-  # Frontend React z Nginx
+  # Frontend w trybie dev (hot reload)
   frontend:
-    build: 
+    build:
       context: ./frontend/lasko-frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
-      - "3000:80"
+      - "3000:3000"
+    volumes:
+      - ./frontend/lasko-frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
     depends_on:
       - backend
     networks:
       - lasko-network
 
-  # Backend Django
+  # Backend Django w trybie dev
   backend:
     build: 
       context: ./backend
@@ -32,17 +38,19 @@ services:
       - POSTGRES_PASSWORD=postgres
       - DB_HOST=db
       - DB_PORT=5432
+      - PYTHONUNBUFFERED=1
     depends_on:
       - db
       - redis
     networks:
       - lasko-network
+    command: python manage.py runserver 0.0.0.0:8000
 
   # Baza danych PostgreSQL
   db:
     image: postgres:13-alpine
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres_data_dev:/var/lib/postgresql/data/
     environment:
       POSTGRES_DB: LaskoDB
       POSTGRES_USER: postgres
@@ -52,19 +60,17 @@ services:
       - "5432:5432"
     networks:
       - lasko-network
-    command: postgres -c 'max_connections=200'
 
-  # Redis dla cache i Celery
+  # Redis
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
     networks:
       - lasko-network
-    command: redis-server --appendonly yes
 
 volumes:
-  postgres_data:
+  postgres_data_dev:
   backend_logs:
 
 networks:

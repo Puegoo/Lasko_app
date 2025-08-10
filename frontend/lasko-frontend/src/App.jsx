@@ -16,6 +16,16 @@ import tiktokIcon from './assets/icons/tiktok.svg';
 import facebookIcon from './assets/icons/facebook.svg';
 // --- KONIEC POPRAWKI ---
 
+// Pomocniczy nagłówek sekcji
+const SectionHeading = ({ kicker, title, subtitle }) => (
+  <div className="text-center max-w-3xl mx-auto mb-8">
+    {kicker && (
+      <p className="text-[#1DCD9F] uppercase tracking-widest text-sm font-extrabold mb-2">{kicker}</p>
+    )}
+    <h3 className="text-white text-3xl md:text-4xl font-black mb-3">{title}</h3>
+    {subtitle && <p className="text-[#e0e0e0] text-lg">{subtitle}</p>}
+  </div>
+);
 
 const App = () => {
   return (
@@ -90,12 +100,19 @@ const HomePage = () => {
             Dynamiczny Trening,<br />
             Planowanie i Optymalizacja
           </h2>
-          <button 
-            onClick={() => navigate('/register')}
-            className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-lg text-white font-bold py-3 px-12 rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110 active:brightness-90 active:scale-[0.98]"
-          >
-            Zaczynajmy
-          </button>
+          <p className="text-[#e0e0e0] text-lg mb-6">
+            Zmień nawyki w stały progres. Lasko łączy inteligentne planowanie, dopasowane treningi i
+            motywację w jednym miejscu. Dla początkujących i zaawansowanych.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button 
+              onClick={() => navigate('/register')}
+              className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-lg text-white font-bold py-3 px-8 rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110 active:brightness-90 active:scale-[0.98]"
+            >
+              Zaczynajmy
+            </button>
+            {/* USUNIĘTO: Stwórz plan */}
+          </div>
         </div>
         
         {/* Stworek wychodzący poza kafelek - znika przy szerokości poniżej 930px */}
@@ -150,7 +167,7 @@ const HomePage = () => {
           </div>
 
           {/* Find motivation box */}
-          <div className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-3xl p-8 shadow-md">
+          <div className="bg-gradient-to-r from-[#0D7A61] to-[#1D1D9F] rounded-3xl p-8 shadow-md" style={{backgroundImage:'linear-gradient(to right, #0D7A61, #1DCD9F)'}}>
             <h3 className="text-white text-3xl font-bold mb-3">Znajdź motywację</h3>
             <p className="text-white text-xl">
               Otrzymuj codzienne wsparcie<br />
@@ -163,7 +180,8 @@ const HomePage = () => {
         <div className="bg-[#000000] rounded-3xl p-8 shadow-md border border-[#333333] shadow-[0_0_20px_rgba(29,205,159,0.2)] relative">
           <h3 className="text-3xl font-bold mb-3 text-white">Kim jest Lasko?</h3>
           <p className="text-xl mb-5 text-[#e0e0e0]">
-            Lasko to stworek który będzie ci towarzyszył w twojej wędrówce aby stać się kimś lepszym.
+            Lasko to stworek, który będzie Ci towarzyszył w drodze do lepszej wersji siebie –
+            przypomni o treningu, dopasuje obciążenia, a gdy trzeba, doda otuchy.
           </p>
           <div className="flex items-center justify-center gap-4">
           {/* --- POPRAWKA: Użycie zaimportowanej zmiennej --- */}
@@ -180,7 +198,7 @@ const HomePage = () => {
             {/* Tekst - oddalony od obrazka */}
             <div className="text-[#e0e0e0] italic text-base md:text-lg font-semibold z-10 mb-12">
               <p className="mb-2">Hej, jestem Lasko! Wiem, że zmiana bywa trudna... Dlatego właśnie tu jestem.</p>
-              <p className="text-right">Razem znajdziemy sposób na Ciebie – ten najlepszy</p>
+              <p className="text-right">Razem znajdziemy sposób na Ciebie – ten najlepszy.</p>
             </div>
             
             {/* Kontener dla obrazka - na samym dole kafelka */}
@@ -207,15 +225,151 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Example text section */}
+      {/* Dlaczego Lasko */}
       <div className="max-w-6xl mx-auto mt-8 bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-3xl p-8 shadow-md">
-        <h3 className="text-white text-3xl font-bold mb-5 text-center">Przykładowy tekst</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-white text-center text-lg">
-          <p>Lorem impsum, lorem ipsum, lorem</p>
-          <p>Lorem impsum, lorem ipsum, lorem</p>
-          <p>Lorem impsum, lorem ipsum, lorem</p>
+        <SectionHeading
+          kicker="Dlaczego Lasko"
+          title="Skup się na progresie, resztą zajmiemy się my"
+          subtitle="Inteligentne planowanie, realne wyniki i motywacja, która nie gaśnie."
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-white">
+          <div className="bg-black/20 rounded-2xl p-5">
+            <h4 className="text-2xl font-bold mb-2">Automatyczne planowanie</h4>
+            <p>Algorytmy sugerują objętość, intensywność i dni odpoczynku, bazując na Twoich danych.</p>
+          </div>
+          <div className="bg-black/20 rounded-2xl p-5">
+            <h4 className="text-2xl font-bold mb-2">Trening szyty na miarę</h4>
+            <p>Ćwiczenia dobierane do celów (siła, wytrzymałość, sylwetka) i dostępnego sprzętu.</p>
+          </div>
+          <div className="bg-black/20 rounded-2xl p-5">
+            <h4 className="text-2xl font-bold mb-2">Motywacja od Lasko</h4>
+            <p>Wyzwania, powiadomienia i nagrody, które pomagają wracać na matę i siłownię.</p>
+          </div>
+        </div>
+        <div className="text-center mt-6">
+          {/* USUNIĘTO: Zobacz rekomendowane plany */}
         </div>
       </div>
+
+      {/* Funkcje szczegółowe */}
+      <section className="max-w-6xl mx-auto mt-10">
+        <SectionHeading
+          kicker="Funkcje"
+          title="Wszystko, czego potrzebuje Twój plan"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              t: 'Adaptacyjny progres',
+              d: 'Obciążenia i objętość rosną, gdy rośnie Twoja forma – a spadają, gdy ciało potrzebuje luzu.'
+            },
+            {
+              t: 'Biblioteka ćwiczeń',
+              d: 'Instrukcje i wideo do najważniejszych ruchów – od przysiadów po mobilizację barków.'
+            },
+            {
+              t: 'Śledzenie regeneracji',
+              d: 'Sen, tętno spoczynkowe, RPE – łącz dane, aby trenować mądrzej.'
+            },
+            {
+              t: 'Integracje',
+              d: 'Zgrywaj aktywności z zegarka lub telefonu, aby mieć pełny obraz tygodnia.'
+            },
+            {
+              t: 'Plan dnia',
+              d: 'Dokładny plan treningu z przerwami i podpowiedziami technicznymi.'
+            },
+            {
+              t: 'Statystyki i wykresy',
+              d: 'PR-y, serie, powtórzenia i objętość – wszystko pod ręką.'
+            },
+          ].map((f, i) => (
+            <div key={i} className="bg-[#1D1D1D] rounded-3xl p-6 border border-[#292929] hover:border-[#1DCD9F] transition">
+              <h4 className="text-white text-xl font-bold mb-2">{f.t}</h4>
+              <p className="text-[#e0e0e0]">{f.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Jak to działa */}
+      <section className="max-w-6xl mx-auto mt-10">
+        <SectionHeading kicker="Jak to działa" title="3 kroki do mądrzejszego treningu" />
+        <ol className="grid grid-cols-1 md:grid-cols-3 gap-6 list-decimal list-inside">
+          <li className="bg-[#1D1D1D] rounded-3xl p-6 border border-[#292929] text-[#e0e0e0]">
+            <h5 className="text-white text-xl font-bold mb-2">Krótka ankieta</h5>
+            Określ cel, poziom i dostępny sprzęt.
+          </li>
+          <li className="bg-[#1D1D1D] rounded-3xl p-6 border border-[#292929] text-[#e0e0e0]">
+            <h5 className="text-white text-xl font-bold mb-2">Twój plan</h5>
+            Otrzymasz gotowy plan na 4–8 tygodni z adaptacją.
+          </li>
+          <li className="bg-[#1D1D1D] rounded-3xl p-6 border border-[#292929] text-[#e0e0e0]">
+            <h5 className="text-white text-xl font-bold mb-2">Codzienne wsparcie</h5>
+            Lasko przypomni, zmotywuje i pokaże postępy.
+          </li>
+        </ol>
+        <div className="text-center mt-6">
+          {/* USUNIĘTO: Załóż konto za darmo */}
+        </div>
+      </section>
+
+      {/* Opinie */}
+      <section className="max-w-6xl mx-auto mt-10">
+        <SectionHeading kicker="Opinie" title="Co mówią użytkownicy" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { n: 'Marta', r: '5/5', t: 'W 12 tygodni podciągnęłam się z 0 do 5 powtórzeń. Plan był klarowny i motywujący.' },
+            { n: 'Kamil', r: '5/5', t: 'Przestałem błądzić po siłowni. Każda sesja ma cel – i widzę to w liczbach.' },
+            { n: 'Ola', r: '4.5/5', t: 'Najbardziej lubię przypomnienia i krótkie wskazówki techniczne w trakcie treningu.' },
+          ].map((o, i) => (
+            <div key={i} className="bg-[#1D1D1D] rounded-3xl p-6 border border-[#292929]">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-[#1DCD9F]/20 flex items-center justify-center text-white font-bold">
+                  {o.n[0]}
+                </div>
+                <div>
+                  <p className="text-white font-bold">{o.n}</p>
+                  <p className="text-[#e0e0e0] text-sm">Ocena: {o.r}</p>
+                </div>
+              </div>
+              <p className="text-[#e0e0e0]">“{o.t}”</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="max-w-6xl mx-auto mt-10">
+        <SectionHeading kicker="FAQ" title="Częste pytania" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            {q:'Czy Lasko jest dla początkujących?', a:'Tak. Ankieta startowa dopasuje objętość i poziom trudności do Twojego doświadczenia.'},
+            {q:'Czy potrzebuję siłowni?', a:'Nie. Możesz wybrać trening bez sprzętu, z hantlami lub pełną siłownią.'},
+            {q:'Ile to kosztuje?', a:'Start jest darmowy. Później możesz wybrać plan płatny z dodatkowymi funkcjami.'},
+            {q:'Czy mogę przerwać plan?', a:'Tak. Pauzuj, cofaj tydzień lub zmieniaj cel w każdej chwili.'},
+          ].map((item, idx) => (
+            <details key={idx} className="bg-[#1D1D1D] rounded-2xl p-5 border border-[#292929]">
+              <summary className="cursor-pointer text-white font-bold">{item.q}</summary>
+              <p className="mt-2 text-[#e0e0e0]">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA końcowe */}
+      <section className="max-w-6xl mx-auto mt-10 bg-[#111] rounded-3xl border border-[#292929] p-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div>
+            <h4 className="text-white text-2xl md:text-3xl font-black mb-2">Gotowy na mądrzejszy trening?</h4>
+            <p className="text-[#e0e0e0]">Dołącz teraz i zacznij widzieć postępy w liczbach – nie tylko w lustrze.</p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => navigate('/register')} className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white font-bold px-6 py-3 rounded-full hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] transition">Zacznij za darmo</button>
+            {/* USUNIĘTO: Zobacz dashboard */}
+          </div>
+        </div>
+      </section>
 
       {/* Poprawiona stopka, aby teksty się nie nakładały */}
       <footer className="relative max-w-6xl mx-auto mt-10 bg-[#1D1D1D] rounded-3xl shadow-md border border-[#292929]">
@@ -231,16 +385,16 @@ const HomePage = () => {
             </div>
             <div className="flex justify-center space-x-3">
               {/* --- POPRAWKA: Użycie zaimportowanych zmiennych --- */}
-              <a href="#" className="hover:opacity-80 transition">
+              <a href="#" className="hover:opacity-80 transition" aria-label="Instagram">
                 <img src={instagramIcon} alt="Instagram" className="w-8 h-8" />
               </a>
-              <a href="#" className="hover:opacity-80 transition">
+              <a href="#" className="hover:opacity-80 transition" aria-label="X (Twitter)">
                 <img src={twitterIcon} alt="X (Twitter)" className="w-8 h-8" />
               </a>
-              <a href="#" className="hover:opacity-80 transition">
+              <a href="#" className="hover:opacity-80 transition" aria-label="TikTok">
                 <img src={tiktokIcon} alt="TikTok" className="w-8 h-8" />
               </a>
-              <a href="#" className="hover:opacity-80 transition">
+              <a href="#" className="hover:opacity-80 transition" aria-label="Facebook">
                 <img src={facebookIcon} alt="Facebook" className="w-8 h-8" />
               </a>
             </div>
@@ -262,16 +416,16 @@ const HomePage = () => {
             {/* Prawa strona: social media */}
             <div className="flex justify-end space-x-3">
               {/* --- POPRAWKA: Użycie zaimportowanych zmiennych --- */}
-              <a href="#" className="hover:opacity-80 transition">
+              <a href="#" className="hover:opacity-80 transition" aria-label="Instagram">
                 <img src={instagramIcon} alt="Instagram" className="w-8 h-8" />
               </a>
-              <a href="#" className="hover:opacity-80 transition">
+              <a href="#" className="hover:opacity-80 transition" aria-label="X (Twitter)">
                 <img src={twitterIcon} alt="X (Twitter)" className="w-8 h-8" />
               </a>
-              <a href="#" className="hover:opacity-80 transition">
+              <a href="#" className="hover:opacity-80 transition" aria-label="TikTok">
                 <img src={tiktokIcon} alt="TikTok" className="w-8 h-8" />
               </a>
-              <a href="#" className="hover:opacity-80 transition">
+              <a href="#" className="hover:opacity-80 transition" aria-label="Facebook">
                 <img src={facebookIcon} alt="Facebook" className="w-8 h-8" />
               </a>
             </div>

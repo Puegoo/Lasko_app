@@ -1,21 +1,29 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
 
-# Zapobiega tworzeniu plików .pyc i buforowaniu
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=lasko_backend.settings
 
-# Ustaw katalog roboczy
 WORKDIR /app
 
-# Skopiuj plik requirements.txt i zainstaluj zależności
-COPY requirements.txt /app/
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    libpq-dev \
+    gcc \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
 
-# Skopiuj resztę kodu aplikacji
-COPY . /app/
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Ustawienie portu, na którym będzie działać Django
+COPY . .
+
+RUN mkdir -p logs
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8000
 
-# Komenda uruchamiająca serwer za pomocą Gunicorn (dla środowiska produkcyjnego)
-CMD ["gunicorn", "lasko_backend.wsgi:application", "--bind", "0.0.0.0:8000"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

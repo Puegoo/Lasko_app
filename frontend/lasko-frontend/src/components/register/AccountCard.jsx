@@ -1,7 +1,8 @@
+// frontend/lasko-frontend/src/components/register/AccountCard.jsx (AKTUALIZACJA)
 import React, { useState } from 'react';
 
-const AccountCard = ({ formData, updateFormData, onNext }) => {
-  // Stany do obsługi pływających etykiet
+const AccountCard = ({ formData, updateFormData, onNext, isSubmitting }) => {
+  // Stan do obsługi pływającej etykiety
   const [focused, setFocused] = useState({
     email: false,
     password: false
@@ -21,7 +22,7 @@ const AccountCard = ({ formData, updateFormData, onNext }) => {
     }));
   };
 
-  // Obsługa wyjścia z pola (blur) - tylko gdy pole jest puste
+  // Obsługa wyjścia z pola (blur)
   const handleBlur = (field) => {
     if (!formData[field]) {
       setFocused(prev => ({
@@ -31,28 +32,46 @@ const AccountCard = ({ formData, updateFormData, onNext }) => {
     }
   };
 
-  // Walidacja formularza przed przejściem dalej
+  // Walidacja formularza
+  const isValid = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return (
+      formData.email &&
+      emailRegex.test(formData.email) &&
+      formData.password &&
+      formData.password.length >= 6
+    );
+  };
+
+  // Obsługa wysłania formularza
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Tutaj możesz dodać walidację
-    onNext();
+    
+    if (!isValid()) {
+      alert('Proszę wypełnić wszystkie pola poprawnie. Hasło musi mieć co najmniej 6 znaków.');
+      return;
+    }
+    
+    if (!isSubmitting) {
+      onNext();
+    }
   };
 
   return (
-    <div className="bg-[#0a0a0a]/95 rounded-3xl shadow-xl p-8 w-full h-[550px] flex flex-col shadow-[0_0_30px_10px_rgba(0,0,0,0.5)] border border-[#222222]">
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-6 flex-grow">
-        {/* Pasek postępu - nad pytaniami, krótszy */}
-        <div className="max-w-xs mx-auto w-full h-3 bg-gray-800 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full" style={{ width: '20%' }}></div>
-        </div>
-        
-        <div className="text-center">
-          <h2 className="text-white text-2xl font-bold">Witaj w Lasko</h2>
-          <p className="text-white text-medium italic">Stwórz konto</p>
-        </div>
+    <div className="bg-[#2A2A2A] rounded-3xl p-8 shadow-2xl h-full flex flex-col">
+      {/* Nagłówek */}
+      <div className="text-center mb-8">
+        <h2 className="text-white text-3xl font-bold mb-2">
+          Stwórz konto
+        </h2>
+        <p className="text-gray-400 text-lg">
+          Rozpocznij swoją podróż fitness
+        </p>
+      </div>
 
+      <form onSubmit={handleSubmit} className="flex flex-col flex-grow space-y-6">
         {/* Pole email z pływającą etykietą */}
-        <div className="relative mt-5">
+        <div className="relative">
           <input
             type="email"
             name="email"
@@ -61,12 +80,13 @@ const AccountCard = ({ formData, updateFormData, onNext }) => {
             onChange={handleChange}
             onFocus={() => handleFocus('email')}
             onBlur={() => handleBlur('email')}
-            className="w-full bg-[#1D1D1D] text-white rounded-full py-4 px-5 outline-none text-lg"
+            className="w-full bg-[#1D1D1D] text-white rounded-full py-4 px-5 outline-none text-lg focus:ring-2 focus:ring-[#1DCD9F]"
             required
+            disabled={isSubmitting}
           />
           <label 
             htmlFor="email"
-            className={`absolute text-gray-400 transition-all duration-200 ${
+            className={`absolute text-gray-400 transition-all duration-200 pointer-events-none ${
               focused.email || formData.email 
                 ? 'text-xs top-1 left-5' 
                 : 'text-lg top-4 left-5'
@@ -86,12 +106,13 @@ const AccountCard = ({ formData, updateFormData, onNext }) => {
             onChange={handleChange}
             onFocus={() => handleFocus('password')}
             onBlur={() => handleBlur('password')}
-            className="w-full bg-[#1D1D1D] text-white rounded-full py-4 px-5 outline-none text-lg"
+            className="w-full bg-[#1D1D1D] text-white rounded-full py-4 px-5 outline-none text-lg focus:ring-2 focus:ring-[#1DCD9F]"
             required
+            disabled={isSubmitting}
           />
           <label 
             htmlFor="password"
-            className={`absolute text-gray-400 transition-all duration-200 ${
+            className={`absolute text-gray-400 transition-all duration-200 pointer-events-none ${
               focused.password || formData.password 
                 ? 'text-xs top-1 left-5' 
                 : 'text-lg top-4 left-5'
@@ -102,26 +123,31 @@ const AccountCard = ({ formData, updateFormData, onNext }) => {
         </div>
 
         {/* Informacja o zgodzie na warunki */}
-        <div className="text-center text-sm text-white mt-2">
+        <div className="text-center text-sm text-gray-300 mt-2">
           <p>
             Kontynuując, zgadzasz się na nasze{' '}
-            <a href="#" className="text-[#1DCD9F]">
+            <a href="#" className="text-[#1DCD9F] hover:underline">
               Warunki
             </a>{' '}
             i{' '}
-            <a href="#" className="text-[#1DCD9F]">
+            <a href="#" className="text-[#1DCD9F] hover:underline">
               politykę prywatności
             </a>
           </p>
         </div>
 
-        {/* Przycisk dalej - bez przycisku Wstecz na pierwszej karcie */}
+        {/* Przycisk dalej */}
         <div className="mt-auto flex justify-center">
           <button
             type="submit"
-            className="w-xs bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white font-bold py-4 rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110"
+            disabled={!isValid() || isSubmitting}
+            className={`px-8 py-4 bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white font-bold rounded-full transition-all duration-300 ${
+              isValid() && !isSubmitting
+                ? 'hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110 cursor-pointer'
+                : 'opacity-50 cursor-not-allowed'
+            }`}
           >
-            Dalej
+            {isSubmitting ? 'Ładowanie...' : 'Dalej'}
           </button>
         </div>
       </form>

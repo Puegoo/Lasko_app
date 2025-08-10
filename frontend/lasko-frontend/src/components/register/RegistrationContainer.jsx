@@ -1,5 +1,8 @@
+
+// frontend/lasko-frontend/src/components/register/RegistrationContainer.jsx (AKTUALIZACJA)
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import AccountCard from './AccountCard';
 import NameCard from './NameCard';
 import BirthdateCard from './BirthdateCard';
@@ -12,16 +15,18 @@ import RegisterBackground from '../../assets/Photos/Register_background.png';
 
 const RegistrationContainer = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState('next');
   const [animating, setAnimating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     name: '',
     birthDate: '',
-    surveyChoice: '', // 'fill' lub 'skip'
+    surveyChoice: '',
     skipSurvey: false,
     // Dane z ankiety
     goal: '',
@@ -40,81 +45,90 @@ const RegistrationContainer = () => {
 
   // Funkcja do przejścia do następnego kroku z animacją
   function goToNextStep() {
-    const maxStep = formData.skipSurvey ? 4 : 7; // 4 dla pominięcia ankiety, 7 dla pełnej ankiety
+    if (animating) return;
+
+    const maxStep = formData.skipSurvey ? 3 : 7;
     
-    if (animating || currentStep >= maxStep) {
-      if (currentStep >= maxStep) {
-        // Zakończenie rejestracji
-        handleRegistrationComplete();
-      }
-      return;
+    if (currentStep < maxStep) {
+      setDirection('next');
+      setAnimating(true);
+      
+      setTimeout(() => {
+        setCurrentStep(prev => prev + 1);
+        setAnimating(false);
+      }, 250);
+    } else {
+      // Ostatni krok - wyślij formularz
+      handleSubmitRegistration();
     }
-    
-    setAnimating(true);
-    setDirection('next');
-    
-    setTimeout(() => {
-      let nextStep = currentStep + 1;
-      
-      // Jeśli użytkownik wybrał pominięcie ankiety po kroku 3 (SurveyChoiceCard)
-      if (currentStep === 3 && formData.skipSurvey) {
-        // Przejdź bezpośrednio do kreatora planu
-        handleRegistrationComplete();
-        return;
-      }
-      
-      setCurrentStep(nextStep);
-      setAnimating(false);
-    }, 600);
   }
 
   // Funkcja do przejścia do poprzedniego kroku z animacją
   function goToPrevStep() {
-    if (animating || currentStep <= 0) return;
-    
-    setAnimating(true);
+    if (animating || currentStep === 0) return;
+
     setDirection('prev');
+    setAnimating(true);
     
     setTimeout(() => {
-      let prevStep = currentStep - 1;
-      
-      // Jeśli cofamy się z ankiety do wyboru ankiety, resetuj dane ankiety
-      if (currentStep === 4) {
-        setFormData(prev => ({
-          ...prev,
-          goal: '',
-          level: '',
-          trainingDaysPerWeek: null,
-          equipmentPreference: ''
-        }));
-      }
-      
-      setCurrentStep(prevStep);
+      setCurrentStep(prev => prev - 1);
       setAnimating(false);
-    }, 600);
+    }, 250);
   }
 
-  // Funkcja obsługująca zakończenie rejestracji
-  const handleRegistrationComplete = async () => {
+  // Funkcja do wysłania formularza rejestracji
+  async function handleSubmitRegistration() {
+    setIsSubmitting(true);
+    
     try {
-      // Tutaj będzie wysłanie danych do backendu
-      console.log('Dane rejestracji:', formData);
-      
-      if (formData.skipSurvey) {
-        // Przekieruj do kreatora planu
-        navigate('/plan-creator');
-      } else {
-        // Przekieruj do rekomendacji planów
-        navigate('/recommended-plans', { state: { surveyData: formData } });
-      }
-    } catch (error) {
-      console.error('Błąd podczas rejestracji:', error);
-      alert('Wystąpił błąd podczas rejestracji. Spróbuj ponownie.');
-    }
-  };
+      // Przygotuj dane do wysłania
+      const registrationData = {
+        username: formData.name.toLowerCase().replace(/\s+/g, ''), // Generuj username z imienia
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.name,
+        date_of_birth: formData.birthDate || null,
+        goal: formData.goal || '',
+        level: formData.level || '',
+        training_days_per_week: formData.trainingDaysPerWeek || null,
+        equipment_preference: formData.equipmentPreference || '',
+      };
 
-  // Renderowanie aktualnej karty
-  const renderCard = () => {
+      console.log('Wysyłanie danych rejestracji:', registrationData);
+
+      // Wyślij dane do API
+      const response = await register(registrationData);
+      
+      console.log('Rejestracja udana:', response);
+      
+      // Przekieruj do strony głównej lub dashboardu
+      navigate('/dashboard');
+      
+    } catch (error) {
+      console.error('Błąd rejestracji:', error);
+      
+      // Pokaż komunikat błędu (możesz dodać toast notification)
+      alert(`Błąd rejestracji: ${error.message}`);
+      
+      // Wróć do pierwszego kroku w przypadku błędu
+      setCurrentStep(0);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  // Sprawdź który krok omijamy jeśli użytkownik wybierze pominięcie ankiety
+  function getNextStep() {
+    if (currentStep === 3 && formData.skipSurvey) {
+      return currentStep + 4; // Pomiń kroki ankiety (4-7)
+    }
+    return currentStep + 1;
+  }
+
+  // Funkcja renderująca odpowiednią kartę
+  function renderCurrentCard() {
+    const nextStep = direction === 'next' ? currentStep + 1 : currentStep - 1;
+    
     switch (currentStep) {
       case 0:
         return (
@@ -122,6 +136,7 @@ const RegistrationContainer = () => {
             formData={formData}
             updateFormData={updateFormData}
             onNext={goToNextStep}
+            isSubmitting={isSubmitting}
           />
         );
       case 1:
@@ -131,6 +146,7 @@ const RegistrationContainer = () => {
             updateFormData={updateFormData}
             onNext={goToNextStep}
             onPrev={goToPrevStep}
+            isSubmitting={isSubmitting}
           />
         );
       case 2:
@@ -140,6 +156,7 @@ const RegistrationContainer = () => {
             updateFormData={updateFormData}
             onNext={goToNextStep}
             onPrev={goToPrevStep}
+            isSubmitting={isSubmitting}
           />
         );
       case 3:
@@ -149,6 +166,7 @@ const RegistrationContainer = () => {
             updateFormData={updateFormData}
             onNext={goToNextStep}
             onPrev={goToPrevStep}
+            isSubmitting={isSubmitting}
           />
         );
       case 4:
@@ -158,6 +176,7 @@ const RegistrationContainer = () => {
             updateFormData={updateFormData}
             onNext={goToNextStep}
             onPrev={goToPrevStep}
+            isSubmitting={isSubmitting}
           />
         );
       case 5:
@@ -167,6 +186,7 @@ const RegistrationContainer = () => {
             updateFormData={updateFormData}
             onNext={goToNextStep}
             onPrev={goToPrevStep}
+            isSubmitting={isSubmitting}
           />
         );
       case 6:
@@ -176,6 +196,7 @@ const RegistrationContainer = () => {
             updateFormData={updateFormData}
             onNext={goToNextStep}
             onPrev={goToPrevStep}
+            isSubmitting={isSubmitting}
           />
         );
       case 7:
@@ -185,93 +206,14 @@ const RegistrationContainer = () => {
             updateFormData={updateFormData}
             onNext={goToNextStep}
             onPrev={goToPrevStep}
+            isSubmitting={isSubmitting}
+            isLastStep={true}
           />
         );
       default:
         return null;
     }
-  };
-
-  // Renderowanie następnej karty dla animacji
-  const renderNextCard = () => {
-    const nextStep = direction === 'next' ? currentStep + 1 : currentStep - 1;
-    
-    switch (nextStep) {
-      case 0:
-        return (
-          <AccountCard 
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-          />
-        );
-      case 1:
-        return (
-          <NameCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-          />
-        );
-      case 2:
-        return (
-          <BirthdateCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-          />
-        );
-      case 3:
-        return (
-          <SurveyChoiceCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-          />
-        );
-      case 4:
-        return (
-          <GoalCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-          />
-        );
-      case 5:
-        return (
-          <LevelCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-          />
-        );
-      case 6:
-        return (
-          <TrainingDaysCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-          />
-        );
-      case 7:
-        return (
-          <EquipmentCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  }
 
   return (
     <div 
@@ -296,29 +238,45 @@ const RegistrationContainer = () => {
         </Link>
       </div>
       
+      {/* Wskaźnik postępu */}
+      <div className="absolute top-8 right-8 z-10">
+        <div className="text-white text-sm">
+          Krok {currentStep + 1} z {formData.skipSurvey ? 4 : 8}
+        </div>
+        <div className="w-32 h-2 bg-gray-600 rounded-full mt-2">
+          <div 
+            className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full transition-all duration-300"
+            style={{ 
+              width: `${((currentStep + 1) / (formData.skipSurvey ? 4 : 8)) * 100}%` 
+            }}
+          />
+        </div>
+      </div>
+      
       {/* Kontener dla kart rejestracji */}
       <div className="max-w-lg w-full mx-auto z-10 relative overflow-hidden h-[550px]">
+        {/* Loading overlay */}
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 rounded-3xl">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1DCD9F] mx-auto mb-4"></div>
+              <p className="text-white text-lg">Tworzenie konta...</p>
+            </div>
+          </div>
+        )}
+        
         {/* Obecnie widoczna karta */}
         <div 
           className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-            animating ? 'opacity-0 scale-90' : 'opacity-100 scale-100'
+            animating 
+              ? direction === 'next' 
+                ? 'transform translate-x-full opacity-0' 
+                : 'transform -translate-x-full opacity-0'
+              : 'transform translate-x-0 opacity-100'
           }`}
         >
-          {renderCard()}
+          {renderCurrentCard()}
         </div>
-        
-        {/* Animowana następna/poprzednia karta */}
-        {animating && (
-          <div 
-            className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-              direction === 'next' 
-                ? 'translate-y-full opacity-0 animate-card-slide-up' 
-                : '-translate-y-full opacity-0 animate-card-slide-down'
-            }`}
-          >
-            {renderNextCard()}
-          </div>
-        )}
       </div>
     </div>
   );
