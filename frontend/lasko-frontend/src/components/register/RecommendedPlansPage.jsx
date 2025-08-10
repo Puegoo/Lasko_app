@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import RegisterBackground from '../../assets/Photos/Register_background.png';
 
 const RecommendedPlansPage = () => {
   const location = useLocation();
@@ -103,7 +104,7 @@ const RecommendedPlansPage = () => {
     <div 
       className="min-h-screen w-full px-4 py-10"
       style={{
-        backgroundImage: "url('/src/assets/Photos/Register_background.png')",
+        backgroundImage: `url(${RegisterBackground})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         position: "relative"

@@ -8,6 +8,7 @@ import GoalCard from './GoalCard';
 import LevelCard from './LevelCard';
 import TrainingDaysCard from './TrainingDaysCard';
 import EquipmentCard from './EquipmentCard';
+import RegisterBackground from '../../assets/Photos/Register_background.png';
 
 const RegistrationContainer = () => {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ const RegistrationContainer = () => {
 
   // Funkcja do przejścia do następnego kroku z animacją
   function goToNextStep() {
-    const maxStep = formData.skipSurvey ? 4 : 8; // 4 dla pominięcia ankiety, 8 dla pełnej ankiety
+    const maxStep = formData.skipSurvey ? 4 : 7; // 4 dla pominięcia ankiety, 7 dla pełnej ankiety
     
     if (animating || currentStep >= maxStep) {
       if (currentStep >= maxStep) {
@@ -276,7 +277,7 @@ const RegistrationContainer = () => {
     <div 
       className="min-h-screen w-full flex items-center justify-center px-4 py-10"
       style={{
-        backgroundImage: "url('/src/assets/Photos/Register_background.png')",
+        backgroundImage: `url(${RegisterBackground})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         position: "relative"

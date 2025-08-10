@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
+import RegisterBackground from '../assets/Photos/Register_background.png';
 
 const DashboardPage = () => {
   const location = useLocation();
@@ -12,7 +13,7 @@ const DashboardPage = () => {
     <div 
       className="min-h-screen w-full px-4 py-10"
       style={{
-        backgroundImage: "url('/src/assets/Photos/Register_background.png')",
+        backgroundImage: `url(${RegisterBackground})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         position: "relative"
