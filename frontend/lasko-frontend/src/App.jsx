@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import RegistrationContainer from './components/register/RegistrationContainer.jsx';
+import RecommendedPlansPage from './components/register/RecommendedPlansPage';
+import PlanCreatorPage from './components/register/PlanCreatorPage';
+import DashboardPage from './components/DashboardPage';
 
 // --- POPRAWKA: Importowanie obrazków ---
 // Importujemy każdy obrazek, aby Vite mógł poprawnie przetworzyć ścieżki
@@ -15,26 +18,27 @@ import facebookIcon from './assets/icons/facebook.svg';
 
 
 const App = () => {
-  // State to control mobile menu visibility
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/register" element={<RegistrationContainer />} />
+        <Route path="/recommended-plans" element={<RecommendedPlansPage />} />
+        <Route path="/plan-creator" element={<PlanCreatorPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+      </Routes>
+    </Router>
+  );
+};
+
+const HomePage = () => {
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Toggle mobile menu
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
-
-  return (
-    <Router>
-      <Routes>
-        <Route path="/register" element={<RegistrationContainer />} />
-        <Route path="/" element={<HomePage toggleMobileMenu={toggleMobileMenu} mobileMenuOpen={mobileMenuOpen} />} />
-      </Routes>
-    </Router>
-  );
-};
-
-const HomePage = ({ toggleMobileMenu, mobileMenuOpen }) => {
-  const navigate = useNavigate();
   
   return (
     <div className="min-h-screen bg-[#0a0a0a] p-6">

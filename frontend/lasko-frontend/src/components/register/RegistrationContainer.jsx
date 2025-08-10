@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AccountCard from './AccountCard';
 import NameCard from './NameCard';
 import BirthdateCard from './BirthdateCard';
-import UserNameCard from './UserNameCard';
+import SurveyChoiceCard from './SurveyChoiceCard';
+import GoalCard from './GoalCard';
+import LevelCard from './LevelCard';
+import TrainingDaysCard from './TrainingDaysCard';
+import EquipmentCard from './EquipmentCard';
 
 const RegistrationContainer = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
-  const [direction, setDirection] = useState('next'); // 'next' lub 'prev'
+  const [direction, setDirection] = useState('next');
   const [animating, setAnimating] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -15,10 +20,16 @@ const RegistrationContainer = () => {
     password: '',
     name: '',
     birthDate: '',
-    username: '@',
+    surveyChoice: '', // 'fill' lub 'skip'
+    skipSurvey: false,
+    // Dane z ankiety
+    goal: '',
+    level: '',
+    trainingDaysPerWeek: null,
+    equipmentPreference: ''
   });
 
-  // Aktualizacja danych formularza - używana przez wszystkie karty
+  // Funkcja do aktualizacji danych formularza
   function updateFormData(field, value) {
     setFormData(prev => ({
       ...prev,
@@ -28,14 +39,30 @@ const RegistrationContainer = () => {
 
   // Funkcja do przejścia do następnego kroku z animacją
   function goToNextStep() {
-    if (animating || currentStep >= 3) return; // 3 to ostatni indeks (teraz mamy 4 karty)
+    const maxStep = formData.skipSurvey ? 4 : 8; // 4 dla pominięcia ankiety, 8 dla pełnej ankiety
+    
+    if (animating || currentStep >= maxStep) {
+      if (currentStep >= maxStep) {
+        // Zakończenie rejestracji
+        handleRegistrationComplete();
+      }
+      return;
+    }
     
     setAnimating(true);
     setDirection('next');
     
-    // Po zakończeniu animacji, aktualizujemy step
     setTimeout(() => {
-      setCurrentStep(prev => prev + 1);
+      let nextStep = currentStep + 1;
+      
+      // Jeśli użytkownik wybrał pominięcie ankiety po kroku 3 (SurveyChoiceCard)
+      if (currentStep === 3 && formData.skipSurvey) {
+        // Przejdź bezpośrednio do kreatora planu
+        handleRegistrationComplete();
+        return;
+      }
+      
+      setCurrentStep(nextStep);
       setAnimating(false);
     }, 600);
   }
@@ -47,12 +74,43 @@ const RegistrationContainer = () => {
     setAnimating(true);
     setDirection('prev');
     
-    // Po zakończeniu animacji, aktualizujemy step
     setTimeout(() => {
-      setCurrentStep(prev => prev - 1);
+      let prevStep = currentStep - 1;
+      
+      // Jeśli cofamy się z ankiety do wyboru ankiety, resetuj dane ankiety
+      if (currentStep === 4) {
+        setFormData(prev => ({
+          ...prev,
+          goal: '',
+          level: '',
+          trainingDaysPerWeek: null,
+          equipmentPreference: ''
+        }));
+      }
+      
+      setCurrentStep(prevStep);
       setAnimating(false);
     }, 600);
   }
+
+  // Funkcja obsługująca zakończenie rejestracji
+  const handleRegistrationComplete = async () => {
+    try {
+      // Tutaj będzie wysłanie danych do backendu
+      console.log('Dane rejestracji:', formData);
+      
+      if (formData.skipSurvey) {
+        // Przekieruj do kreatora planu
+        navigate('/plan-creator');
+      } else {
+        // Przekieruj do rekomendacji planów
+        navigate('/recommended-plans', { state: { surveyData: formData } });
+      }
+    } catch (error) {
+      console.error('Błąd podczas rejestracji:', error);
+      alert('Wystąpił błąd podczas rejestracji. Spróbuj ponownie.');
+    }
+  };
 
   // Renderowanie aktualnej karty
   const renderCard = () => {
@@ -85,7 +143,43 @@ const RegistrationContainer = () => {
         );
       case 3:
         return (
-          <UserNameCard
+          <SurveyChoiceCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 4:
+        return (
+          <GoalCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 5:
+        return (
+          <LevelCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 6:
+        return (
+          <TrainingDaysCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 7:
+        return (
+          <EquipmentCard
             formData={formData}
             updateFormData={updateFormData}
             onNext={goToNextStep}
@@ -97,72 +191,84 @@ const RegistrationContainer = () => {
     }
   };
 
-  // Renderowanie następnej karty (dla animacji)
+  // Renderowanie następnej karty dla animacji
   const renderNextCard = () => {
-    if (direction === 'next') {
-      switch (currentStep) {
-        case 0:
-          return (
-            <NameCard
-              formData={formData}
-              updateFormData={updateFormData}
-              onNext={goToNextStep}
-              onPrev={goToPrevStep}
-            />
-          );
-        case 1:
-          return (
-            <BirthdateCard
-              formData={formData}
-              updateFormData={updateFormData}
-              onNext={goToNextStep}
-              onPrev={goToPrevStep}
-            />
-          );
-        case 2:
-          return (
-            <UserNameCard
-              formData={formData}
-              updateFormData={updateFormData}
-              onNext={goToNextStep}
-              onPrev={goToPrevStep}
-            />
-          );
-        default:
-          return null;
-      }
-    } else {
-      // Kierunek 'prev'
-      switch (currentStep) {
-        case 1:
-          return (
-            <AccountCard 
-              formData={formData}
-              updateFormData={updateFormData}
-              onNext={goToNextStep}
-            />
-          );
-        case 2:
-          return (
-            <NameCard
-              formData={formData}
-              updateFormData={updateFormData}
-              onNext={goToNextStep}
-              onPrev={goToPrevStep}
-            />
-          );
-        case 3:
-          return (
-            <BirthdateCard
-              formData={formData}
-              updateFormData={updateFormData}
-              onNext={goToNextStep}
-              onPrev={goToPrevStep}
-            />
-          );
-        default:
-          return null;
-      }
+    const nextStep = direction === 'next' ? currentStep + 1 : currentStep - 1;
+    
+    switch (nextStep) {
+      case 0:
+        return (
+          <AccountCard 
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+          />
+        );
+      case 1:
+        return (
+          <NameCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 2:
+        return (
+          <BirthdateCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 3:
+        return (
+          <SurveyChoiceCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 4:
+        return (
+          <GoalCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 5:
+        return (
+          <LevelCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 6:
+        return (
+          <TrainingDaysCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      case 7:
+        return (
+          <EquipmentCard
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={goToNextStep}
+            onPrev={goToPrevStep}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -170,7 +276,7 @@ const RegistrationContainer = () => {
     <div 
       className="min-h-screen w-full flex items-center justify-center px-4 py-10"
       style={{
-        backgroundImage: "url('src/assets/photos/Register_background.png')",
+        backgroundImage: "url('/src/assets/Photos/Register_background.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         position: "relative"
