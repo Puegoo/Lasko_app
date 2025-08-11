@@ -1,37 +1,33 @@
-# frontend/lasko-frontend/Dockerfile (POPRAWKA)
-FROM node:20-alpine as build
+FROM node:18-alpine
 
 WORKDIR /app
+
+# Zainstaluj git jeśli jest potrzebny
+RUN apk add --no-cache git
 
 # Skopiuj package.json i package-lock.json
 COPY package*.json ./
 
-# Usuń node_modules i package-lock.json aby wymóc przebudowanie
-RUN rm -rf node_modules package-lock.json
-
-# Zainstaluj zależności ze świeżymi wersjami
+# Wyczyść cache npm i zainstaluj zależności
+RUN npm cache clean --force
 RUN npm install
 
-# Skopiuj kod źródłowy
+# Skopiuj całą aplikację
 COPY . .
 
-# Zbuduj aplikację dla produkcji
-RUN npm run build
+# Ustaw właściciela plików
+RUN chown -R node:node /app
+USER node
 
-# Etap 2: Serwowanie aplikacji przez Nginx
-FROM nginx:alpine
+# Ustaw zmienne środowiskowe
+ENV HOST=0.0.0.0
+ENV PORT=3000
+ENV CHOKIDAR_USEPOLLING=true
+ENV CHOKIDAR_INTERVAL=1000
+ENV WATCHPACK_POLLING=true
 
-# Usuń domyślną konfigurację nginx
-RUN rm /etc/nginx/conf.d/default.conf
+# Expose port
+EXPOSE 3000
 
-# Skopiuj własną konfigurację nginx
-COPY nginx.conf /etc/nginx/conf.d/
-
-# Skopiuj zbudowaną aplikację z etapu build
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Ekspozycja portu 80
-EXPOSE 80
-
-# Uruchom nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Uruchom dev server z verbose logging
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000", "--force"]
