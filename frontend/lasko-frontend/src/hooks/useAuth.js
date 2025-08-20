@@ -13,12 +13,14 @@ export const useAuth = () => {
   const checkAuthStatus = async () => {
     try {
       if (apiService.isAuthenticated()) {
-        const profile = await apiService.getProfile();
-        setUser(profile);
+        const profileData = await apiService.getProfile();
+        setUser(profileData);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+      // Jeśli token jest nieprawidłowy, wyloguj użytkownika
       apiService.logout();
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -29,13 +31,23 @@ export const useAuth = () => {
       setLoading(true);
       setError(null);
       
+      console.log('useAuth: Rozpoczynam rejestrację z danymi:', userData);
+      
       const response = await apiService.register(userData);
-      setUser(response.user);
+      
+      console.log('useAuth: Odpowiedź z API:', response);
+      
+      // Ustaw dane użytkownika po pomyślnej rejestracji
+      setUser({
+        user: response.user,
+        profile: response.profile
+      });
       
       return response;
     } catch (error) {
+      console.error('useAuth: Błąd rejestracji:', error);
       setError(error.message);
-      throw error;
+      throw error; // Przekaż błąd dalej do komponentu
     } finally {
       setLoading(false);
     }
@@ -46,11 +58,21 @@ export const useAuth = () => {
       setLoading(true);
       setError(null);
       
+      console.log('useAuth: Rozpoczynam logowanie:', credentials.email);
+      
       const response = await apiService.login(credentials);
-      setUser(response.user);
+      
+      console.log('useAuth: Pomyślne logowanie:', response);
+      
+      // Ustaw dane użytkownika po pomyślnym logowaniu
+      setUser({
+        user: response.user,
+        profile: response.profile
+      });
       
       return response;
     } catch (error) {
+      console.error('useAuth: Błąd logowania:', error);
       setError(error.message);
       throw error;
     } finally {
@@ -59,8 +81,37 @@ export const useAuth = () => {
   };
 
   const logout = () => {
+    console.log('useAuth: Wylogowywanie użytkownika');
     apiService.logout();
     setUser(null);
+    setError(null);
+  };
+
+  const updateProfile = async (profileData) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await apiService.updateProfile(profileData);
+      
+      // Zaktualizuj dane użytkownika
+      setUser({
+        user: response.user,
+        profile: response.profile
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('useAuth: Błąd aktualizacji profilu:', error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearError = () => {
+    setError(null);
   };
 
   return {
@@ -70,6 +121,11 @@ export const useAuth = () => {
     register,
     login,
     logout,
+    updateProfile,
+    clearError,
     isAuthenticated: !!user,
+    // Dodatkowe gettery dla łatwiejszego dostępu
+    userData: user?.user || null,
+    profileData: user?.profile || null,
   };
 };

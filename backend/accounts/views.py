@@ -31,20 +31,26 @@ def register(request):
         "password_confirm": "SecurePass123",
         "first_name": "Jan",
         "date_of_birth": "1990-05-15",
-        "goal": "masa_mięśniowa",
+        "goal": "masa",
         "level": "początkujący",
         "training_days_per_week": 3,
         "equipment_preference": "siłownia"
     }
     """
     try:
+        logger.info(f"🔥 Rejestracja - otrzymane dane: {request.data}")
+        
         serializer = UserRegistrationSerializer(data=request.data)
         
         if serializer.is_valid():
+            logger.info(f"✅ Walidacja przeszła pomyślnie")
+            
             # Utwórz użytkownika i profil
             result = serializer.save()
             auth_account = result['auth_account']
             user_profile = result['user_profile']
+            
+            logger.info(f"✅ Użytkownik utworzony: {auth_account.username}")
             
             # Wygeneruj tokeny JWT
             refresh = RefreshToken()
@@ -68,10 +74,11 @@ def register(request):
                 }
             }
             
-            logger.info(f"Nowy użytkownik zarejestrowany: {auth_account.username}")
+            logger.info(f"🎉 Rejestracja zakończona sukcesem dla: {auth_account.username}")
             
             return Response(response_data, status=status.HTTP_201_CREATED)
         
+        logger.error(f"❌ Błędy walidacji: {serializer.errors}")
         return Response(
             {
                 'message': 'Błędy walidacji',
@@ -81,7 +88,7 @@ def register(request):
         )
     
     except Exception as e:
-        logger.error(f"Błąd podczas rejestracji: {str(e)}")
+        logger.error(f"❌ Błąd podczas rejestracji: {str(e)}")
         return Response(
             {
                 'message': 'Wystąpił błąd serwera podczas rejestracji',
@@ -104,16 +111,21 @@ def login(request):
     }
     """
     try:
+        logger.info(f"🔐 Logowanie - próba dla: {request.data.get('login')}")
+        
         serializer = UserLoginSerializer(data=request.data)
         
         if serializer.is_valid():
             auth_account = serializer.validated_data['auth_account']
             
+            logger.info(f"✅ Logowanie udane dla: {auth_account.username}")
+            
             # Pobierz profil użytkownika
             try:
-                user_profile = UserProfile.objects.get(auth_account=auth_account)
+                user_profile = auth_account.userprofile  # Używamy 'userprofile' zgodnie z related_name
                 profile_data = UserProfileSerializer(user_profile).data
             except UserProfile.DoesNotExist:
+                logger.warning(f"⚠️ Brak profilu dla użytkownika: {auth_account.username}")
                 profile_data = None
             
             # Wygeneruj tokeny JWT
@@ -137,10 +149,9 @@ def login(request):
                 }
             }
             
-            logger.info(f"Użytkownik zalogowany: {auth_account.username}")
-            
             return Response(response_data, status=status.HTTP_200_OK)
         
+        logger.error(f"❌ Błędy logowania: {serializer.errors}")
         return Response(
             {
                 'message': 'Nieprawidłowe dane logowania',
@@ -150,7 +161,7 @@ def login(request):
         )
     
     except Exception as e:
-        logger.error(f"Błąd podczas logowania: {str(e)}")
+        logger.error(f"❌ Błąd podczas logowania: {str(e)}")
         return Response(
             {
                 'message': 'Wystąpił błąd serwera podczas logowania',
@@ -190,9 +201,10 @@ def profile(request):
         
         # Pobierz profil użytkownika
         try:
-            user_profile = UserProfile.objects.get(auth_account=auth_account)
+            user_profile = auth_account.userprofile
             profile_data = UserProfileSerializer(user_profile).data
         except UserProfile.DoesNotExist:
+            logger.warning(f"⚠️ Brak profilu dla użytkownika: {auth_account.username}")
             profile_data = None
         
         response_data = {
@@ -210,7 +222,7 @@ def profile(request):
         return Response(response_data, status=status.HTTP_200_OK)
     
     except Exception as e:
-        logger.error(f"Błąd podczas pobierania profilu: {str(e)}")
+        logger.error(f"❌ Błąd podczas pobierania profilu: {str(e)}")
         return Response(
             {
                 'message': 'Wystąpił błąd serwera podczas pobierania profilu',
@@ -231,7 +243,7 @@ def update_profile(request):
     {
         "first_name": "Jan",
         "goal": "siła",
-        "level": "średnio_zaawansowany",
+        "level": "sredniozaawansowany",
         "training_days_per_week": 4,
         "equipment_preference": "siłownia"
     }
@@ -259,6 +271,9 @@ def update_profile(request):
             auth_account=auth_account
         )
         
+        if created:
+            logger.info(f"✅ Utworzono nowy profil dla użytkownika: {auth_account.username}")
+        
         # Aktualizuj profil
         serializer = UserProfileSerializer(
             user_profile, 
@@ -273,6 +288,9 @@ def update_profile(request):
             if 'first_name' in request.data:
                 auth_account.first_name = request.data['first_name']
                 auth_account.save()
+                logger.info(f"✅ Zaktualizowano first_name w auth_account dla: {auth_account.username}")
+            
+            logger.info(f"✅ Profil zaktualizowany dla: {auth_account.username}")
             
             return Response(
                 {
@@ -282,6 +300,7 @@ def update_profile(request):
                 status=status.HTTP_200_OK
             )
         
+        logger.error(f"❌ Błędy walidacji profilu: {serializer.errors}")
         return Response(
             {
                 'message': 'Błędy walidacji',
@@ -291,10 +310,45 @@ def update_profile(request):
         )
     
     except Exception as e:
-        logger.error(f"Błąd podczas aktualizacji profilu: {str(e)}")
+        logger.error(f"❌ Błąd podczas aktualizacji profilu: {str(e)}")
         return Response(
             {
                 'message': 'Wystąpił błąd serwera podczas aktualizacji profilu',
+                'error': str(e)
+            }, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    """
+    Endpoint wylogowania użytkownika (opcjonalnie można dodać blacklistę tokenów)
+    
+    POST /api/auth/logout/
+    Headers: Authorization: Bearer <access_token>
+    """
+    try:
+        user_id = request.auth.payload.get('user_id')
+        
+        if user_id:
+            try:
+                auth_account = AuthAccount.objects.get(id=user_id)
+                logger.info(f"✅ Użytkownik wylogowany: {auth_account.username}")
+            except AuthAccount.DoesNotExist:
+                pass
+        
+        return Response(
+            {'message': 'Wylogowano pomyślnie'}, 
+            status=status.HTTP_200_OK
+        )
+    
+    except Exception as e:
+        logger.error(f"❌ Błąd podczas wylogowania: {str(e)}")
+        return Response(
+            {
+                'message': 'Wystąpił błąd serwera podczas wylogowania',
                 'error': str(e)
             }, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

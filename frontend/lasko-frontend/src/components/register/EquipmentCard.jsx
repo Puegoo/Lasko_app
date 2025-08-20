@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
 
-const EquipmentCard = ({ formData, updateFormData, onNext, onPrev }) => {
+const EquipmentCard = ({ 
+  formData, 
+  updateFormData, 
+  validationErrors = {}, 
+  onNext, 
+  onPrev, 
+  isSubmitting,
+  isLastStep = false
+}) => {
   const [selectedEquipment, setSelectedEquipment] = useState(formData.equipmentPreference || '');
 
   const equipmentOptions = [
-    { 
-      value: 'silownia_full', 
-      label: 'Pełna siłownia', 
-      description: 'Mam dostęp do profesjonalnej siłowni'
-    },
-    { 
-      value: 'wolne_ciezary', 
-      label: 'Wolne ciężary', 
-      description: 'Sztangi, hantle, podstawowy sprzęt'
-    },
-    { 
-      value: 'dom_kalistenika', 
-      label: 'Ćwiczenia w domu', 
-      description: 'Bez sprzętu lub z podstawowymi akcesoriami'
-    }
+    { value: 'siłownia', label: 'Pełna siłownia', icon: '🏋️‍♂️' },
+    { value: 'wolne_ciezary', label: 'Wolne ciężary', icon: '🏋️' },
+    { value: 'hantle', label: 'Tylko hantle', icon: '💪' },
+    { value: 'maszyny', label: 'Maszyny', icon: '⚙️' },
+    { value: 'brak', label: 'Brak sprzętu', icon: '🤸‍♂️' }
   ];
 
   const handleEquipmentSelect = (equipmentValue) => {
@@ -28,59 +26,98 @@ const EquipmentCard = ({ formData, updateFormData, onNext, onPrev }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!selectedEquipment) {
-      alert('Proszę wybrać preferowany sprzęt');
-      return;
-    }
+    if (!selectedEquipment) return;
     onNext();
   };
 
-  return (
-    <div className="bg-[#0a0a0a]/95 rounded-3xl shadow-xl p-8 w-full h-[550px] flex flex-col shadow-[0_0_30px_10px_rgba(0,0,0,0.5)] border border-[#222222]">
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-6 flex-grow">
-        {/* Pasek postępu */}
-        <div className="max-w-xs mx-auto w-full h-3 bg-gray-800 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full" style={{ width: '100%' }}></div>
-        </div>
-        
-        <div className="text-center mt-8">
-          <h2 className="text-white text-2xl font-bold">Jakiego sprzętu używasz?</h2>
-          <p className="text-white text-lg">Dopasujemy plan do Twoich możliwości</p>
-        </div>
+  const isValid = () => {
+    return selectedEquipment && selectedEquipment.length > 0;
+  };
 
-        {/* Opcje sprzętu */}
-        <div className="flex-grow flex flex-col justify-center space-y-3">
-          {equipmentOptions.map((equipment) => (
+  return (
+    <div className="bg-[#2A2A2A] rounded-3xl p-4 shadow-2xl h-full flex flex-col">
+      {/* Nagłówek - bardzo skrócony */}
+      <div className="text-center mb-3">
+        <h2 className="text-white text-lg font-bold mb-1">
+          Jaki sprzęt masz do dyspozycji?
+        </h2>
+        <p className="text-gray-400 text-sm">
+          Dostosujemy plan do Twojego wyposażenia
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        {/* Opcje sprzętu - bardzo kompaktowe */}
+        <div className="flex-1 space-y-2 min-h-0 overflow-y-auto">
+          {equipmentOptions.map((option) => (
             <button
-              key={equipment.value}
+              key={option.value}
               type="button"
-              onClick={() => handleEquipmentSelect(equipment.value)}
-              className={`p-4 rounded-2xl border-2 transition-all duration-300 text-left ${
-                selectedEquipment === equipment.value
-                  ? 'border-[#1DCD9F] bg-[#0D7A61]/20 text-white'
-                  : 'border-[#333333] bg-[#1D1D1D] text-gray-300 hover:border-[#555555] hover:bg-[#252525]'
-              }`}
+              onClick={() => handleEquipmentSelect(option.value)}
+              disabled={isSubmitting}
+              className={`group w-full p-2 rounded-lg border-2 transition-all duration-300 text-left ${
+                selectedEquipment === option.value
+                  ? 'border-[#1DCD9F] bg-gradient-to-r from-[#0D7A61]/20 to-[#1DCD9F]/20 text-white'
+                  : 'border-[#444444] bg-[#1D1D1D] text-gray-300 hover:border-[#1DCD9F]/50 hover:bg-[#252525]'
+              } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
-              <div className="font-bold text-lg">{equipment.label}</div>
-              <div className="text-sm opacity-80 mt-1">{equipment.description}</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="text-base">{option.icon}</span>
+                  <span className={`font-medium text-sm ${
+                    selectedEquipment === option.value ? 'text-[#1DCD9F]' : 'text-white'
+                  }`}>
+                    {option.label}
+                  </span>
+                </div>
+                
+                {/* Wskaźnik wyboru */}
+                <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${
+                  selectedEquipment === option.value
+                    ? 'border-[#1DCD9F] bg-[#1DCD9F]'
+                    : 'border-gray-500'
+                }`}>
+                  {selectedEquipment === option.value && (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </button>
           ))}
         </div>
 
-        {/* Przyciski nawigacji */}
-        <div className="mt-auto grid grid-cols-2 gap-4">
+        {/* Błędy walidacji */}
+        {validationErrors.equipment_preference && (
+          <div className="bg-red-900/30 border border-red-500 rounded-lg p-2 mt-2">
+            <p className="text-red-400 text-xs text-center">
+              {validationErrors.equipment_preference}
+            </p>
+          </div>
+        )}
+
+        {/* Przyciski nawigacji - ZAWSZE WIDOCZNE */}
+        <div className="flex justify-between space-x-3 mt-3 pt-3 border-t border-[#444444]">
           <button
             type="button"
             onClick={onPrev}
-            className="bg-[#1D1D1D] hover:bg-[#292929] text-white font-bold py-4 rounded-full transition-all duration-300"
+            disabled={isSubmitting}
+            className="px-4 py-2 bg-[#1D1D1D] hover:bg-[#292929] text-white font-bold rounded-full transition-all duration-300 border border-[#444444] hover:border-[#666666] disabled:opacity-50 text-sm"
           >
             Wstecz
           </button>
+          
           <button
             type="submit"
-            className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white font-bold py-4 rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110"
+            disabled={!isValid() || isSubmitting}
+            className={`flex-1 px-6 py-2 font-bold rounded-full transition-all duration-300 text-sm ${
+              isValid() && !isSubmitting
+                ? 'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110'
+                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            }`}
           >
-            Zakończ ankietę
+            {isSubmitting ? 'Tworzenie konta...' : isLastStep ? 'Zakończ rejestrację' : 'Dalej'}
           </button>
         </div>
       </form>

@@ -1,4 +1,4 @@
-# backend/lasko_backend/settings.py (aktualizacja dla Dockera)
+# backend/lasko_backend/settings.py
 from pathlib import Path
 from datetime import timedelta
 import os
@@ -121,7 +121,13 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# Logging dla Dockera
+# Ustawienia logowania - dostosowane do środowiska
+LOG_DIR = os.environ.get('LOG_DIR', BASE_DIR / 'logs')  # Używaj lokalnego katalogu logs jeśli nie w Docker
+
+# Utwórz katalog logs
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -135,7 +141,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': '/app/logs/django.log',
+            'filename': os.path.join(LOG_DIR, 'django.log'),  # Używaj LOG_DIR zamiast zakodowanej ścieżki
             'formatter': 'verbose',
         },
         'console': {
@@ -186,10 +192,6 @@ USE_TZ = True
 
 # Static files
 STATIC_URL = '/static/'
-STATIC_ROOT = '/app/staticfiles'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Użyj BASE_DIR zamiast /app
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Utwórz folder logs jeśli nie istnieje
-import os
-os.makedirs('/app/logs', exist_ok=True)

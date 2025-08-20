@@ -1,0 +1,16 @@
+INFO 2025-08-20 19:11:07,961 serializers 60920 8513036032 Goal mapping: masa -> masa
+INFO 2025-08-20 19:11:07,961 serializers 60920 8513036032 Level mapping: początkujący -> początkujący
+INFO 2025-08-20 19:11:07,961 serializers 60920 8513036032 Equipment mapping: siłownia -> siłownia
+INFO 2025-08-20 19:11:07,961 serializers 60920 8513036032 🏗️ CREATE - Rozpoczynam tworzenie użytkownika
+INFO 2025-08-20 19:11:07,961 serializers 60920 8513036032 📝 Validated data: {'username': 'test_debug_1755709867', 'email': 'test_debug_1755709867@example.com', 'password': 'DebugPass123', 'password_confirm': 'DebugPass123', 'first_name': 'Debug User', 'goal': 'masa', 'level': 'początkujący', 'training_days_per_week': 3, 'equipment_preference': 'siłownia'}
+INFO 2025-08-20 19:11:07,961 serializers 60920 8513036032 🔑 Password extracted, confirm removed
+INFO 2025-08-20 19:11:07,962 serializers 60920 8513036032 📋 Profile data: {'date_of_birth': None, 'goal': 'masa', 'level': 'początkujący', 'training_days_per_week': 3, 'equipment_preference': 'siłownia', 'first_name': 'Debug User'}
+INFO 2025-08-20 19:11:07,962 serializers 60920 8513036032 👤 Auth account data: {'username': 'test_debug_1755709867', 'email': 'test_debug_1755709867@example.com', 'first_name': 'Debug User'}
+INFO 2025-08-20 19:11:07,962 serializers 60920 8513036032 🔄 Rozpoczynam transakcję...
+INFO 2025-08-20 19:11:07,962 serializers 60920 8513036032 🏗️ Tworzę AuthAccount...
+INFO 2025-08-20 19:11:07,966 serializers 60920 8513036032 ✅ AuthAccount utworzone: ID=1501, username=test_debug_1755709867
+INFO 2025-08-20 19:11:07,966 serializers 60920 8513036032 🔑 Ustawiam hasło...
+INFO 2025-08-20 19:11:08,157 serializers 60920 8513036032 ✅ Hasło ustawione i zapisane
+INFO 2025-08-20 19:11:08,157 serializers 60920 8513036032 📋 Tworzę UserProfile...
+INFO 2025-08-20 19:11:08,160 serializers 60920 8513036032 ✅ UserProfile utworzone: ID=1501
+INFO 2025-08-20 19:11:08,161 serializers 60920 8513036032 🎉 Transakcja zakończona sukcesem!

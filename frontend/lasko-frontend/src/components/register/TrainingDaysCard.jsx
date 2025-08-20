@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 
-const TrainingDaysCard = ({ formData, updateFormData, onNext, onPrev }) => {
+const TrainingDaysCard = ({ 
+  formData, 
+  updateFormData, 
+  validationErrors = {}, 
+  onNext, 
+  onPrev, 
+  isSubmitting 
+}) => {
   const [selectedDays, setSelectedDays] = useState(formData.trainingDaysPerWeek || null);
 
   const daysOptions = [
-    { value: 2, label: '2 dni', description: 'Mało czasu, ale chcę zacząć' },
-    { value: 3, label: '3 dni', description: 'Optymalne dla początkujących' },
-    { value: 4, label: '4 dni', description: 'Dobry balans dla zaawansowanych' },
-    { value: 5, label: '5 dni', description: 'Intensywny trening' },
-    { value: 6, label: '6 dni', description: 'Bardzo zaawansowany poziom' }
+    { value: 2, label: '2 dni', icon: '🌟' },
+    { value: 3, label: '3 dni', icon: '🔥', popular: true },
+    { value: 4, label: '4 dni', icon: '💪' },
+    { value: 5, label: '5 dni', icon: '⚡' },
+    { value: 6, label: '6 dni', icon: '🏆' }
   ];
 
   const handleDaysSelect = (daysValue) => {
@@ -18,59 +25,105 @@ const TrainingDaysCard = ({ formData, updateFormData, onNext, onPrev }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (selectedDays === null) {
-      alert('Proszę wybrać liczbę dni treningowych');
+    if (!selectedDays) {
       return;
     }
     onNext();
   };
 
-  return (
-    <div className="bg-[#0a0a0a]/95 rounded-3xl shadow-xl p-8 w-full h-[550px] flex flex-col shadow-[0_0_30px_10px_rgba(0,0,0,0.5)] border border-[#222222]">
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-6 flex-grow">
-        {/* Pasek postępu */}
-        <div className="max-w-xs mx-auto w-full h-3 bg-gray-800 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full" style={{ width: '75%' }}></div>
-        </div>
-        
-        <div className="text-center mt-8">
-          <h2 className="text-white text-2xl font-bold">Ile dni chcesz trenować?</h2>
-          <p className="text-white text-lg">Wybierz realistyczną liczbę dla siebie</p>
-        </div>
+  const isValid = () => {
+    return selectedDays !== null && selectedDays > 0;
+  };
 
-        {/* Opcje dni treningowych */}
-        <div className="flex-grow flex flex-col justify-center space-y-3 max-h-72 overflow-y-auto">
+  return (
+    <div className="bg-[#2A2A2A] rounded-3xl p-6 shadow-2xl h-full flex flex-col">
+      {/* Nagłówek - bardzo skrócony */}
+      <div className="text-center mb-4">
+        <h2 className="text-white text-xl font-bold mb-1">
+          Ile dni w tygodniu chcesz trenować?
+        </h2>
+        <p className="text-gray-400 text-sm">
+          Wybierz realistyczną częstotliwość
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        {/* Opcje dni - kompaktowe */}
+        <div className="flex-1 space-y-2 min-h-0 overflow-y-auto">
           {daysOptions.map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => handleDaysSelect(option.value)}
-              className={`p-4 rounded-2xl border-2 transition-all duration-300 text-left ${
+              disabled={isSubmitting}
+              className={`group w-full p-3 rounded-lg border-2 transition-all duration-300 text-left ${
                 selectedDays === option.value
-                  ? 'border-[#1DCD9F] bg-[#0D7A61]/20 text-white'
-                  : 'border-[#333333] bg-[#1D1D1D] text-gray-300 hover:border-[#555555] hover:bg-[#252525]'
-              }`}
+                  ? 'border-[#1DCD9F] bg-gradient-to-r from-[#0D7A61]/20 to-[#1DCD9F]/20 text-white'
+                  : 'border-[#444444] bg-[#1D1D1D] text-gray-300 hover:border-[#1DCD9F]/50 hover:bg-[#252525]'
+              } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
-              <div className="font-bold text-lg">{option.label}</div>
-              <div className="text-sm opacity-80 mt-1">{option.description}</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-lg">{option.icon}</span>
+                  <span className={`font-semibold ${
+                    selectedDays === option.value ? 'text-[#1DCD9F]' : 'text-white'
+                  }`}>
+                    {option.label} w tygodniu
+                  </span>
+                  {option.popular && (
+                    <span className="bg-[#1DCD9F] text-black text-xs px-2 py-1 rounded-full font-bold">
+                      POPULARNE
+                    </span>
+                  )}
+                </div>
+                
+                {/* Wskaźnik wyboru */}
+                <div className={`w-5 h-5 rounded-full border-2 transition-all duration-300 ${
+                  selectedDays === option.value
+                    ? 'border-[#1DCD9F] bg-[#1DCD9F]'
+                    : 'border-gray-500'
+                }`}>
+                  {selectedDays === option.value && (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </button>
           ))}
         </div>
 
-        {/* Przyciski nawigacji */}
-        <div className="mt-auto grid grid-cols-2 gap-4">
+        {/* Błędy walidacji */}
+        {validationErrors.training_days_per_week && (
+          <div className="bg-red-900/30 border border-red-500 rounded-lg p-2 mt-2">
+            <p className="text-red-400 text-sm text-center">
+              {validationErrors.training_days_per_week}
+            </p>
+          </div>
+        )}
+
+        {/* Przyciski nawigacji - ZAWSZE WIDOCZNE */}
+        <div className="flex justify-between space-x-4 mt-4 pt-3 border-t border-[#444444]">
           <button
             type="button"
             onClick={onPrev}
-            className="bg-[#1D1D1D] hover:bg-[#292929] text-white font-bold py-4 rounded-full transition-all duration-300"
+            disabled={isSubmitting}
+            className="px-6 py-3 bg-[#1D1D1D] hover:bg-[#292929] text-white font-bold rounded-full transition-all duration-300 border border-[#444444] hover:border-[#666666] disabled:opacity-50"
           >
             Wstecz
           </button>
+          
           <button
             type="submit"
-            className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white font-bold py-4 rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110"
+            disabled={!isValid() || isSubmitting}
+            className={`flex-1 px-8 py-3 font-bold rounded-full transition-all duration-300 ${
+              isValid() && !isSubmitting
+                ? 'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110 transform hover:-translate-y-1'
+                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            }`}
           >
-            Dalej
+            {isSubmitting ? 'Ładowanie...' : 'Dalej'}
           </button>
         </div>
       </form>

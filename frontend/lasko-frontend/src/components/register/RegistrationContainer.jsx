@@ -1,5 +1,3 @@
-
-// frontend/lasko-frontend/src/components/register/RegistrationContainer.jsx (AKTUALIZACJA)
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -20,6 +18,7 @@ const RegistrationContainer = () => {
   const [direction, setDirection] = useState('next');
   const [animating, setAnimating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   
   const [formData, setFormData] = useState({
     email: '',
@@ -35,15 +34,38 @@ const RegistrationContainer = () => {
     equipmentPreference: ''
   });
 
-  // Funkcja do aktualizacji danych formularza
+  const getFieldDisplayName = (field) => {
+    const fieldNames = {
+      'username': 'Nazwa użytkownika',
+      'email': 'Email',
+      'password': 'Hasło',
+      'password_confirm': 'Potwierdzenie hasła',
+      'first_name': 'Imię',
+      'date_of_birth': 'Data urodzenia',
+      'goal': 'Cel',
+      'level': 'Poziom',
+      'training_days_per_week': 'Dni treningowe w tygodniu',
+      'equipment_preference': 'Preferencje sprzętu'
+    };
+    
+    return fieldNames[field] || field;
+  };
+
   function updateFormData(field, value) {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+    
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   }
 
-  // Funkcja do przejścia do następnego kroku z animacją
   function goToNextStep() {
     if (animating) return;
 
@@ -58,12 +80,10 @@ const RegistrationContainer = () => {
         setAnimating(false);
       }, 250);
     } else {
-      // Ostatni krok - wyślij formularz
       handleSubmitRegistration();
     }
   }
 
-  // Funkcja do przejścia do poprzedniego kroku z animacją
   function goToPrevStep() {
     if (animating || currentStep === 0) return;
 
@@ -76,140 +96,149 @@ const RegistrationContainer = () => {
     }, 250);
   }
 
-  // Funkcja do wysłania formularza rejestracji
   async function handleSubmitRegistration() {
     setIsSubmitting(true);
+    setValidationErrors({});
     
     try {
-      // Przygotuj dane do wysłania
       const registrationData = {
-        username: formData.name.toLowerCase().replace(/\s+/g, ''), // Generuj username z imienia
+        name: formData.name,
         email: formData.email,
         password: formData.password,
-        first_name: formData.name,
-        date_of_birth: formData.birthDate || null,
+        birthDate: formData.birthDate || null,
         goal: formData.goal || '',
         level: formData.level || '',
-        training_days_per_week: formData.trainingDaysPerWeek || null,
-        equipment_preference: formData.equipmentPreference || '',
+        trainingDaysPerWeek: formData.trainingDaysPerWeek || null,
+        equipmentPreference: formData.equipmentPreference || '',
       };
 
-      console.log('Wysyłanie danych rejestracji:', registrationData);
+      console.log('🔍 DEBUGGING - Szczegóły rejestracji:');
+      console.log('='.repeat(50));
+      console.log('📝 Dane z formularza:');
+      console.log('   name:', `"${formData.name}"`);
+      console.log('   email:', `"${formData.email}"`);
+      console.log('   goal:', `"${formData.goal}"`);
+      console.log('   level:', `"${formData.level}"`);
+      console.log('   trainingDaysPerWeek:', formData.trainingDaysPerWeek);
+      console.log('   equipmentPreference:', `"${formData.equipmentPreference}"`);
+      console.log('   skipSurvey:', formData.skipSurvey);
+      console.log('📤 Dane wysyłane do API:', registrationData);
+      console.log('='.repeat(50));
 
-      // Wyślij dane do API
+      console.log('RegistrationContainer: Wysyłanie danych rejestracji:', registrationData);
+
       const response = await register(registrationData);
       
-      console.log('Rejestracja udana:', response);
+      console.log('RegistrationContainer: Rejestracja udana:', response);
       
-      // Przekieruj do strony głównej lub dashboardu
       navigate('/dashboard');
       
     } catch (error) {
-      console.error('Błąd rejestracji:', error);
+      console.error('RegistrationContainer: Błąd rejestracji:', error);
       
-      // Pokaż komunikat błędu (możesz dodać toast notification)
-      alert(`Błąd rejestracji: ${error.message}`);
+      console.log('🚨 DEBUGGING - Szczegóły błędu:');
+      console.log('='.repeat(50));
+      console.log('❌ Error object:', error);
+      console.log('❌ Error message:', error.message);
+      console.log('❌ Validation errors:', error.validationErrors);
+      console.log('❌ Error field:', error.field);
+      console.log('='.repeat(50));
       
-      // Wróć do pierwszego kroku w przypadku błędu
-      setCurrentStep(0);
+      if (error.validationErrors) {
+        const mappedErrors = {};
+        Object.entries(error.validationErrors).forEach(([field, messages]) => {
+          const messagesList = Array.isArray(messages) ? messages : [messages];
+          mappedErrors[field] = messagesList.join(', ');
+        });
+        
+        setValidationErrors(mappedErrors);
+        
+        console.log('🔄 DEBUGGING - Mapowanie błędów:');
+        console.log('Original errors:', error.validationErrors);
+        console.log('Mapped errors:', mappedErrors);
+        
+        const errorMessages = Object.entries(error.validationErrors)
+          .map(([field, messages]) => {
+            const fieldName = getFieldDisplayName(field);
+            const messagesList = Array.isArray(messages) ? messages : [messages];
+            return `${fieldName}: ${messagesList.join(', ')}`;
+          })
+          .join('\n');
+        
+        alert(`Błędy walidacji:\n${errorMessages}`);
+        
+        const errorField = error.field;
+        console.log('📍 Przechodzę do kroku dla pola:', errorField);
+        
+        if (['username', 'email', 'password', 'password_confirm'].includes(errorField)) {
+          setCurrentStep(0);
+          console.log('➡️ Przejście do kroku 0 (AccountCard)');
+        } else if (['first_name'].includes(errorField)) {
+          setCurrentStep(1);
+          console.log('➡️ Przejście do kroku 1 (NameCard)');
+        } else if (['date_of_birth'].includes(errorField)) {
+          setCurrentStep(2);
+          console.log('➡️ Przejście do kroku 2 (BirthdateCard)');
+        } else if (['goal'].includes(errorField)) {
+          setCurrentStep(4);
+          console.log('➡️ Przejście do kroku 4 (GoalCard)');
+        } else if (['level'].includes(errorField)) {
+          setCurrentStep(5);
+          console.log('➡️ Przejście do kroku 5 (LevelCard)');
+        } else if (['training_days_per_week'].includes(errorField)) {
+          setCurrentStep(6);
+          console.log('➡️ Przejście do kroku 6 (TrainingDaysCard)');
+        } else if (['equipment_preference'].includes(errorField)) {
+          setCurrentStep(7);
+          console.log('➡️ Przejście do kroku 7 (EquipmentCard)');
+        } else {
+          setCurrentStep(0);
+          console.log('➡️ Przejście do kroku 0 (domyślnie)');
+        }
+      } else {
+        console.log('❌ Ogólny błąd bez szczegółów walidacji');
+        alert(`Błąd rejestracji: ${error.message}`);
+        setCurrentStep(0);
+      }
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  // Sprawdź który krok omijamy jeśli użytkownik wybierze pominięcie ankiety
   function getNextStep() {
     if (currentStep === 3 && formData.skipSurvey) {
-      return currentStep + 4; // Pomiń kroki ankiety (4-7)
+      return currentStep + 4;
     }
     return currentStep + 1;
   }
 
-  // Funkcja renderująca odpowiednią kartę
   function renderCurrentCard() {
-    const nextStep = direction === 'next' ? currentStep + 1 : currentStep - 1;
+    const cardProps = {
+      formData,
+      updateFormData,
+      validationErrors,
+      onNext: goToNextStep,
+      onPrev: goToPrevStep,
+      isSubmitting: isSubmitting
+    };
     
     switch (currentStep) {
       case 0:
-        return (
-          <AccountCard 
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            isSubmitting={isSubmitting}
-          />
-        );
+        return <AccountCard {...cardProps} />;
       case 1:
-        return (
-          <NameCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-            isSubmitting={isSubmitting}
-          />
-        );
+        return <NameCard {...cardProps} />;
       case 2:
-        return (
-          <BirthdateCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-            isSubmitting={isSubmitting}
-          />
-        );
+        return <BirthdateCard {...cardProps} />;
       case 3:
-        return (
-          <SurveyChoiceCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-            isSubmitting={isSubmitting}
-          />
-        );
+        return <SurveyChoiceCard {...cardProps} />;
       case 4:
-        return (
-          <GoalCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-            isSubmitting={isSubmitting}
-          />
-        );
+        return <GoalCard {...cardProps} />;
       case 5:
-        return (
-          <LevelCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-            isSubmitting={isSubmitting}
-          />
-        );
+        return <LevelCard {...cardProps} />;
       case 6:
-        return (
-          <TrainingDaysCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-            isSubmitting={isSubmitting}
-          />
-        );
+        return <TrainingDaysCard {...cardProps} />;
       case 7:
-        return (
-          <EquipmentCard
-            formData={formData}
-            updateFormData={updateFormData}
-            onNext={goToNextStep}
-            onPrev={goToPrevStep}
-            isSubmitting={isSubmitting}
-            isLastStep={true}
-          />
-        );
+        return <EquipmentCard {...cardProps} isLastStep={true} />;
       default:
         return null;
     }
@@ -253,8 +282,8 @@ const RegistrationContainer = () => {
         </div>
       </div>
       
-      {/* Kontener dla kart rejestracji */}
-      <div className="max-w-lg w-full mx-auto z-10 relative overflow-hidden h-[550px]">
+      {/* ZMIENIONA WYSOKOŚĆ KONTENERA */}
+      <div className="max-w-lg w-full mx-auto z-10 relative overflow-hidden" style={{ height: 'min(650px, 85vh)' }}>
         {/* Loading overlay */}
         {isSubmitting && (
           <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 rounded-3xl">
@@ -278,6 +307,32 @@ const RegistrationContainer = () => {
           {renderCurrentCard()}
         </div>
       </div>
+
+      {/* DEBUG INFO */}
+      {process.env.NODE_ENV === 'development' && (
+        <>
+          {/* Błędy walidacji */}
+          {Object.keys(validationErrors).length > 0 && (
+            <div className="absolute bottom-4 left-4 bg-red-600 text-white p-4 rounded max-w-md z-50">
+              <h4 className="font-bold">Błędy walidacji:</h4>
+              <pre className="text-xs mt-2">{JSON.stringify(validationErrors, null, 2)}</pre>
+            </div>
+          )}
+          
+          {/* Stan formularza */}
+          <div className="absolute bottom-4 right-4 bg-blue-600 text-white p-4 rounded max-w-sm z-50">
+            <h4 className="font-bold">Stan formularza:</h4>
+            <div className="text-xs mt-2">
+              <div>Krok: {currentStep}</div>
+              <div>Goal: "{formData.goal}"</div>
+              <div>Level: "{formData.level}"</div>
+              <div>Equipment: "{formData.equipmentPreference}"</div>
+              <div>Days: {formData.trainingDaysPerWeek}</div>
+              <div>Skip Survey: {formData.skipSurvey ? 'YES' : 'NO'}</div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
