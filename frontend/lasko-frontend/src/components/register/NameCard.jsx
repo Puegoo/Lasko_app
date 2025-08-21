@@ -1,94 +1,180 @@
-// Przykład jak powinna wyglądać NameCard z obsługą błędów walidacji
-import React from 'react';
+// frontend/lasko-frontend/src/components/register/NameCard.jsx
+import React, { useMemo, useState } from 'react';
 
-const NameCard = ({ 
-  formData, 
-  updateFormData, 
-  validationErrors = {}, // DODANO: Błędy walidacji
-  onNext, 
-  onPrev, 
-  isSubmitting 
+/**
+ * Karta z imieniem:
+ * - Ciemny motyw, pływająca etykieta
+ * - Minimalna wysokość kafelka + wyśrodkowanie pionowe treści
+ * - Walidacja: min. 2 znaki, komunikaty ARIA
+ * - Propozycja nazwy użytkownika (transliteracja PL znaków)
+ */
+const NameCard = ({
+  formData,
+  updateFormData,
+  validationErrors = {},
+  onNext,
+  onPrev,
+  isSubmitting = false,
 }) => {
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (formData.name.trim()) {
-      onNext();
-    }
+  // Stan pływającej etykiety
+  const [focused, setFocused] = useState({ name: false });
+
+  // Transliteracja imienia → propozycja username (bez diakrytyków i znaków specjalnych)
+  const sanitizeUsername = (raw) => {
+    if (!raw) return '';
+    return raw
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ł/g, 'l')
+      .replace(/Ł/g, 'L')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
   };
 
-  const isFormValid = formData.name.trim().length >= 2;
+  const suggestedUsername = useMemo(
+    () => sanitizeUsername(formData?.name || ''),
+    [formData?.name]
+  );
+
+  // Walidacja pola (min. 2 znaki)
+  const isFormValid = (formData?.name || '').trim().length >= 2;
+
+  // Aktualizacja modelu formularza
+  const handleChange = (e) => {
+    updateFormData('name', e.target.value);
+  };
+
+  // Obsługa etykiety pływającej
+  const handleFocus = () => setFocused((s) => ({ ...s, name: true }));
+  const handleBlur = () => {
+    if (!formData?.name) setFocused((s) => ({ ...s, name: false }));
+  };
+
+  // Zatwierdzenie kroku
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!isFormValid || isSubmitting) return;
+    onNext();
+  };
+
+  // Flagi błędów (UI)
+  const nameHasError =
+    Boolean(validationErrors.first_name) ||
+    Boolean(validationErrors.username) ||
+    (!!formData?.name && !isFormValid);
 
   return (
-    <div className="bg-white rounded-3xl p-8 shadow-2xl w-full h-full flex flex-col">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Jak masz na imię?</h2>
-        <p className="text-gray-600">Podaj swoje imię, abyśmy mogli się do Ciebie zwracać</p>
-      </div>
+    <div
+      className={[
+        'bg-[#0a0a0a]/95 rounded-3xl shadow-xl p-6 md:p-8 w-full',
+        'flex flex-col border border-[#222222] shadow-[0_0_30px_10px_rgba(0,0,0,0.5)]',
+        'min-h-[520px]',
+      ].join(' ')}
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1">
+        {/* Treść wyśrodkowana pionowo */}
+        <div className="flex flex-col gap-6 flex-1 justify-center">
+          {/* Nagłówek */}
+          <div className="text-center">
+            <h2 className="text-white text-2xl font-bold">Jak masz na imię?</h2>
+            <p className="text-white/90 text-lg">Powiedz nam, jak mamy się do Ciebie zwracać</p>
+          </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-        <div className="mb-6">
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            Imię *
-          </label>
-          <input
-            type="text"
-            id="name"
-            value={formData.name}
-            onChange={(e) => updateFormData('name', e.target.value)}
-            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#1DCD9F] focus:border-transparent transition-all text-lg ${
-              validationErrors.first_name || validationErrors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'
-            }`}
-            placeholder="Twoje imię"
-            disabled={isSubmitting}
-            autoComplete="given-name"
-            autoFocus
-          />
-          
-          {/* Wyświetl błędy walidacji z backendu */}
-          {validationErrors.first_name && (
-            <p className="text-red-500 text-sm mt-1">{validationErrors.first_name}</p>
-          )}
-          
-          {validationErrors.username && (
-            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm">
-                <strong>Problem z nazwą użytkownika:</strong> {validationErrors.username}
-              </p>
-              <p className="text-red-600 text-xs mt-1">
-                Nazwa użytkownika jest generowana automatycznie z Twojego imienia.
-              </p>
+          {/* Pole: Imię (pływająca etykieta) */}
+          <div className="relative mt-2">
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData?.name || ''}
+              onChange={handleChange}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              className={[
+                'w-full rounded-full py-4 px-5 text-lg outline-none transition-all duration-200',
+                'bg-[#1D1D1D] text-white border',
+                nameHasError
+                  ? 'border-red-500 focus:ring-2 focus:ring-red-500/40'
+                  : 'border-transparent focus:ring-2 focus:ring-[#1DCD9F]/40',
+              ].join(' ')}
+              autoComplete="given-name"
+              autoFocus
+              required
+              aria-invalid={nameHasError ? 'true' : 'false'}
+              aria-describedby="name-error name-help"
+              placeholder=" "
+            />
+            <label
+              htmlFor="name"
+              className={[
+                'absolute left-5 pointer-events-none transition-all duration-200 text-gray-400',
+                focused.name || formData?.name ? 'top-1 text-xs' : 'top-4 text-lg',
+              ].join(' ')}
+            >
+              Imię
+            </label>
+
+            {/* Komunikaty walidacyjne / pomocnicze */}
+            <div className="mt-2 ml-2 space-y-1 text-sm" aria-live="polite">
+              {validationErrors.first_name && (
+                <p id="name-error" className="text-red-400">
+                  {validationErrors.first_name}
+                </p>
+              )}
+
+              {validationErrors.username && (
+                <div className="p-3 bg-red-900/20 border border-red-400/60 rounded-lg break-words">
+                  <p className="text-red-300">
+                    <strong>Problem z nazwą użytkownika:</strong> {validationErrors.username}
+                  </p>
+                  <p className="text-red-200/90 text-xs mt-1">
+                    Nazwa użytkownika jest generowana automatycznie z Twojego imienia.
+                  </p>
+                </div>
+              )}
+
+              {!validationErrors.first_name &&
+                !validationErrors.username &&
+                formData?.name &&
+                !isFormValid && (
+                  <p id="name-help" className="text-red-400">
+                    Imię powinno mieć co najmniej 2 znaki.
+                  </p>
+                )}
+
+              {!validationErrors.first_name &&
+                !validationErrors.username &&
+                isFormValid &&
+                suggestedUsername && (
+                  <p className="text-emerald-400">
+                    ✓ Proponowana nazwa użytkownika: @{suggestedUsername}
+                  </p>
+                )}
             </div>
-          )}
-          
-          {/* Podpowiedź dla użytkownika */}
-          {formData.name && !validationErrors.first_name && !validationErrors.username && (
-            <p className="text-green-600 text-sm mt-1">
-              ✓ Nazwa użytkownika: {formData.name.toLowerCase().replace(/[^a-z0-9]/g, '')}
-            </p>
-          )}
+          </div>
         </div>
 
-        {/* Navigation buttons */}
-        <div className="mt-auto flex justify-between gap-4">
+        {/* Nawigacja (CTA przy dole kafelka) */}
+        <div className="mt-auto grid grid-cols-2 gap-4 pt-4">
           <button
             type="button"
             onClick={onPrev}
             disabled={isSubmitting}
-            className="px-6 py-3 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50"
+            className="bg-[#1D1D1D] hover:bg-[#292929] text-white font-bold py-4 rounded-full transition-all duration-300 disabled:opacity-60"
           >
             Wstecz
           </button>
-          
           <button
             type="submit"
             disabled={!isFormValid || isSubmitting}
-            className={`flex-1 py-3 px-4 rounded-xl font-semibold text-white transition-all ${
+            className={[
+              'py-4 rounded-full font-bold transition-all duration-300',
               isFormValid && !isSubmitting
-                ? 'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] hover:shadow-lg transform hover:-translate-y-1'
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
+                ? 'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110'
+                : 'bg-gray-600 text-gray-300 cursor-not-allowed',
+            ].join(' ')}
           >
-            {isSubmitting ? 'Ładowanie...' : 'Dalej'}
+            {isSubmitting ? 'Ładowanie…' : 'Dalej'}
           </button>
         </div>
       </form>

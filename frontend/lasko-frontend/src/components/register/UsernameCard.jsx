@@ -1,189 +1,172 @@
-import React, { useState, useRef, useEffect } from 'react';
+// frontend/lasko-frontend/src/components/register/UserNameCard.jsx
+import React, { useEffect, useRef, useState } from 'react';
 
-const UsernameCard = ({ formData, updateFormData, onNext, onPrev }) => {
-  // Stan do obsługi pływającej etykiety
-  const [focused, setFocused] = useState({
-    username: false
-  });
-
-  // Referencja do pola input
-  const inputRef = useRef(null);
-  
-  // Referencja do kontenera z @
-  const atSignRef = useRef(null);
-
-  // Stan do przechowywania nazwy użytkownika bez @
+/**
+ * Karta z nazwą użytkownika:
+ * - Prefiks "@" wewnątrz pola (flex), klikalny → fokusuje input
+ * - Pływająca etykieta bez tła, taki sam ruch jak w NameCard
+ * - Walidacja: [a-zA-Z0-9_] 3–20 znaków (inline, ARIA)
+ * - Minimalna wysokość, treść wyśrodkowana pionowo, CTA przy dole
+ */
+const UserNameCard = ({
+  formData,
+  updateFormData,
+  onNext,
+  onPrev,
+  isSubmitting = false,
+}) => {
+  // Stan etykiety + kontrolowana wartość (zawsze bez '@')
+  const [focused, setFocused] = useState({ username: false });
   const [usernameValue, setUsernameValue] = useState('');
+  const inputRef = useRef(null);
 
-  // Funkcja do obsługi zmiany w polu formularza
+  // Reguła walidacji
+  const USERNAME_RGX = /^[a-zA-Z0-9_]{3,20}$/;
+
+  // Synchronizacja z formData (usunąć ewentualne '@')
+  useEffect(() => {
+    const clean = (formData?.username || '').replace(/@/g, '');
+    setUsernameValue(clean);
+  }, [formData?.username]);
+
+  // Zapis zmian (bez '@')
   const handleChange = (e) => {
-    const value = e.target.value;
-    
-    // Usuń znak @ jeśli pojawił się gdzieś w tekście (np. ktoś go wpisał)
-    const cleanValue = value.replace(/@/g, '');
-    
+    const cleanValue = e.target.value.replace(/@/g, '');
     setUsernameValue(cleanValue);
-    // Zapisz username bez @ do formData (backend może oczekiwać bez @)
     updateFormData('username', cleanValue);
   };
 
-  // Inicjalizacja stanu gdy formData się zmienia
-  useEffect(() => {
-    if (formData.username && formData.username !== '@' && formData.username !== '') {
-      // Usuń prefiks @ jeśli istnieje i ustaw wartość pola
-      const cleanUsername = formData.username.replace(/@/g, '');
-      setUsernameValue(cleanUsername);
-    }
-  }, [formData.username]); // 👈 POPRAWKA: dodano dependency
-
-  // Obsługa wejścia w pole (focus)
-  const handleFocus = (field) => {
-    setFocused(prev => ({
-      ...prev,
-      [field]: true
-    }));
-    
-    // Przesuń kursor na koniec tekstu
-    if (inputRef.current) {
-      setTimeout(() => {
-        const length = inputRef.current.value.length;
-        inputRef.current.selectionStart = length;
-        inputRef.current.selectionEnd = length;
-      }, 0);
-    }
+  // Pływająca etykieta
+  const handleFocus = () => setFocused((s) => ({ ...s, username: true }));
+  const handleBlur = () => {
+    if (!usernameValue) setFocused((s) => ({ ...s, username: false }));
   };
 
-  // Obsługa wyjścia z pola (blur)
-  const handleBlur = (field) => {
-    if (!usernameValue) {
-      setFocused(prev => ({
-        ...prev,
-        [field]: false
-      }));
-    }
-  };
+  // Klik na "@": fokus na input
+  const focusInput = () => inputRef.current?.focus();
 
-  // Walidacja przed przejściem dalej
+  // Walidacja pochodna
+  const hasValue = (usernameValue || '').trim().length > 0;
+  const isFormatValid = USERNAME_RGX.test((usernameValue || '').trim());
+  const isFormValid = hasValue && isFormatValid;
+  const usernameHasError = hasValue && !isFormatValid;
+
+  // Wyślij krok
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Sprawdź czy nazwa użytkownika ma jakąś wartość
-    if (!usernameValue || usernameValue.trim() === '') {
-      alert('Proszę podać nazwę użytkownika');
-      return;
-    }
-    
-    // Podstawowa walidacja username
-    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-    if (!usernameRegex.test(usernameValue.trim())) {
-      alert('Nazwa użytkownika może zawierać tylko litery, cyfry i podkreślenia (3-20 znaków)');
-      return;
-    }
-    
+    if (!isFormValid || isSubmitting) return;
     onNext();
   };
 
-  // 👈 POPRAWKA: Lepsze zarządzanie event listenerami
-  useEffect(() => {
-    const atSign = atSignRef.current;
-    const input = inputRef.current;
-    
-    const handleAtSignClick = () => {
-      if (input) {
-        input.focus();
-      }
-    };
-    
-    if (atSign) {
-      atSign.addEventListener('click', handleAtSignClick);
-    }
-    
-    // Cleanup funkcja
-    return () => {
-      if (atSign) {
-        atSign.removeEventListener('click', handleAtSignClick);
-      }
-    };
-  }, []); // 👈 POPRAWKA: pusta tablica dependencies
-
   return (
-    <div className="bg-[#0a0a0a]/95 rounded-3xl shadow-xl p-8 w-full h-[550px] flex flex-col shadow-[0_0_30px_10px_rgba(0,0,0,0.5)] border border-[#222222]">
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-6 flex-grow">
-        {/* Pasek postępu - dynamiczny na podstawie kroku */}
-        <div className="max-w-xs mx-auto w-full h-3 bg-gray-800 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full transition-all duration-300" 
-            style={{ width: '44%' }} // 👈 POPRAWKA: 4/9 kroków = ~44%
-          ></div>
-        </div>
-        
-        <div className="text-center mt-16"> {/* 👈 POPRAWKA: zmniejszono margines */}
-          <h2 className="text-white text-2xl font-bold">Wybierz nazwę użytkownika</h2>
-          <p className="text-white text-lg">Będzie ona widoczna dla innych użytkowników</p>
-        </div>
-
-        {/* Pole nazwy użytkownika z pływającą etykietą i stałym @ */}
-        <div className="relative mt-8"> {/* 👈 POPRAWKA: zwiększono margines */}
-          <div className="w-full bg-[#1D1D1D] text-white rounded-full py-4 px-5 outline-none text-lg flex items-center border-2 border-transparent focus-within:border-[#1DCD9F] transition-colors duration-200">
-            {/* Stały znak @ w szarym kolorze */}
-            <span 
-              ref={atSignRef} 
-              className="text-gray-400 select-none cursor-pointer"
-              aria-label="Prefiks nazwy użytkownika"
-            >
-              @
-            </span>
-            
-            {/* Właściwe pole input bez @ */}
-            <input
-              type="text"
-              name="username"
-              id="username"
-              ref={inputRef}
-              value={usernameValue}
-              onChange={handleChange}
-              onFocus={() => handleFocus('username')}
-              onBlur={() => handleBlur('username')}
-              className="bg-transparent outline-none flex-1 ml-1 text-white placeholder-gray-500"
-              placeholder="nazwa_uzytkownika"
-              required
-              autoComplete="username"
-              maxLength="20"
-              minLength="3"
-            />
+    <div className="bg-[#0a0a0a]/95 rounded-3xl shadow-xl p-6 md:p-8 w-full flex flex-col border border-[#222222] shadow-[0_0_30px_10px_rgba(0,0,0,0.5)] min-h-[520px]">
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1">
+        {/* Treść wyśrodkowana pionowo */}
+        <div className="flex flex-col gap-6 flex-1 justify-center">
+          {/* Nagłówek */}
+          <div className="text-center">
+            <h2 className="text-white text-2xl font-bold">Wybierz nazwę użytkownika</h2>
+            <p className="text-white/90 text-lg">Będzie widoczna dla innych użytkowników</p>
           </div>
-          
-          <label 
-            htmlFor="username"
-            className={`absolute text-gray-400 transition-all duration-200 pointer-events-none ${
-              focused.username || usernameValue
-                ? 'text-xs -top-2 left-5 bg-[#0a0a0a] px-2' 
-                : 'text-lg top-4 left-11' // 👈 POPRAWKA: dostosowano pozycję dla @
-            }`}
-          >
-            Nazwa użytkownika
-          </label>
-          
-          {/* Wskazówka walidacji */}
-          <p className="text-gray-500 text-sm mt-2 ml-5">
-            3-20 znaków: litery, cyfry, podkreślenia
-          </p>
+
+          {/* Pole: nazwa użytkownika */}
+          <div className="relative mt-2">
+            {/* Wrapper pola jako flex, żeby "@" był częścią pola */}
+            <div
+              className={[
+                'w-full rounded-full py-4 px-5 text-lg transition-all duration-200',
+                'bg-[#1D1D1D] text-white border flex items-center',
+                usernameHasError
+                  ? 'border-red-500 ring-0 focus-within:ring-2 focus-within:ring-red-500/40'
+                  : 'border-transparent ring-0 focus-within:ring-2 focus-within:ring-[#1DCD9F]/40',
+              ].join(' ')}
+            >
+              {/* Prefiks @ – klikalny, nie znika */}
+              <button
+                type="button"
+                onClick={focusInput}
+                className="text-gray-400 select-none cursor-text mr-1"
+                aria-hidden="true"
+                tabIndex={-1}
+                title="@"
+              >
+                @
+              </button>
+
+              {/* Input bez placeholdera */}
+              <input
+                type="text"
+                id="username"
+                name="username"
+                ref={inputRef}
+                value={usernameValue}
+                onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                className="bg-transparent outline-none flex-1 text-white"
+                autoComplete="username"
+                maxLength={20}
+                minLength={3}
+                aria-invalid={usernameHasError ? 'true' : 'false'}
+                aria-describedby="username-help username-error"
+              />
+            </div>
+
+            {/* Etykieta pływająca – jak w NameCard (bez tła) */}
+            <label
+              htmlFor="username"
+              className={[
+                'absolute pointer-events-none transition-all duration-200 text-gray-400',
+                focused.username || usernameValue
+                  ? 'text-xs top-1 left-5'
+                  : 'text-lg top-4 left-12', // odsunięte od "@"
+              ].join(' ')}
+            >
+              Nazwa użytkownika
+            </label>
+
+            {/* Komunikaty walidacyjne / pomocnicze */}
+            <div className="mt-2 ml-2 space-y-1 text-sm break-words" aria-live="polite">
+              {usernameHasError && (
+                <p id="username-error" className="text-red-400">
+                  Dozwolone: litery, cyfry, „_”, długość 3–20.
+                </p>
+              )}
+              {!usernameHasError && hasValue && (
+                <p id="username-help" className="text-emerald-400">
+                  ✓ Wygląda dobrze: @{usernameValue}
+                </p>
+              )}
+              {!hasValue && (
+                <p id="username-help" className="text-gray-400">
+                  Użyj liter, cyfr lub „_”, 3–20 znaków.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Przyciski nawigacji */}
-        <div className="mt-auto grid grid-cols-2 gap-4">
+        {/* Nawigacja */}
+        <div className="mt-auto grid grid-cols-2 gap-4 pt-4">
           <button
             type="button"
             onClick={onPrev}
-            className="bg-[#1D1D1D] hover:bg-[#292929] text-white font-bold py-4 rounded-full transition-all duration-300"
+            disabled={isSubmitting}
+            className="bg-[#1D1D1D] hover:bg-[#292929] text-white font-bold py-4 rounded-full transition-all duration-300 disabled:opacity-60"
           >
             Wstecz
           </button>
           <button
             type="submit"
-            className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white font-bold py-4 rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110"
+            disabled={!isFormValid || isSubmitting}
+            className={[
+              'py-4 rounded-full font-bold transition-all duration-300',
+              isFormValid && !isSubmitting
+                ? 'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110'
+                : 'bg-gray-600 text-gray-300 cursor-not-allowed',
+            ].join(' ')}
           >
-            Dalej
+            {isSubmitting ? 'Ładowanie…' : 'Dalej'}
           </button>
         </div>
       </form>
@@ -191,4 +174,4 @@ const UsernameCard = ({ formData, updateFormData, onNext, onPrev }) => {
   );
 };
 
-export default UsernameCard;
+export default UserNameCard;
