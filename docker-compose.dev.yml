@@ -54,7 +54,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     restart: unless-stopped
 
-  # Baza danych PostgreSQL
+  # Baza danych PostgreSQL - DODANE!
   db:
     image: postgres:13-alpine
     volumes:
@@ -65,7 +65,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
       - lasko-network
     restart: unless-stopped

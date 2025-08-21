@@ -1,14 +1,21 @@
-# backend/accounts/models.py
+# backend/accounts/models.py (POPRAWIONE WEDŁUG RZECZYWISTEJ STRUKTURY)
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 
 class AuthAccount(models.Model):
-    """Model reprezentujący konto użytkownika w tabeli auth_accounts"""
+    """Model konta użytkownika - zgodny z rzeczywistą tabelą"""
     
     username = models.CharField(max_length=50, unique=True)
     email = models.CharField(max_length=100, unique=True)
-    password = models.CharField(max_length=128)  # Zmienione z password_hash na password - zgodnie z Django
+    
+    # POPRAWKA: Kolumna nazywa się 'password', nie 'password_hash'
+    password = models.CharField(max_length=255)
+    
     first_name = models.CharField(max_length=50, null=True, blank=True)
+    is_admin = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Dodatkowe kolumny Django User (wykryte w bazie)
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -19,51 +26,37 @@ class AuthAccount(models.Model):
         db_table = 'auth_accounts'
     
     def set_password(self, raw_password):
-        """Hashowanie hasła"""
+        """Ustaw hasło (hashowane)"""
         self.password = make_password(raw_password)
     
     def check_password(self, raw_password):
-        """Sprawdzenie hasła"""
+        """Sprawdź hasło"""
         return check_password(raw_password, self.password)
-    
-    # Property dla kompatybilności z starym kodem
-    @property
-    def is_admin(self):
-        return self.is_superuser
-    
-    @property
-    def created_at(self):
-        return self.date_joined
     
     def __str__(self):
         return self.username
 
-
 class UserProfile(models.Model):
-    """Model reprezentujący profil użytkownika w tabeli user_profiles"""
+    """Model profilu użytkownika"""
     
-    # Zaktualizowane choices zgodnie z tym co wysyła frontend
     GOAL_CHOICES = [
-        ('masa', 'Budowanie masy mięśniowej'),
-        ('redukcja', 'Redukcja tłuszczu'),
+        ('masa', 'Masa mięśniowa'),
+        ('redukcja', 'Redukcja tkanki tłuszczowej'),
         ('siła', 'Zwiększenie siły'),
-        ('kondycja', 'Poprawa kondycji'),
-        ('modelowanie', 'Modelowanie sylwetki'),
-        ('zdrowie', 'Zdrowie i samopoczucie'),
+        ('wytrzymalosc', 'Wytrzymałość'),
+        ('zdrowie', 'Zdrowie ogólne'),
     ]
     
     LEVEL_CHOICES = [
         ('początkujący', 'Początkujący'),
-        ('sredniozaawansowany', 'Średnio zaawansowany'),
+        ('średniozaawansowany', 'Średniozaawansowany'),
         ('zaawansowany', 'Zaawansowany'),
-        ('ekspert', 'Ekspert'),
     ]
     
     EQUIPMENT_CHOICES = [
         ('siłownia', 'Pełna siłownia'),
-        ('hantle', 'Tylko hantle'),
-        ('maszyny', 'Maszyny'),
-        ('brak', 'Brak sprzętu (własny ciężar)'),
+        ('dom_hantle', 'Dom (hantle + ławka)'),
+        ('dom_masa', 'Dom (masa własna ciała)'),
         ('minimalne', 'Minimalne wyposażenie'),
         ('dom', 'Trening w domu'),
         ('wolne_ciezary', 'Wolne ciężary'),
@@ -73,7 +66,7 @@ class UserProfile(models.Model):
         AuthAccount, 
         on_delete=models.CASCADE,
         db_column='auth_account_id',
-        related_name='userprofile'  # Zmienione z 'profile' na 'userprofile'
+        related_name='userprofile'
     )
     first_name = models.CharField(max_length=50, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
@@ -81,8 +74,6 @@ class UserProfile(models.Model):
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES, null=True, blank=True)
     training_days_per_week = models.IntegerField(null=True, blank=True)
     equipment_preference = models.CharField(max_length=50, choices=EQUIPMENT_CHOICES, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         db_table = 'user_profiles'

@@ -14,3 +14,67 @@ INFO 2025-08-20 19:11:08,157 serializers 60920 8513036032 ✅ Hasło ustawione i
 INFO 2025-08-20 19:11:08,157 serializers 60920 8513036032 📋 Tworzę UserProfile...
 INFO 2025-08-20 19:11:08,160 serializers 60920 8513036032 ✅ UserProfile utworzone: ID=1501
 INFO 2025-08-20 19:11:08,161 serializers 60920 8513036032 🎉 Transakcja zakończona sukcesem!
+INFO 2025-08-20 19:51:53,481 serializers 62696 8513036032 🔍 VALIDATE - otrzymane dane: {'username': 'test_user_1755712313', 'email': 'test_1755712313@example.com', 'password': 'TestPass123', 'password_confirm': 'TestPass123', 'first_name': 'Test', 'goal': 'masa', 'level': 'początkujący', 'training_days_per_week': 3, 'equipment_preference': 'siłownia'}
+INFO 2025-08-20 19:51:53,487 serializers 62696 8513036032 ✅ VALIDATE - walidacja przeszła pomyślnie
+INFO 2025-08-20 19:51:53,487 serializers 62696 8513036032 🏗️ CREATE - Rozpoczynam tworzenie użytkownika
+INFO 2025-08-20 19:51:53,488 serializers 62696 8513036032 📝 Validated data: ['username', 'email', 'password', 'password_confirm', 'first_name', 'goal', 'level', 'training_days_per_week', 'equipment_preference']
+INFO 2025-08-20 19:51:53,488 serializers 62696 8513036032 📋 Profile data: {'date_of_birth': None, 'goal': 'masa', 'level': 'początkujący', 'training_days_per_week': 3, 'equipment_preference': 'siłownia', 'first_name': 'Test'}
+INFO 2025-08-20 19:51:53,488 serializers 62696 8513036032 👤 Auth account data: {'username': 'test_user_1755712313', 'email': 'test_1755712313@example.com', 'first_name': 'Test'}
+INFO 2025-08-20 19:51:53,488 serializers 62696 8513036032 🔄 Rozpoczynam transakcję atomową...
+INFO 2025-08-20 19:51:53,488 serializers 62696 8513036032 🗄️ Wstawiam rekord do auth_accounts...
+ERROR 2025-08-20 19:51:53,677 serializers 62696 8513036032 ❌ Błąd w create(): column "password_hash" of relation "auth_accounts" does not exist
+LINE 2: ...      INSERT INTO auth_accounts (username, email, password_h...
+                                                             ^
+
+ERROR 2025-08-20 19:51:53,678 serializers 62696 8513036032 ❌ Traceback: Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column "password_hash" of relation "auth_accounts" does not exist
+LINE 2: ...      INSERT INTO auth_accounts (username, email, password_h...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/piotr/Desktop/GitHub/Praca_inzynierska/Lasko_app/backend/accounts/serializers.py", line 113, in create
+    cursor.execute("""
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column "password_hash" of relation "auth_accounts" does not exist
+LINE 2: ...      INSERT INTO auth_accounts (username, email, password_h...
+                                                             ^
+
+
+INFO 2025-08-20 19:54:30,111 serializers 62815 8513036032 🔍 VALIDATE - otrzymane dane: {'username': 'final_test_1755712470', 'email': 'final_1755712470@test.com', 'password': 'FinalTest123', 'password_confirm': 'FinalTest123', 'first_name': 'Final Test', 'goal': 'masa', 'level': 'początkujący', 'training_days_per_week': 4, 'equipment_preference': 'siłownia'}
+INFO 2025-08-20 19:54:30,113 serializers 62815 8513036032 ✅ VALIDATE - walidacja przeszła pomyślnie
+INFO 2025-08-20 19:54:30,113 serializers 62815 8513036032 🏗️ CREATE - Rozpoczynam tworzenie użytkownika
+INFO 2025-08-20 19:54:30,113 serializers 62815 8513036032 📋 Profile data: {'date_of_birth': None, 'goal': 'masa', 'level': 'początkujący', 'training_days_per_week': 4, 'equipment_preference': 'siłownia', 'first_name': 'Final Test'}
+INFO 2025-08-20 19:54:30,113 serializers 62815 8513036032 👤 Auth account data: {'username': 'final_test_1755712470', 'email': 'final_1755712470@test.com', 'first_name': 'Final Test'}
+INFO 2025-08-20 19:54:30,114 serializers 62815 8513036032 🔄 Rozpoczynam transakcję atomową...
+INFO 2025-08-20 19:54:30,114 serializers 62815 8513036032 🗄️ Wstawiam rekord do auth_accounts...
+INFO 2025-08-20 19:54:30,310 serializers 62815 8513036032 ✅ AuthAccount utworzone z ID: 1502
+INFO 2025-08-20 19:54:30,312 serializers 62815 8513036032 ✅ UserProfile utworzone z ID: 1502
+INFO 2025-08-20 19:54:30,314 serializers 62815 8513036032 🎉 Transakcja zakończona sukcesem!
+INFO 2025-08-20 19:54:30,314 serializers 62815 8513036032 👤 Utworzono użytkownika: final_test_1755712470
+INFO 2025-08-21 15:13:07,023 autoreload 91533 8513036032 Watching for file changes with StatReloader
+INFO 2025-08-21 15:13:09,285 basehttp 91533 6169882624 "GET / HTTP/1.1" 200 48
+WARNING 2025-08-21 15:13:09,387 log 91533 6186708992 Not Found: /apple-touch-icon-precomposed.png
+WARNING 2025-08-21 15:13:09,388 basehttp 91533 6186708992 "GET /apple-touch-icon-precomposed.png HTTP/1.1" 404 179
+WARNING 2025-08-21 15:13:09,441 log 91533 6169882624 Not Found: /favicon.ico
+WARNING 2025-08-21 15:13:09,442 basehttp 91533 6169882624 "GET /favicon.ico HTTP/1.1" 404 179
+WARNING 2025-08-21 15:13:09,480 log 91533 6186708992 Not Found: /apple-touch-icon.png
+WARNING 2025-08-21 15:13:09,480 basehttp 91533 6186708992 "GET /apple-touch-icon.png HTTP/1.1" 404 179
