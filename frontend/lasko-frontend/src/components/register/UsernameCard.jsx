@@ -23,16 +23,18 @@ const UsernameCard = ({ formData, updateFormData, onNext, onPrev }) => {
     const cleanValue = value.replace(/@/g, '');
     
     setUsernameValue(cleanValue);
-    updateFormData('username', '@' + cleanValue);
+    // Zapisz username bez @ do formData (backend może oczekiwać bez @)
+    updateFormData('username', cleanValue);
   };
 
   // Inicjalizacja stanu gdy formData się zmienia
   useEffect(() => {
-    if (formData.username && formData.username !== '@') {
-      // Usuń prefiks @ i ustaw wartość pola
-      setUsernameValue(formData.username.replace(/@/g, ''));
+    if (formData.username && formData.username !== '@' && formData.username !== '') {
+      // Usuń prefiks @ jeśli istnieje i ustaw wartość pola
+      const cleanUsername = formData.username.replace(/@/g, '');
+      setUsernameValue(cleanUsername);
     }
-  }, []);
+  }, [formData.username]); // 👈 POPRAWKA: dodano dependency
 
   // Obsługa wejścia w pole (focus)
   const handleFocus = (field) => {
@@ -65,51 +67,72 @@ const UsernameCard = ({ formData, updateFormData, onNext, onPrev }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Sprawdź czy nazwa użytkownika ma jakąś wartość poza @
+    // Sprawdź czy nazwa użytkownika ma jakąś wartość
     if (!usernameValue || usernameValue.trim() === '') {
       alert('Proszę podać nazwę użytkownika');
+      return;
+    }
+    
+    // Podstawowa walidacja username
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(usernameValue.trim())) {
+      alert('Nazwa użytkownika może zawierać tylko litery, cyfry i podkreślenia (3-20 znaków)');
       return;
     }
     
     onNext();
   };
 
-  // Dostosowanie szerokości kontenera @ do rozmiaru tekstu
+  // 👈 POPRAWKA: Lepsze zarządzanie event listenerami
   useEffect(() => {
-    if (atSignRef.current && inputRef.current) {
-      // Upewnij się, że input otrzymuje focus w razie kliknięcia na @
-      atSignRef.current.addEventListener('click', () => {
-        inputRef.current.focus();
-      });
-    }
+    const atSign = atSignRef.current;
+    const input = inputRef.current;
     
-    return () => {
-      if (atSignRef.current && inputRef.current) {
-        atSignRef.current.removeEventListener('click', () => {
-          inputRef.current.focus();
-        });
+    const handleAtSignClick = () => {
+      if (input) {
+        input.focus();
       }
     };
-  }, []);
+    
+    if (atSign) {
+      atSign.addEventListener('click', handleAtSignClick);
+    }
+    
+    // Cleanup funkcja
+    return () => {
+      if (atSign) {
+        atSign.removeEventListener('click', handleAtSignClick);
+      }
+    };
+  }, []); // 👈 POPRAWKA: pusta tablica dependencies
 
   return (
     <div className="bg-[#0a0a0a]/95 rounded-3xl shadow-xl p-8 w-full h-[550px] flex flex-col shadow-[0_0_30px_10px_rgba(0,0,0,0.5)] border border-[#222222]">
       <form onSubmit={handleSubmit} className="flex flex-col space-y-6 flex-grow">
-        {/* Pasek postępu - nad pytaniami, krótszy */}
+        {/* Pasek postępu - dynamiczny na podstawie kroku */}
         <div className="max-w-xs mx-auto w-full h-3 bg-gray-800 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full" style={{ width: '80%' }}></div>
+          <div 
+            className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full transition-all duration-300" 
+            style={{ width: '44%' }} // 👈 POPRAWKA: 4/9 kroków = ~44%
+          ></div>
         </div>
         
-        <div className="text-center mt-24">
+        <div className="text-center mt-16"> {/* 👈 POPRAWKA: zmniejszono margines */}
           <h2 className="text-white text-2xl font-bold">Wybierz nazwę użytkownika</h2>
           <p className="text-white text-lg">Będzie ona widoczna dla innych użytkowników</p>
         </div>
 
         {/* Pole nazwy użytkownika z pływającą etykietą i stałym @ */}
-        <div className="relative mt-2">
-          <div className="w-full bg-[#1D1D1D] text-white rounded-full py-4 px-5 outline-none text-lg flex items-center">
+        <div className="relative mt-8"> {/* 👈 POPRAWKA: zwiększono margines */}
+          <div className="w-full bg-[#1D1D1D] text-white rounded-full py-4 px-5 outline-none text-lg flex items-center border-2 border-transparent focus-within:border-[#1DCD9F] transition-colors duration-200">
             {/* Stały znak @ w szarym kolorze */}
-            <span ref={atSignRef} className="text-gray-400 select-none">@</span>
+            <span 
+              ref={atSignRef} 
+              className="text-gray-400 select-none cursor-pointer"
+              aria-label="Prefiks nazwy użytkownika"
+            >
+              @
+            </span>
             
             {/* Właściwe pole input bez @ */}
             <input
@@ -121,21 +144,30 @@ const UsernameCard = ({ formData, updateFormData, onNext, onPrev }) => {
               onChange={handleChange}
               onFocus={() => handleFocus('username')}
               onBlur={() => handleBlur('username')}
-              className="bg-transparent outline-none flex-1 ml-1"
+              className="bg-transparent outline-none flex-1 ml-1 text-white placeholder-gray-500"
+              placeholder="nazwa_uzytkownika"
               required
+              autoComplete="username"
+              maxLength="20"
+              minLength="3"
             />
           </div>
           
           <label 
             htmlFor="username"
-            className={`absolute text-gray-400 transition-all duration-200 ${
+            className={`absolute text-gray-400 transition-all duration-200 pointer-events-none ${
               focused.username || usernameValue
-                ? 'text-xs top-1 left-5' 
-                : 'text-lg top-4 left-5 pl-6'
+                ? 'text-xs -top-2 left-5 bg-[#0a0a0a] px-2' 
+                : 'text-lg top-4 left-11' // 👈 POPRAWKA: dostosowano pozycję dla @
             }`}
           >
             Nazwa użytkownika
           </label>
+          
+          {/* Wskazówka walidacji */}
+          <p className="text-gray-500 text-sm mt-2 ml-5">
+            3-20 znaków: litery, cyfry, podkreślenia
+          </p>
         </div>
 
         {/* Przyciski nawigacji */}

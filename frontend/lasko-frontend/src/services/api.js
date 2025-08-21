@@ -5,30 +5,6 @@ class ApiService {
     this.baseURL = API_BASE_URL;
   }
 
-  // Funkcja do bezpiecznego generowania username
-  generateUsername(name) {
-    if (!name) return '';
-    
-    // Mapowanie polskich znaków na odpowiedniki bez diakrytyków
-    const polishCharsMap = {
-      'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 
-      'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
-      'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N',
-      'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
-    };
-    
-    const result = name
-      .split('')
-      .map(char => polishCharsMap[char] || char)
-      .join('')
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
-      .substring(0, 30);
-    
-    console.log(`🔄 Username generation: "${name}" -> "${result}"`);
-    return result;
-  }
-
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     
@@ -105,25 +81,23 @@ class ApiService {
     console.log('🔍 ApiService - Otrzymane dane do rejestracji:');
     console.log('='.repeat(50));
     console.log('📝 Oryginalne dane:', userData);
-    console.log('   name:', `"${userData.name}"`);
-    console.log('   email:', `"${userData.email}"`);
-    console.log('   goal:', `"${userData.goal}"`);
-    console.log('   level:', `"${userData.level}"`);
-    console.log('   trainingDaysPerWeek:', userData.trainingDaysPerWeek);
-    console.log('   equipmentPreference:', `"${userData.equipmentPreference}"`);
     
-    // Przygotuj dane z poprawnym mapowaniem i dodaj password_confirm
+    // 🔧 GŁÓWNA POPRAWKA: Nie używamy generateUsername!
+    // Używamy prawdziwego username z formularza
     const registrationData = {
-      username: this.generateUsername(userData.name || userData.username),
+      // ✅ POPRAWKA: Używaj username bezpośrednio (bez generowania)
+      username: userData.username,               // Prawdziwy username od użytkownika
       email: userData.email,
       password: userData.password,
-      password_confirm: userData.password, // WAŻNE: Dodaj to pole!
-      first_name: userData.name || userData.first_name,
-      date_of_birth: userData.birthDate || userData.date_of_birth || null,
+      password_confirm: userData.password,       // Backend wymaga potwierdzenia
+      
+      // ✅ POPRAWKA: Mapowanie zgodne z backendem  
+      first_name: userData.first_name,           // Imię do AuthAccount i UserProfile
+      date_of_birth: userData.date_of_birth,     // snake_case zgodnie z backendem
       goal: userData.goal || '',
       level: userData.level || '',
-      training_days_per_week: userData.trainingDaysPerWeek || userData.training_days_per_week || null,
-      equipment_preference: userData.equipmentPreference || userData.equipment_preference || '',
+      training_days_per_week: userData.training_days_per_week, // snake_case
+      equipment_preference: userData.equipment_preference,     // snake_case
     };
 
     console.log('🔄 ApiService - Dane po mapowaniu (wysyłane do backendu):');

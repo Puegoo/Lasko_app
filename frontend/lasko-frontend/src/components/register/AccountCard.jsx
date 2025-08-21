@@ -1,121 +1,96 @@
-import React, { useState } from 'react';
+// frontend/lasko-frontend/src/components/register/AccountCard.jsx
+import React, { useMemo, useState } from 'react';
 
-const AccountCard = ({ 
-  formData, 
-  updateFormData, 
-  validationErrors = {}, // DODANO: Błędy walidacji
-  onNext, 
-  isSubmitting 
+/**
+ * Karta tworzenia konta.
+ * - Spójne walidacje (zgodne z backendem)
+ * - Pływające etykiety
+ * - Wyraźne stany błędów/sukcesu
+ * - Ulepszona dostępność (aria-*), focus ring, klawiszologia
+ * - Przełącznik widoczności hasła
+ */
+const AccountCard = ({
+  formData,
+  updateFormData,
+  validationErrors = {},
+  onNext,
+  isSubmitting,
 }) => {
-  // Stan do obsługi pływającej etykiety
-  const [focused, setFocused] = useState({
-    email: false,
-    password: false
-  });
+  // Lokalny stan do animacji etykiet oraz widoczności hasła
+  const [focused, setFocused] = useState({ email: false, password: false });
+  const [revealPassword, setRevealPassword] = useState(false);
 
-  // POPRAWIONO: Funkcja do obsługi zmiany w polach formularza z debugowaniem
+  // Walidacje spójne z backendem
+  const validateEmail = (email) => {
+    if (!email) return false;
+    const emailPattern =
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailPattern.test(email.trim());
+  };
+
+  const validatePassword = (password) => {
+    const errors = [];
+    if (!password || password.length < 8) errors.push('co najmniej 8 znaków');
+    if (!/\d/.test(password || '')) errors.push('co najmniej jedną cyfrę');
+    if (!/[a-zA-Z]/.test(password || ''))
+      errors.push('co najmniej jedną literę');
+    return errors;
+  };
+
+  // Normalizacja i aktualizacja formularza
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // DEBUGGING EMAIL
-    if (name === 'email') {
-      console.log('🔍 EMAIL DEBUG:');
-      console.log('   Wprowadzony email:', `"${value}"`);
-      console.log('   Długość:', value.length);
-      console.log('   Znaki specjalne:', value.split('').filter(char => /[^\w@.-]/.test(char)));
-      console.log('   Regex test:', /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value));
-      console.log('   Trimmed:', `"${value.trim()}"`);
-    }
-    
-    // Usuń białe znaki z email
     const cleanValue = name === 'email' ? value.trim() : value;
     updateFormData(name, cleanValue);
   };
 
-  // Obsługa wejścia w pole (focus)
   const handleFocus = (field) => {
-    setFocused(prev => ({
-      ...prev,
-      [field]: true
-    }));
+    setFocused((prev) => ({ ...prev, [field]: true }));
   };
 
-  // Obsługa wyjścia z pola (blur)
   const handleBlur = (field) => {
     if (!formData[field]) {
-      setFocused(prev => ({
-        ...prev,
-        [field]: false
-      }));
+      setFocused((prev) => ({ ...prev, [field]: false }));
     }
   };
 
-  // POPRAWIONO: Walidacja hasła zgodna z backendem
-  const validatePassword = (password) => {
-    const errors = [];
-    if (password.length < 8) errors.push('co najmniej 8 znaków');
-    if (!/\d/.test(password)) errors.push('co najmniej jedną cyfrę');
-    if (!/[a-zA-Z]/.test(password)) errors.push('co najmniej jedną literę');
-    return errors;
-  };
+  // Obliczenia pochodne – tylko raz na render
+  const emailValid = useMemo(
+    () => validateEmail(formData.email),
+    [formData.email]
+  );
+  const passwordChecks = useMemo(
+    () => (formData.password ? validatePassword(formData.password) : []),
+    [formData.password]
+  );
+  const passwordValid = useMemo(
+    () => formData.password && passwordChecks.length === 0,
+    [formData.password, passwordChecks]
+  );
+  const formValid = emailValid && passwordValid;
 
-  // POPRAWIONO: Walidacja email - dokładnie taka sama jak w backendzie
-  const validateEmail = (email) => {
-    if (!email) return false;
-    // Użyj dokładnie tego samego regex co w backendzie
-    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return emailPattern.test(email.trim());
-  };
-
-  // POPRAWIONO: Walidacja formularza z lepszym debugowaniem
-  const isValid = () => {
-    const emailValid = validateEmail(formData.email);
-    const passwordErrors = validatePassword(formData.password);
-    const passwordValid = formData.password && passwordErrors.length === 0;
-    
-    // DEBUG
-    console.log('🔍 VALIDATION DEBUG:');
-    console.log('   Email:', `"${formData.email}"`);
-    console.log('   Email valid:', emailValid);
-    console.log('   Password valid:', passwordValid);
-    console.log('   Password errors:', passwordErrors);
-    console.log('   Form valid:', emailValid && passwordValid);
-    
-    return emailValid && passwordValid;
-  };
-
-  // Obsługa wysłania formularza
+  // Wysyłka formularza
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    if (!isValid()) {
-      console.log('❌ Form validation failed');
-      return; // Nie pokazuj alert, błędy będą widoczne w UI
-    }
-    
-    if (!isSubmitting) {
-      console.log('✅ Form valid, proceeding to next step');
-      onNext();
-    }
+    if (!formValid || isSubmitting) return;
+    onNext();
   };
 
-  const passwordErrors = formData.password ? validatePassword(formData.password) : [];
-
   return (
-    <div className="bg-[#2A2A2A] rounded-3xl p-6 shadow-2xl h-full flex flex-col">
-      {/* Nagłówek - skrócony */}
+    <div className="relative bg-[#1A1A1A] rounded-3xl p-6 md:p-8 shadow-[0_10px_40px_rgba(0,0,0,0.45)] h-full flex flex-col border border-[#2b2b2b]">
+      {/* Nagłówek sekcji */}
       <div className="text-center mb-6">
-        <h2 className="text-white text-2xl font-bold mb-2">
+        <h2 className="text-white text-2xl md:text-3xl font-extrabold tracking-tight">
           Stwórz konto
         </h2>
-        <p className="text-gray-400 text-base">
-          Rozpocznij swoją podróż fitness
+        <p className="text-gray-400 text-sm md:text-base mt-1">
+          Rozpocznij swoją podróż fitness z Lasko
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col h-full">
-        {/* Pole email z pływającą etykietą */}
-        <div className="relative mb-4">
+      <form onSubmit={handleSubmit} className="flex flex-col h-full gap-4">
+        {/* Pole: Email */}
+        <div className="relative">
           <input
             type="email"
             name="email"
@@ -124,166 +99,234 @@ const AccountCard = ({
             onChange={handleChange}
             onFocus={() => handleFocus('email')}
             onBlur={() => handleBlur('email')}
-            className={`w-full bg-[#1D1D1D] text-white rounded-full py-4 px-5 outline-none text-lg focus:ring-2 ${
-              validationErrors.email || (!validateEmail(formData.email) && formData.email) 
-                ? 'ring-2 ring-red-500' 
-                : 'focus:ring-[#1DCD9F]'
-            }`}
+            className={[
+              'peer w-full rounded-2xl py-4 pl-5 pr-12 text-base md:text-lg outline-none',
+              'bg-[#121212] text-white border transition-all duration-200',
+              (validationErrors.email ||
+                (!emailValid && formData.email)) &&
+              'border-red-500 focus:ring-2 focus:ring-red-500/40',
+              !validationErrors.email &&
+                (emailValid || !formData.email) &&
+                'border-[#2b2b2b] focus:ring-2 focus:ring-[#1DCD9F]/40',
+              'focus:border-transparent',
+            ].join(' ')}
             required
             disabled={isSubmitting}
             autoComplete="email"
-            placeholder="" // Usuń placeholder żeby pływająca etykieta działała
+            aria-invalid={
+              Boolean(validationErrors.email || (!emailValid && formData.email))
+                ? 'true'
+                : 'false'
+            }
+            aria-describedby="email-help email-error"
+            placeholder=" "
           />
-          <label 
+          <label
             htmlFor="email"
-            className={`absolute transition-all duration-200 pointer-events-none ${
-              validationErrors.email || (!validateEmail(formData.email) && formData.email)
-                ? 'text-red-400' 
-                : 'text-gray-400'
-            } ${
-              focused.email || formData.email 
-                ? 'text-xs top-1 left-5' 
-                : 'text-lg top-4 left-5'
-            }`}
+            className={[
+              'absolute left-5',
+              'pointer-events-none transition-all duration-200',
+              (focused.email || formData.email)
+                ? 'top-2 text-xs text-gray-400'
+                : 'top-4 text-base text-gray-400',
+            ].join(' ')}
           >
             Email
           </label>
-          
-          {/* Wyświetlanie błędu walidacji email z backendu */}
-          {validationErrors.email && (
-            <p className="text-red-400 text-sm mt-2 ml-2">{validationErrors.email}</p>
-          )}
-          
-          {/* Walidacja email po stronie frontu */}
-          {!validationErrors.email && formData.email && !validateEmail(formData.email) && (
-            <p className="text-red-400 text-sm mt-2 ml-2">Podaj poprawny adres e-mail</p>
-          )}
-          
-          {/* Wskaźnik poprawnego email */}
-          {formData.email && validateEmail(formData.email) && !validationErrors.email && (
-            <p className="text-green-400 text-sm mt-2 ml-2">✓ Email jest poprawny</p>
-          )}
+
+          {/* Ikonka statusu */}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            {formData.email && emailValid && !validationErrors.email && (
+              <span
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 text-sm"
+                aria-hidden="true"
+                title="Email poprawny"
+              >
+                ✓
+              </span>
+            )}
+            {formData.email && !emailValid && (
+              <span
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500/20 text-red-300 text-sm"
+                aria-hidden="true"
+                title="Błąd w adresie email"
+              >
+                !
+              </span>
+            )}
+          </div>
+
+          {/* Komunikaty walidacyjne (ARIA-live) */}
+          <div className="mt-2 ml-1 space-y-1 text-sm" aria-live="polite">
+            {validationErrors.email && (
+              <p id="email-error" className="text-red-400">
+                {validationErrors.email}
+              </p>
+            )}
+            {!validationErrors.email &&
+              formData.email &&
+              !emailValid && (
+                <p id="email-help" className="text-red-400">
+                  Podaj poprawny adres e‑mail.
+                </p>
+              )}
+            {formData.email && emailValid && !validationErrors.email && (
+              <p className="text-emerald-400">Email wygląda poprawnie.</p>
+            )}
+          </div>
         </div>
 
-        {/* Pole hasło z pływającą etykietą */}
-        <div className="relative mb-4">
+        {/* Pole: Hasło */}
+        <div className="relative">
           <input
-            type="password"
+            type={revealPassword ? 'text' : 'password'}
             name="password"
             id="password"
             value={formData.password}
             onChange={handleChange}
             onFocus={() => handleFocus('password')}
             onBlur={() => handleBlur('password')}
-            className={`w-full bg-[#1D1D1D] text-white rounded-full py-4 px-5 outline-none text-lg focus:ring-2 ${
-              validationErrors.password || passwordErrors.length > 0 ? 'ring-2 ring-red-500' : 'focus:ring-[#1DCD9F]'
-            }`}
+            className={[
+              'peer w-full rounded-2xl py-4 pl-5 pr-12 text-base md:text-lg outline-none',
+              'bg-[#121212] text-white border transition-all duration-200',
+              (validationErrors.password || passwordChecks.length > 0) &&
+                'border-red-500 focus:ring-2 focus:ring-red-500/40',
+              !validationErrors.password &&
+                passwordChecks.length === 0 &&
+                'border-[#2b2b2b] focus:ring-2 focus:ring-[#1DCD9F]/40',
+              'focus:border-transparent',
+            ].join(' ')}
             required
             disabled={isSubmitting}
             autoComplete="new-password"
-            placeholder="" // Usuń placeholder żeby pływająca etykieta działała
+            aria-invalid={
+              Boolean(validationErrors.password || passwordChecks.length > 0)
+                ? 'true'
+                : 'false'
+            }
+            aria-describedby="password-error password-help"
+            placeholder=" "
           />
-          <label 
+          <label
             htmlFor="password"
-            className={`absolute transition-all duration-200 pointer-events-none ${
-              validationErrors.password || passwordErrors.length > 0 ? 'text-red-400' : 'text-gray-400'
-            } ${
-              focused.password || formData.password 
-                ? 'text-xs top-1 left-5' 
-                : 'text-lg top-4 left-5'
-            }`}
+            className={[
+              'absolute left-5',
+              'pointer-events-none transition-all duration-200',
+              (focused.password || formData.password)
+                ? 'top-2 text-xs text-gray-400'
+                : 'top-4 text-base text-gray-400',
+            ].join(' ')}
           >
             Hasło
           </label>
-          
-          {/* Wyświetlanie błędu walidacji hasła z backendu */}
-          {validationErrors.password && (
-            <p className="text-red-400 text-sm mt-2 ml-2">{validationErrors.password}</p>
-          )}
-          
-          {/* Wyświetlanie błędu potwierdzenia hasła */}
-          {validationErrors.password_confirm && (
-            <p className="text-red-400 text-sm mt-2 ml-2">{validationErrors.password_confirm}</p>
-          )}
+
+          {/* Przełącznik widoczności hasła */}
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 select-none rounded-xl px-3 py-1 text-xs md:text-sm border border-[#2b2b2b] text-gray-300 hover:text-white hover:border-[#3a3a3a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1DCD9F]/50"
+            onClick={() => setRevealPassword((s) => !s)}
+            aria-label={revealPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+            disabled={isSubmitting}
+          >
+            {revealPassword ? 'Ukryj' : 'Pokaż'}
+          </button>
+
+          {/* Komunikaty walidacyjne (backend / confirm) */}
+          <div className="mt-2 ml-1 space-y-1 text-sm" aria-live="polite">
+            {validationErrors.password && (
+              <p id="password-error" className="text-red-400">
+                {validationErrors.password}
+              </p>
+            )}
+            {validationErrors.password_confirm && (
+              <p className="text-red-400">{validationErrors.password_confirm}</p>
+            )}
+          </div>
         </div>
 
-        {/* Wymagania hasła (tylko jeśli użytkownik zaczął pisać) - kompaktowe */}
+        {/* Wymagania hasła – kompaktowy checklist */}
         {formData.password && (
-          <div className="mb-4 p-3 bg-[#1D1D1D] rounded-lg border border-[#444444]">
-            <p className="text-gray-300 text-sm mb-2">Hasło musi zawierać:</p>
-            <div className="space-y-1">
-              <div className={`flex items-center text-sm ${
-                formData.password.length >= 8 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                <span className="mr-2">{formData.password.length >= 8 ? '✓' : '✗'}</span>
-                Co najmniej 8 znaków
-              </div>
-              <div className={`flex items-center text-sm ${
-                /\d/.test(formData.password) ? 'text-green-400' : 'text-red-400'
-              }`}>
-                <span className="mr-2">{/\d/.test(formData.password) ? '✓' : '✗'}</span>
-                Co najmniej jedną cyfrę
-              </div>
-              <div className={`flex items-center text-sm ${
-                /[a-zA-Z]/.test(formData.password) ? 'text-green-400' : 'text-red-400'
-              }`}>
-                <span className="mr-2">{/[a-zA-Z]/.test(formData.password) ? '✓' : '✗'}</span>
-                Co najmniej jedną literę
-              </div>
-            </div>
+          <div className="rounded-2xl border border-[#2b2b2b] bg-[#121212] p-4">
+            <p className="text-gray-300 text-sm mb-2">
+              Hasło musi zawierać:
+            </p>
+            <ul className="space-y-1 text-sm">
+              <li
+                className={
+                  (formData.password?.length ?? 0) >= 8
+                    ? 'text-emerald-400'
+                    : 'text-red-400'
+                }
+              >
+                {(formData.password?.length ?? 0) >= 8 ? '✓' : '✗'} Co najmniej
+                8 znaków
+              </li>
+              <li
+                className={
+                  /\d/.test(formData.password) ? 'text-emerald-400' : 'text-red-400'
+                }
+              >
+                {/\d/.test(formData.password) ? '✓' : '✗'} Co najmniej jedną
+                cyfrę
+              </li>
+              <li
+                className={
+                  /[a-zA-Z]/.test(formData.password)
+                    ? 'text-emerald-400'
+                    : 'text-red-400'
+                }
+              >
+                {/[a-zA-Z]/.test(formData.password) ? '✓' : '✗'} Co najmniej
+                jedną literę
+              </li>
+            </ul>
           </div>
         )}
 
-        {/* Wyświetlanie błędów username jeśli istnieją */}
+        {/* Komunikat dot. nazwy użytkownika (z backendu) */}
         {validationErrors.username && (
-          <div className="bg-red-900/30 border border-red-500 rounded-lg p-3 mb-4">
-            <p className="text-red-400 text-sm">
-              <strong>Problem z nazwą użytkownika:</strong> {validationErrors.username}
+          <div className="rounded-2xl p-4 border border-red-500/70 bg-red-900/20">
+            <p className="text-red-300 text-sm">
+              <strong>Problem z nazwą użytkownika:</strong>{' '}
+              {validationErrors.username}
             </p>
-            <p className="text-red-300 text-xs mt-1">
+            <p className="text-red-200/80 text-xs mt-1">
               Nazwa użytkownika jest generowana automatycznie z Twojego imienia.
             </p>
           </div>
         )}
 
-        {/* Informacja o zgodzie na warunki - skrócona */}
-        <div className="text-center text-xs text-gray-400 mb-4">
-          <p>
-            Kontynuując, zgadzasz się na nasze{' '}
-            <a href="#" className="text-[#1DCD9F] hover:underline">
-              Warunki
-            </a>{' '}
-            i{' '}
-            <a href="#" className="text-[#1DCD9F] hover:underline">
-              Politykę prywatności
-            </a>
-          </p>
-        </div>
+        {/* Zgody (skrót) */}
+        <p className="text-center text-xs text-gray-400">
+          Kontynuując, akceptujesz{' '}
+          <a href="#" className="text-[#1DCD9F] hover:underline">
+            Warunki
+          </a>{' '}
+          i{' '}
+          <a href="#" className="text-[#1DCD9F] hover:underline">
+            Politykę prywatności
+          </a>
+          .
+        </p>
 
-        {/* Przycisk dalej - ZAWSZE WIDOCZNY NA DOLE */}
-        <div className="mt-auto pt-4 border-t border-[#444444]">
+        {/* CTA */}
+        <div className="mt-auto pt-4 border-t border-[#2b2b2b]">
           <button
             type="submit"
-            disabled={!isValid() || isSubmitting}
-            className={`w-full py-3 px-8 font-bold rounded-full transition-all duration-300 ${
-              isValid() && !isSubmitting
-                ? 'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110 transform hover:-translate-y-1'
-                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-            }`}
+            disabled={!formValid || isSubmitting}
+            className={[
+              'w-full py-3 px-8 font-bold rounded-full transition-all duration-300',
+              formValid && !isSubmitting
+                ? 'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white hover:shadow-[0_0_28px_rgba(29,205,159,0.45)] hover:brightness-110 hover:-translate-y-0.5'
+                : 'bg-[#2b2b2b] text-gray-400 cursor-not-allowed',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1DCD9F]/60',
+            ].join(' ')}
+            aria-busy={isSubmitting ? 'true' : 'false'}
           >
-            {isSubmitting ? 'Ładowanie...' : 'Dalej'}
+            {isSubmitting ? 'Ładowanie…' : 'Dalej'}
           </button>
         </div>
       </form>
-
-      {/* DEBUG INFO w development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-2 right-2 bg-black text-white text-xs p-2 rounded max-w-xs">
-          <div>Email: "{formData.email}"</div>
-          <div>Valid: {validateEmail(formData.email) ? 'YES' : 'NO'}</div>
-          <div>Errors: {Object.keys(validationErrors).join(', ') || 'None'}</div>
-        </div>
-      )}
     </div>
   );
 };

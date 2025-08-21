@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import AccountCard from './AccountCard';
 import NameCard from './NameCard';
 import BirthdateCard from './BirthdateCard';
+import UsernameCard from './UsernameCard';
 import SurveyChoiceCard from './SurveyChoiceCard';
 import GoalCard from './GoalCard';
 import LevelCard from './LevelCard';
@@ -25,6 +26,7 @@ const RegistrationContainer = () => {
     password: '',
     name: '',
     birthDate: '',
+    username: '',
     surveyChoice: '',
     skipSurvey: false,
     // Dane z ankiety
@@ -69,7 +71,7 @@ const RegistrationContainer = () => {
   function goToNextStep() {
     if (animating) return;
 
-    const maxStep = formData.skipSurvey ? 3 : 7;
+    const maxStep = formData.skipSurvey ? 4 : 8;
     
     if (currentStep < maxStep) {
       setDirection('next');
@@ -101,28 +103,44 @@ const RegistrationContainer = () => {
     setValidationErrors({});
     
     try {
+      // 🔧 POPRAWKA: Prawidłowe mapowanie pól zgodnie z backendem
       const registrationData = {
-        name: formData.name,
+        // Pola dla AuthAccount
+        username: formData.username,           // ✅ Prawdziwy username od użytkownika
         email: formData.email,
         password: formData.password,
-        birthDate: formData.birthDate || null,
+        first_name: formData.name,             // ✅ name -> first_name
+        
+        // Pola dla UserProfile
+        date_of_birth: formData.birthDate || null,  // ✅ birthDate -> date_of_birth
         goal: formData.goal || '',
         level: formData.level || '',
-        trainingDaysPerWeek: formData.trainingDaysPerWeek || null,
-        equipmentPreference: formData.equipmentPreference || '',
+        training_days_per_week: formData.trainingDaysPerWeek || null,  // ✅ snake_case
+        equipment_preference: formData.equipmentPreference || '',      // ✅ snake_case
       };
 
       console.log('🔍 DEBUGGING - Szczegóły rejestracji:');
       console.log('='.repeat(50));
       console.log('📝 Dane z formularza:');
-      console.log('   name:', `"${formData.name}"`);
+      console.log('   name (imię):', `"${formData.name}"`);
+      console.log('   username:', `"${formData.username}"`);
       console.log('   email:', `"${formData.email}"`);
+      console.log('   birthDate:', formData.birthDate);
       console.log('   goal:', `"${formData.goal}"`);
       console.log('   level:', `"${formData.level}"`);
       console.log('   trainingDaysPerWeek:', formData.trainingDaysPerWeek);
       console.log('   equipmentPreference:', `"${formData.equipmentPreference}"`);
       console.log('   skipSurvey:', formData.skipSurvey);
-      console.log('📤 Dane wysyłane do API:', registrationData);
+      
+      console.log('📤 Dane wysyłane do API (poprawnie zmapowane):');
+      console.log('   username:', `"${registrationData.username}"`);
+      console.log('   first_name:', `"${registrationData.first_name}"`);
+      console.log('   email:', `"${registrationData.email}"`);
+      console.log('   date_of_birth:', registrationData.date_of_birth);
+      console.log('   goal:', `"${registrationData.goal}"`);
+      console.log('   level:', `"${registrationData.level}"`);
+      console.log('   training_days_per_week:', registrationData.training_days_per_week);
+      console.log('   equipment_preference:', `"${registrationData.equipment_preference}"`);
       console.log('='.repeat(50));
 
       console.log('RegistrationContainer: Wysyłanie danych rejestracji:', registrationData);
@@ -170,7 +188,7 @@ const RegistrationContainer = () => {
         const errorField = error.field;
         console.log('📍 Przechodzę do kroku dla pola:', errorField);
         
-        if (['username', 'email', 'password', 'password_confirm'].includes(errorField)) {
+        if (['email', 'password', 'password_confirm'].includes(errorField)) {
           setCurrentStep(0);
           console.log('➡️ Przejście do kroku 0 (AccountCard)');
         } else if (['first_name'].includes(errorField)) {
@@ -179,18 +197,21 @@ const RegistrationContainer = () => {
         } else if (['date_of_birth'].includes(errorField)) {
           setCurrentStep(2);
           console.log('➡️ Przejście do kroku 2 (BirthdateCard)');
+        } else if (['username'].includes(errorField)) {
+          setCurrentStep(3);
+          console.log('➡️ Przejście do kroku 3 (UsernameCard)');
         } else if (['goal'].includes(errorField)) {
-          setCurrentStep(4);
-          console.log('➡️ Przejście do kroku 4 (GoalCard)');
-        } else if (['level'].includes(errorField)) {
           setCurrentStep(5);
-          console.log('➡️ Przejście do kroku 5 (LevelCard)');
-        } else if (['training_days_per_week'].includes(errorField)) {
+          console.log('➡️ Przejście do kroku 5 (GoalCard)');
+        } else if (['level'].includes(errorField)) {
           setCurrentStep(6);
-          console.log('➡️ Przejście do kroku 6 (TrainingDaysCard)');
-        } else if (['equipment_preference'].includes(errorField)) {
+          console.log('➡️ Przejście do kroku 6 (LevelCard)');
+        } else if (['training_days_per_week'].includes(errorField)) {
           setCurrentStep(7);
-          console.log('➡️ Przejście do kroku 7 (EquipmentCard)');
+          console.log('➡️ Przejście do kroku 7 (TrainingDaysCard)');
+        } else if (['equipment_preference'].includes(errorField)) {
+          setCurrentStep(8);
+          console.log('➡️ Przejście do kroku 8 (EquipmentCard)');
         } else {
           setCurrentStep(0);
           console.log('➡️ Przejście do kroku 0 (domyślnie)');
@@ -206,7 +227,7 @@ const RegistrationContainer = () => {
   }
 
   function getNextStep() {
-    if (currentStep === 3 && formData.skipSurvey) {
+    if (currentStep === 4 && formData.skipSurvey) {
       return currentStep + 4;
     }
     return currentStep + 1;
@@ -230,14 +251,16 @@ const RegistrationContainer = () => {
       case 2:
         return <BirthdateCard {...cardProps} />;
       case 3:
-        return <SurveyChoiceCard {...cardProps} />;
+        return <UsernameCard {...cardProps} />;
       case 4:
-        return <GoalCard {...cardProps} />;
+        return <SurveyChoiceCard {...cardProps} />;
       case 5:
-        return <LevelCard {...cardProps} />;
+        return <GoalCard {...cardProps} />;
       case 6:
-        return <TrainingDaysCard {...cardProps} />;
+        return <LevelCard {...cardProps} />;
       case 7:
+        return <TrainingDaysCard {...cardProps} />;
+      case 8:
         return <EquipmentCard {...cardProps} isLastStep={true} />;
       default:
         return null;
@@ -270,13 +293,13 @@ const RegistrationContainer = () => {
       {/* Wskaźnik postępu */}
       <div className="absolute top-8 right-8 z-10">
         <div className="text-white text-sm">
-          Krok {currentStep + 1} z {formData.skipSurvey ? 4 : 8}
+          Krok {currentStep + 1} z {formData.skipSurvey ? 5 : 9}
         </div>
         <div className="w-32 h-2 bg-gray-600 rounded-full mt-2">
           <div 
             className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full transition-all duration-300"
             style={{ 
-              width: `${((currentStep + 1) / (formData.skipSurvey ? 4 : 8)) * 100}%` 
+              width: `${((currentStep + 1) / (formData.skipSurvey ? 5 : 9)) * 100}%` 
             }}
           />
         </div>
@@ -324,6 +347,8 @@ const RegistrationContainer = () => {
             <h4 className="font-bold">Stan formularza:</h4>
             <div className="text-xs mt-2">
               <div>Krok: {currentStep}</div>
+              <div>Name: "{formData.name}"</div>
+              <div>Username: "{formData.username}"</div>
               <div>Goal: "{formData.goal}"</div>
               <div>Level: "{formData.level}"</div>
               <div>Equipment: "{formData.equipmentPreference}"</div>
