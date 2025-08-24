@@ -1,3 +1,4 @@
+// frontend/lasko-frontend/src/services/api.js (POPRAWIONE Z NOWYMI METODAMI)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 class ApiService {
@@ -82,35 +83,30 @@ class ApiService {
     console.log('='.repeat(50));
     console.log('📝 Oryginalne dane:', userData);
     
-    // 🔧 GŁÓWNA POPRAWKA: Nie używamy generateUsername!
-    // Używamy prawdziwego username z formularza
+    // Przygotuj dane do wysłania - zachowaj oryginalne nazwy pól
     const registrationData = {
-      // ✅ POPRAWKA: Używaj username bezpośrednio (bez generowania)
-      username: userData.username,               // Prawdziwy username od użytkownika
+      username: userData.username,
       email: userData.email,
       password: userData.password,
-      password_confirm: userData.password,       // Backend wymaga potwierdzenia
-      
-      // ✅ POPRAWKA: Mapowanie zgodne z backendem  
-      first_name: userData.first_name,           // Imię do AuthAccount i UserProfile
-      date_of_birth: userData.date_of_birth,     // snake_case zgodnie z backendem
+      password_confirm: userData.password,
+      first_name: userData.name,
+      date_of_birth: userData.birthDate,
       goal: userData.goal || '',
       level: userData.level || '',
-      training_days_per_week: userData.training_days_per_week, // snake_case
-      equipment_preference: userData.equipment_preference,     // snake_case
+      training_days_per_week: userData.trainingDaysPerWeek || 3,
+      equipment_preference: userData.equipmentPreference || ''
     };
 
-    console.log('🔄 ApiService - Dane po mapowaniu (wysyłane do backendu):');
+    console.log('🔧 Debug - Sprawdzenie każdego pola:');
     console.log('   username:', `"${registrationData.username}"`);
     console.log('   email:', `"${registrationData.email}"`);
+    console.log('   password length:', registrationData.password?.length || 0);
     console.log('   first_name:', `"${registrationData.first_name}"`);
-    console.log('   date_of_birth:', registrationData.date_of_birth);
+    console.log('   date_of_birth:', `"${registrationData.date_of_birth}"`);
     console.log('   goal:', `"${registrationData.goal}"`);
     console.log('   level:', `"${registrationData.level}"`);
     console.log('   training_days_per_week:', registrationData.training_days_per_week);
     console.log('   equipment_preference:', `"${registrationData.equipment_preference}"`);
-    console.log('   password_confirm:', registrationData.password_confirm ? 'PRESENT' : 'MISSING');
-    console.log('📦 Pełny payload do backendu:', registrationData);
     console.log('='.repeat(50));
 
     return this.request('/api/auth/register/', {
@@ -160,6 +156,32 @@ class ApiService {
 
   getAccessToken() {
     return localStorage.getItem('access_token');
+  }
+
+  // ============================================================================
+  // NOWE METODY DLA REKOMENDACJI - używają this.request() dla spójności
+  // ============================================================================
+
+  async setRecommendationMethod(method) {
+    console.log('🎯 ApiService: Ustawianie metody rekomendacji:', method);
+    
+    if (!['product', 'user', 'hybrid'].includes(method)) {
+      throw new Error('Nieprawidłowa metoda rekomendacji. Dozwolone: product, user, hybrid');
+    }
+
+    return this.request('/api/auth/set-recommendation-method/', {
+      method: 'POST',
+      body: JSON.stringify({ method }),
+    });
+  }
+
+  async generateRecommendations(method) {
+    console.log('🤖 ApiService: Generowanie rekomendacji metodą:', method);
+    
+    return this.request('/api/auth/generate-recommendations/', {
+      method: 'POST',
+      body: JSON.stringify({ method }),
+    });
   }
 }
 

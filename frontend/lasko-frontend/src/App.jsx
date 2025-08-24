@@ -1,9 +1,11 @@
+// frontend/lasko-frontend/src/App.jsx
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import RegistrationContainer from './components/register/RegistrationContainer.jsx';
-import RecommendedPlansPage from './components/register/RecommendedPlansPage';
-import PlanCreatorPage from './components/register/PlanCreatorPage';
+import AlgorithmChoicePage from './components/register/AlgorithmChoicePage'; // NOWY IMPORT
+import EnhancedPlanCreator from './components/register/EnhancedPlanCreator'; // Tylko ten kreator
 import DashboardPage from './components/DashboardPage';
+import PlanCreatorPreview from './components/PlanCreatorPreview';
 
 // --- POPRAWKA: Importowanie obrazków ---
 // Importujemy każdy obrazek, aby Vite mógł poprawnie przetworzyć ścieżki
@@ -31,11 +33,28 @@ const App = () => {
   return (
     <Router>
       <Routes>
+        {/* Główna strona */}
         <Route path="/" element={<HomePage />} />
+        
+        {/* Rejestracja */}
         <Route path="/register" element={<RegistrationContainer />} />
-        <Route path="/recommended-plans" element={<RecommendedPlansPage />} />
-        <Route path="/plan-creator" element={<PlanCreatorPage />} />
+        
+        {/* NOWA ROUTE - wybór algorytmu */}
+        <Route path="/choose-algorithm" element={<AlgorithmChoicePage />} />
+        
+        {/* JEDYNA ścieżka po rejestracji - kreator planu */}
+        <Route path="/plan-creator" element={<EnhancedPlanCreator />} />
+        
+        {/* Dashboard */}
         <Route path="/dashboard" element={<DashboardPage />} />
+        
+        {/* Fallback dla nieistniejących ścieżek */}
+        <Route path="*" element={<HomePage />} />
+
+        <Route path="/plan-creator" element={<PlanCreatorPreview />} />
+
+        <Route path="/enhanced-plan-creator" element={<EnhancedPlanCreator />} />
+
       </Routes>
     </Router>
   );
@@ -111,12 +130,10 @@ const HomePage = () => {
             >
               Zaczynajmy
             </button>
-            {/* USUNIĘTO: Stwórz plan */}
           </div>
         </div>
         
-        {/* Stworek wychodzący poza kafelek - znika przy szerokości poniżej 930px */}
-        {/* --- POPRAWKA: Użycie zaimportowanej zmiennej --- */}
+        {/* Stworek wychodzący poza kafelik - znika przy szerokości poniżej 930px */}
         <img 
           src={laskoHi} 
           alt="Lasko Mascot" 
@@ -184,7 +201,6 @@ const HomePage = () => {
             przypomni o treningu, dopasuje obciążenia, a gdy trzeba, doda otuchy.
           </p>
           <div className="flex items-center justify-center gap-4">
-          {/* --- POPRAWKA: Użycie zaimportowanej zmiennej --- */}
           <img 
             src={whoIsLasko} 
             alt="Tajemniczy obrazek Lasko" 
@@ -204,7 +220,6 @@ const HomePage = () => {
             {/* Kontener dla obrazka - na samym dole kafelka */}
             <div className="absolute bottom-0 left-0 h-36 w-full">
               {/* Obrazek powiększony i obniżony na sam dół kafelka */}
-              {/* --- POPRAWKA: Użycie zaimportowanej zmiennej --- */}
               <img 
                 src={laskoCropHi} 
                 alt="Lasko Icon" 
@@ -245,9 +260,6 @@ const HomePage = () => {
             <h4 className="text-2xl font-bold mb-2">Motywacja od Lasko</h4>
             <p>Wyzwania, powiadomienia i nagrody, które pomagają wracać na matę i siłownię.</p>
           </div>
-        </div>
-        <div className="text-center mt-6">
-          {/* USUNIĘTO: Zobacz rekomendowane plany */}
         </div>
       </div>
 
@@ -309,9 +321,6 @@ const HomePage = () => {
             Lasko przypomni, zmotywuje i pokaże postępy.
           </li>
         </ol>
-        <div className="text-center mt-6">
-          {/* USUNIĘTO: Załóż konto za darmo */}
-        </div>
       </section>
 
       {/* Opinie */}
@@ -333,7 +342,7 @@ const HomePage = () => {
                   <p className="text-[#e0e0e0] text-sm">Ocena: {o.r}</p>
                 </div>
               </div>
-              <p className="text-[#e0e0e0]">“{o.t}”</p>
+              <p className="text-[#e0e0e0]">"{o.t}"</p>
             </div>
           ))}
         </div>
@@ -366,7 +375,6 @@ const HomePage = () => {
           </div>
           <div className="flex gap-3">
             <button onClick={() => navigate('/register')} className="bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white font-bold px-6 py-3 rounded-full hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] transition">Zacznij za darmo</button>
-            {/* USUNIĘTO: Zobacz dashboard */}
           </div>
         </div>
       </section>
@@ -384,7 +392,6 @@ const HomePage = () => {
               <a href="#" className="hover:text-[#1DCD9F] transition">Polityka prywatności</a>
             </div>
             <div className="flex justify-center space-x-3">
-              {/* --- POPRAWKA: Użycie zaimportowanych zmiennych --- */}
               <a href="#" className="hover:opacity-80 transition" aria-label="Instagram">
                 <img src={instagramIcon} alt="Instagram" className="w-8 h-8" />
               </a>
@@ -415,7 +422,6 @@ const HomePage = () => {
 
             {/* Prawa strona: social media */}
             <div className="flex justify-end space-x-3">
-              {/* --- POPRAWKA: Użycie zaimportowanych zmiennych --- */}
               <a href="#" className="hover:opacity-80 transition" aria-label="Instagram">
                 <img src={instagramIcon} alt="Instagram" className="w-8 h-8" />
               </a>

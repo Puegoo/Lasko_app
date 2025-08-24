@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'accounts',
+    'recommendations',
 ]
 
 MIDDLEWARE = [

@@ -1,3 +1,4 @@
+// frontend/lasko-frontend/src/hooks/useAuth.js (POPRAWIONE)
 import { useState, useEffect } from 'react';
 import apiService from '../services/api';
 
@@ -30,19 +31,19 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('useAuth: Rozpoczynam rejestrację z danymi:', userData);
-      
+
       const response = await apiService.register(userData);
-      
+
       console.log('useAuth: Odpowiedź z API:', response);
-      
+
       // Ustaw dane użytkownika po pomyślnej rejestracji
       setUser({
         user: response.user,
-        profile: response.profile
+        profile: response.profile,
       });
-      
+
       return response;
     } catch (error) {
       console.error('useAuth: Błąd rejestracji:', error);
@@ -57,19 +58,19 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('useAuth: Rozpoczynam logowanie:', credentials.email);
-      
+
       const response = await apiService.login(credentials);
-      
+
       console.log('useAuth: Pomyślne logowanie:', response);
-      
+
       // Ustaw dane użytkownika po pomyślnym logowaniu
       setUser({
         user: response.user,
-        profile: response.profile
+        profile: response.profile,
       });
-      
+
       return response;
     } catch (error) {
       console.error('useAuth: Błąd logowania:', error);
@@ -91,15 +92,15 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await apiService.updateProfile(profileData);
-      
+
       // Zaktualizuj dane użytkownika
       setUser({
         user: response.user,
-        profile: response.profile
+        profile: response.profile,
       });
-      
+
       return response;
     } catch (error) {
       console.error('useAuth: Błąd aktualizacji profilu:', error);
@@ -112,6 +113,46 @@ export const useAuth = () => {
 
   const clearError = () => {
     setError(null);
+  };
+
+  // ============================================================================
+  // POPRAWIONE FUNKCJE REKOMENDACJI - używają apiService zamiast fetch
+  // ============================================================================
+
+  const setRecommendationMethod = async (method) => {
+    try {
+      setError(null);
+      
+      console.log('useAuth: Ustawianie metody rekomendacji:', method);
+      
+      const response = await apiService.setRecommendationMethod(method);
+      
+      console.log('useAuth: Metoda rekomendacji ustawiona:', response);
+      
+      return response;
+    } catch (error) {
+      console.error('useAuth: Błąd ustawiania metody rekomendacji:', error);
+      setError(error.message);
+      throw error;
+    }
+  };
+
+  const generateRecommendations = async (method) => {
+    try {
+      setError(null);
+      
+      console.log('useAuth: Generowanie rekomendacji metodą:', method);
+      
+      const response = await apiService.generateRecommendations(method);
+      
+      console.log('useAuth: Rekomendacje wygenerowane:', response);
+      
+      return response;
+    } catch (error) {
+      console.error('useAuth: Błąd generowania rekomendacji:', error);
+      setError(error.message);
+      throw error;
+    }
   };
 
   return {
@@ -127,5 +168,8 @@ export const useAuth = () => {
     // Dodatkowe gettery dla łatwiejszego dostępu
     userData: user?.user || null,
     profileData: user?.profile || null,
+    // POPRAWNIE DODANE funkcje rekomendacji
+    setRecommendationMethod,
+    generateRecommendations,
   };
 };

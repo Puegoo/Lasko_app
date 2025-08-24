@@ -1,15 +1,13 @@
+// frontend/lasko-frontend/src/components/register/RegistrationContainer.jsx (NOWY PRZEPŁYW)
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import saveUserProfile from '../../services/recommendationService';
 import AccountCard from './AccountCard';
 import NameCard from './NameCard';
 import BirthdateCard from './BirthdateCard';
 import UsernameCard from './UsernameCard';
 import SurveyChoiceCard from './SurveyChoiceCard';
-import GoalCard from './GoalCard';
-import LevelCard from './LevelCard';
-import TrainingDaysCard from './TrainingDaysCard';
-import EquipmentCard from './EquipmentCard';
 import RegisterBackground from '../../assets/Photos/Register_background.png';
 
 const RegistrationContainer = () => {
@@ -28,12 +26,7 @@ const RegistrationContainer = () => {
     birthDate: '',
     username: '',
     surveyChoice: '',
-    skipSurvey: false,
-    // Dane z ankiety
-    goal: '',
-    level: '',
-    trainingDaysPerWeek: null,
-    equipmentPreference: ''
+    skipSurvey: false
   });
 
   const getFieldDisplayName = (field) => {
@@ -43,11 +36,7 @@ const RegistrationContainer = () => {
       'password': 'Hasło',
       'password_confirm': 'Potwierdzenie hasła',
       'first_name': 'Imię',
-      'date_of_birth': 'Data urodzenia',
-      'goal': 'Cel',
-      'level': 'Poziom',
-      'training_days_per_week': 'Dni treningowe w tygodniu',
-      'equipment_preference': 'Preferencje sprzętu'
+      'date_of_birth': 'Data urodzenia'
     };
     
     return fieldNames[field] || field;
@@ -68,11 +57,16 @@ const RegistrationContainer = () => {
     }
   }
 
+  // UPROSZCZONA logika kroków - tylko podstawowe dane
+  function getMaxStep() {
+    return 4; // Account, Name, Birthdate, Username, SurveyChoice
+  }
+
   function goToNextStep() {
     if (animating) return;
 
-    const maxStep = formData.skipSurvey ? 4 : 8;
-    
+    const maxStep = getMaxStep();
+
     if (currentStep < maxStep) {
       setDirection('next');
       setAnimating(true);
@@ -82,7 +76,8 @@ const RegistrationContainer = () => {
         setAnimating(false);
       }, 250);
     } else {
-      handleSubmitRegistration();
+      // Ostatni krok - decyzja o ankiecie
+      handleSurveyDecision();
     }
   }
 
@@ -98,69 +93,77 @@ const RegistrationContainer = () => {
     }, 250);
   }
 
-  async function handleSubmitRegistration() {
+  // UPROSZCZONA funkcja renderowania kroków
+  function renderCurrentCard() {
+    switch (currentStep) {
+      case 0: return <AccountCard formData={formData} updateFormData={updateFormData} validationErrors={validationErrors} onNext={goToNextStep} isSubmitting={isSubmitting} />;
+      case 1: return <NameCard formData={formData} updateFormData={updateFormData} validationErrors={validationErrors} onNext={goToNextStep} onPrev={goToPrevStep} isSubmitting={isSubmitting} />;
+      case 2: return <BirthdateCard formData={formData} updateFormData={updateFormData} validationErrors={validationErrors} onNext={goToNextStep} onPrev={goToPrevStep} isSubmitting={isSubmitting} />;
+      case 3: return <UsernameCard formData={formData} updateFormData={updateFormData} validationErrors={validationErrors} onNext={goToNextStep} onPrev={goToPrevStep} isSubmitting={isSubmitting} />;
+      case 4: return <SurveyChoiceCard formData={formData} updateFormData={updateFormData} validationErrors={validationErrors} onNext={goToNextStep} onPrev={goToPrevStep} isSubmitting={isSubmitting} />;
+      default: return null;
+    }
+  }
+
+  // NOWA funkcja obsługująca decyzję o ankiecie
+  const handleSurveyDecision = async () => {
     setIsSubmitting(true);
-    setValidationErrors({});
     
     try {
-      // 🔧 POPRAWKA: Prawidłowe mapowanie pól zgodnie z backendem
+      // Przygotuj podstawowe dane do rejestracji
       const registrationData = {
-        // Pola dla AuthAccount
-        username: formData.username,           // ✅ Prawdziwy username od użytkownika
+        username: formData.username,
         email: formData.email,
         password: formData.password,
-        first_name: formData.name,             // ✅ name -> first_name
-        
-        // Pola dla UserProfile
-        date_of_birth: formData.birthDate || null,  // ✅ birthDate -> date_of_birth
-        goal: formData.goal || '',
-        level: formData.level || '',
-        training_days_per_week: formData.trainingDaysPerWeek || null,  // ✅ snake_case
-        equipment_preference: formData.equipmentPreference || '',      // ✅ snake_case
+        password_confirm: formData.password,
+        first_name: formData.name,
+        date_of_birth: formData.birthDate
       };
 
-      console.log('🔍 DEBUGGING - Szczegóły rejestracji:');
-      console.log('='.repeat(50));
-      console.log('📝 Dane z formularza:');
-      console.log('   name (imię):', `"${formData.name}"`);
-      console.log('   username:', `"${formData.username}"`);
-      console.log('   email:', `"${formData.email}"`);
-      console.log('   birthDate:', formData.birthDate);
-      console.log('   goal:', `"${formData.goal}"`);
-      console.log('   level:', `"${formData.level}"`);
-      console.log('   trainingDaysPerWeek:', formData.trainingDaysPerWeek);
-      console.log('   equipmentPreference:', `"${formData.equipmentPreference}"`);
-      console.log('   skipSurvey:', formData.skipSurvey);
-      
-      console.log('📤 Dane wysyłane do API (poprawnie zmapowane):');
-      console.log('   username:', `"${registrationData.username}"`);
-      console.log('   first_name:', `"${registrationData.first_name}"`);
-      console.log('   email:', `"${registrationData.email}"`);
-      console.log('   date_of_birth:', registrationData.date_of_birth);
-      console.log('   goal:', `"${registrationData.goal}"`);
-      console.log('   level:', `"${registrationData.level}"`);
-      console.log('   training_days_per_week:', registrationData.training_days_per_week);
-      console.log('   equipment_preference:', `"${registrationData.equipment_preference}"`);
-      console.log('='.repeat(50));
+      console.log('🔄 Rejestracja podstawowych danych:', registrationData);
 
-      console.log('RegistrationContainer: Wysyłanie danych rejestracji:', registrationData);
-
+      // Rejestracja użytkownika z podstawowymi danymi
       const response = await register(registrationData);
+      console.log('✅ Rejestracja podstawowa udana:', response);
+
+      // Zapisz podstawowe dane do localStorage
+      const userProfileData = {
+        registrationComplete: true,
+        surveyChoice: formData.surveyChoice,
+        skipSurvey: formData.skipSurvey
+      };
       
-      console.log('RegistrationContainer: Rejestracja udana:', response);
-      
-      navigate('/dashboard');
+      saveUserProfile(userProfileData);
+
+      // NOWY PRZEPŁYW PRZEKIEROWAŃ
+      if (formData.skipSurvey) {
+        // Jeśli pomija ankietę → bezpośrednio do kreatora planu (tryb manual)
+        navigate('/plan-creator', { 
+          state: { 
+            userData: formData,
+            surveyCompleted: false,
+            registrationSuccessful: true,
+            skipBasicInfo: false,
+            fromSurvey: false,
+            mode: 'manual' // Tryb manualny - użytkownik sam konfiguruje wszystko
+          } 
+        });
+      } else {
+        // Jeśli chce ankietę → do szczegółowej ankiety w EnhancedPlanCreator
+        navigate('/enhanced-plan-creator', { 
+          state: { 
+            userData: formData,
+            surveyCompleted: false,
+            registrationSuccessful: true,
+            skipBasicInfo: true, // Pomijamy podstawowe info bo już je mamy
+            fromSurvey: true,
+            mode: 'survey' // Tryb ankietowy - prowadzi przez szczegółową ankietę
+          } 
+        });
+      }
       
     } catch (error) {
-      console.error('RegistrationContainer: Błąd rejestracji:', error);
-      
-      console.log('🚨 DEBUGGING - Szczegóły błędu:');
-      console.log('='.repeat(50));
-      console.log('❌ Error object:', error);
-      console.log('❌ Error message:', error.message);
-      console.log('❌ Validation errors:', error.validationErrors);
-      console.log('❌ Error field:', error.field);
-      console.log('='.repeat(50));
+      console.error('❌ Błąd rejestracji:', error);
       
       if (error.validationErrors) {
         const mappedErrors = {};
@@ -171,10 +174,6 @@ const RegistrationContainer = () => {
         
         setValidationErrors(mappedErrors);
         
-        console.log('🔄 DEBUGGING - Mapowanie błędów:');
-        console.log('Original errors:', error.validationErrors);
-        console.log('Mapped errors:', mappedErrors);
-        
         const errorMessages = Object.entries(error.validationErrors)
           .map(([field, messages]) => {
             const fieldName = getFieldDisplayName(field);
@@ -183,101 +182,25 @@ const RegistrationContainer = () => {
           })
           .join('\n');
         
-        alert(`Błędy walidacji:\n${errorMessages}`);
-        
-        const errorField = error.field;
-        console.log('📍 Przechodzę do kroku dla pola:', errorField);
-        
-        if (['email', 'password', 'password_confirm'].includes(errorField)) {
-          setCurrentStep(0);
-          console.log('➡️ Przejście do kroku 0 (AccountCard)');
-        } else if (['first_name'].includes(errorField)) {
-          setCurrentStep(1);
-          console.log('➡️ Przejście do kroku 1 (NameCard)');
-        } else if (['date_of_birth'].includes(errorField)) {
-          setCurrentStep(2);
-          console.log('➡️ Przejście do kroku 2 (BirthdateCard)');
-        } else if (['username'].includes(errorField)) {
-          setCurrentStep(3);
-          console.log('➡️ Przejście do kroku 3 (UsernameCard)');
-        } else if (['goal'].includes(errorField)) {
-          setCurrentStep(5);
-          console.log('➡️ Przejście do kroku 5 (GoalCard)');
-        } else if (['level'].includes(errorField)) {
-          setCurrentStep(6);
-          console.log('➡️ Przejście do kroku 6 (LevelCard)');
-        } else if (['training_days_per_week'].includes(errorField)) {
-          setCurrentStep(7);
-          console.log('➡️ Przejście do kroku 7 (TrainingDaysCard)');
-        } else if (['equipment_preference'].includes(errorField)) {
-          setCurrentStep(8);
-          console.log('➡️ Przejście do kroku 8 (EquipmentCard)');
-        } else {
-          setCurrentStep(0);
-          console.log('➡️ Przejście do kroku 0 (domyślnie)');
-        }
+        alert(`Błędy rejestracji:\n${errorMessages}`);
       } else {
-        console.log('❌ Ogólny błąd bez szczegółów walidacji');
-        alert(`Błąd rejestracji: ${error.message}`);
-        setCurrentStep(0);
+        alert(`Błąd: ${error.message || 'Nieoczekiwany błąd'}. Spróbuj ponownie.`);
       }
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  function getNextStep() {
-    if (currentStep === 4 && formData.skipSurvey) {
-      return currentStep + 4;
-    }
-    return currentStep + 1;
-  }
-
-  function renderCurrentCard() {
-    const cardProps = {
-      formData,
-      updateFormData,
-      validationErrors,
-      onNext: goToNextStep,
-      onPrev: goToPrevStep,
-      isSubmitting: isSubmitting
-    };
-    
-    switch (currentStep) {
-      case 0:
-        return <AccountCard {...cardProps} />;
-      case 1:
-        return <NameCard {...cardProps} />;
-      case 2:
-        return <BirthdateCard {...cardProps} />;
-      case 3:
-        return <UsernameCard {...cardProps} />;
-      case 4:
-        return <SurveyChoiceCard {...cardProps} />;
-      case 5:
-        return <GoalCard {...cardProps} />;
-      case 6:
-        return <LevelCard {...cardProps} />;
-      case 7:
-        return <TrainingDaysCard {...cardProps} />;
-      case 8:
-        return <EquipmentCard {...cardProps} isLastStep={true} />;
-      default:
-        return null;
-    }
-  }
+  };
 
   return (
     <div 
-      className="min-h-screen w-full flex items-center justify-center px-4 py-10"
+      className="min-h-screen w-full px-4 py-10 relative"
       style={{
         backgroundImage: `url(${RegisterBackground})`,
         backgroundSize: "cover",
-        backgroundPosition: "center",
-        position: "relative"
+        backgroundPosition: "center"
       }}
     >
-      {/* Ciemna nakładka z turkusowym odcieniem */}
+      {/* Ciemna nakładka */}
       <div 
         className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] to-[#0D7A61]/90 opacity-90"
         style={{ mixBlendMode: "multiply" }}
@@ -289,30 +212,38 @@ const RegistrationContainer = () => {
           <h1 className="text-[#1DCD9F] text-5xl font-bold">Lasko</h1>
         </Link>
       </div>
-      
-      {/* Wskaźnik postępu */}
-      <div className="absolute top-8 right-8 z-10">
-        <div className="text-white text-sm">
-          Krok {currentStep + 1} z {formData.skipSurvey ? 5 : 9}
+
+      {/* Pasek postępu */}
+      <div className="absolute top-8 right-8 z-10 text-right">
+        <div className="text-white text-sm mb-1">
+          Krok {currentStep + 1} z {getMaxStep() + 1}
         </div>
         <div className="w-32 h-2 bg-gray-600 rounded-full mt-2">
           <div 
             className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full transition-all duration-300"
             style={{ 
-              width: `${((currentStep + 1) / (formData.skipSurvey ? 5 : 9)) * 100}%` 
+              width: `${((currentStep + 1) / (getMaxStep() + 1)) * 100}%` 
             }}
           />
         </div>
       </div>
       
-      {/* ZMIENIONA WYSOKOŚĆ KONTENERA */}
+      {/* Kontener kart */}
       <div className="max-w-lg w-full mx-auto z-10 relative overflow-hidden" style={{ height: 'min(650px, 85vh)' }}>
         {/* Loading overlay */}
         {isSubmitting && (
           <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 rounded-3xl">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1DCD9F] mx-auto mb-4"></div>
-              <p className="text-white text-lg">Tworzenie konta...</p>
+              <p className="text-white text-lg">
+                Tworzenie konta...
+              </p>
+              <p className="text-gray-300 text-sm mt-2">
+                {formData.skipSurvey 
+                  ? 'Przekierowujemy do kreatora planu' 
+                  : 'Przekierowujemy do szczegółowej ankiety'
+                }
+              </p>
             </div>
           </div>
         )}
@@ -331,7 +262,7 @@ const RegistrationContainer = () => {
         </div>
       </div>
 
-      {/* DEBUG INFO */}
+      {/* DEBUG INFO - tylko w development */}
       {process.env.NODE_ENV === 'development' && (
         <>
           {/* Błędy walidacji */}
@@ -346,14 +277,14 @@ const RegistrationContainer = () => {
           <div className="absolute bottom-4 right-4 bg-blue-600 text-white p-4 rounded max-w-sm z-50">
             <h4 className="font-bold">Stan formularza:</h4>
             <div className="text-xs mt-2">
-              <div>Krok: {currentStep}</div>
+              <div>Krok: {currentStep}/{getMaxStep()}</div>
               <div>Name: "{formData.name}"</div>
               <div>Username: "{formData.username}"</div>
-              <div>Goal: "{formData.goal}"</div>
-              <div>Level: "{formData.level}"</div>
-              <div>Equipment: "{formData.equipmentPreference}"</div>
-              <div>Days: {formData.trainingDaysPerWeek}</div>
+              <div>Survey Choice: "{formData.surveyChoice}"</div>
               <div>Skip Survey: {formData.skipSurvey ? 'YES' : 'NO'}</div>
+              <div className="mt-1 text-yellow-200">
+                Przekierowanie: {formData.skipSurvey ? '/plan-creator' : '/enhanced-plan-creator'}
+              </div>
             </div>
           </div>
         </>
