@@ -1,3 +1,4 @@
+# Lasko_app/backend/recommendations/apps.py
 from django.apps import AppConfig
 
 

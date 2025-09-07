@@ -1,6 +1,7 @@
-// frontend/lasko-frontend/src/hooks/useAuth.js (POPRAWIONE)
+// frontend/lasko-frontend/src/hooks/useAuth.js
 import { useState, useEffect } from 'react';
 import apiService from '../services/api';
+import { setTokens } from '../services/authService';
 
 export const useAuth = () => {
   const [user, setUser] = useState(null);
@@ -19,12 +20,38 @@ export const useAuth = () => {
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      // Jeśli token jest nieprawidłowy, wyloguj użytkownika
       apiService.logout();
       setUser(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper: ekstrakcja tokenów z możliwych formatów odpowiedzi
+  const extractTokens = (res) => {
+    const data = res?.data ?? res;
+    const access =
+      data?.access ||
+      data?.access_token ||
+      data?.tokens?.access ||
+      data?.tokens?.access_token;
+    const refresh =
+      data?.refresh ||
+      data?.refresh_token ||
+      data?.tokens?.refresh ||
+      data?.tokens?.refresh_token;
+    return { access, refresh };
+  };
+
+  const persistTokens = ({ access, refresh }) => {
+    if (access) {
+      setTokens({
+        access_token: access,
+        refresh_token: refresh || null,
+      });
+      return true;
+    }
+    return false;
   };
 
   const register = async (userData) => {
@@ -33,22 +60,41 @@ export const useAuth = () => {
       setError(null);
 
       console.log('useAuth: Rozpoczynam rejestrację z danymi:', userData);
-
       const response = await apiService.register(userData);
+      console.log('useAuth: Odpowiedź z API (register):', response);
 
-      console.log('useAuth: Odpowiedź z API:', response);
+      // 1) Spróbuj zapisać tokeny z rejestracji
+      const regTokens = extractTokens(response);
+      const saved = persistTokens(regTokens);
 
-      // Ustaw dane użytkownika po pomyślnej rejestracji
+      // 2) Jeżeli tokenów brak — automatyczny login
+      if (!saved) {
+        const loginRes = await apiService.login({
+          email: userData.email,
+          password: userData.password,
+        });
+        const loginTokens = extractTokens(loginRes);
+        persistTokens(loginTokens);
+
+        setUser({
+          user: loginRes.user || loginRes?.data?.user || null,
+          profile: loginRes.profile || loginRes?.data?.profile || null,
+        });
+
+        return loginRes;
+      }
+
+      // Tokeny były w odpowiedzi register — ustaw usera
       setUser({
-        user: response.user,
-        profile: response.profile,
+        user: response.user || response?.data?.user || null,
+        profile: response.profile || response?.data?.profile || null,
       });
 
       return response;
     } catch (error) {
       console.error('useAuth: Błąd rejestracji:', error);
       setError(error.message);
-      throw error; // Przekaż błąd dalej do komponentu
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -60,15 +106,15 @@ export const useAuth = () => {
       setError(null);
 
       console.log('useAuth: Rozpoczynam logowanie:', credentials.email);
-
       const response = await apiService.login(credentials);
-
       console.log('useAuth: Pomyślne logowanie:', response);
 
-      // Ustaw dane użytkownika po pomyślnym logowaniu
+      const tokens = extractTokens(response);
+      persistTokens(tokens);
+
       setUser({
-        user: response.user,
-        profile: response.profile,
+        user: response.user || response?.data?.user || null,
+        profile: response.profile || response?.data?.profile || null,
       });
 
       return response;
@@ -95,10 +141,9 @@ export const useAuth = () => {
 
       const response = await apiService.updateProfile(profileData);
 
-      // Zaktualizuj dane użytkownika
       setUser({
-        user: response.user,
-        profile: response.profile,
+        user: response.user || response?.data?.user || null,
+        profile: response.profile || response?.data?.profile || null,
       });
 
       return response;
@@ -111,24 +156,14 @@ export const useAuth = () => {
     }
   };
 
-  const clearError = () => {
-    setError(null);
-  };
-
-  // ============================================================================
-  // POPRAWIONE FUNKCJE REKOMENDACJI - używają apiService zamiast fetch
-  // ============================================================================
+  const clearError = () => setError(null);
 
   const setRecommendationMethod = async (method) => {
     try {
       setError(null);
-      
       console.log('useAuth: Ustawianie metody rekomendacji:', method);
-      
       const response = await apiService.setRecommendationMethod(method);
-      
       console.log('useAuth: Metoda rekomendacji ustawiona:', response);
-      
       return response;
     } catch (error) {
       console.error('useAuth: Błąd ustawiania metody rekomendacji:', error);
@@ -140,13 +175,9 @@ export const useAuth = () => {
   const generateRecommendations = async (method) => {
     try {
       setError(null);
-      
       console.log('useAuth: Generowanie rekomendacji metodą:', method);
-      
       const response = await apiService.generateRecommendations(method);
-      
       console.log('useAuth: Rekomendacje wygenerowane:', response);
-      
       return response;
     } catch (error) {
       console.error('useAuth: Błąd generowania rekomendacji:', error);
@@ -165,10 +196,8 @@ export const useAuth = () => {
     updateProfile,
     clearError,
     isAuthenticated: !!user,
-    // Dodatkowe gettery dla łatwiejszego dostępu
     userData: user?.user || null,
     profileData: user?.profile || null,
-    // POPRAWNIE DODANE funkcje rekomendacji
     setRecommendationMethod,
     generateRecommendations,
   };

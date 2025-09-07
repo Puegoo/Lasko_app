@@ -1,5 +1,3 @@
-// frontend/lasko-frontend/src/services/recommendationService.js
-
 /**
  * Serwis do komunikacji z API rekomendacji
  */
@@ -17,11 +15,11 @@ const getAuthHeaders = () => {
 
 /**
  * Pobiera rekomendacje planów dla zalogowanego użytkownika
- * @param {string} mode - Tryb rekomendacji: 'produkt', 'klient', 'hybrydowo'
+ * @param {string} mode - Tryb rekomendacji: 'product', 'user', 'hybrid'
  * @param {number} limit - Liczba rekomendacji do pobrania
  * @returns {Promise<Object>} Odpowiedź z rekomendacjami
  */
-export const getRecommendations = async (mode = 'hybrydowo', limit = 5) => {
+export const getRecommendations = async (mode = 'hybrid', limit = 5) => {
   try {
     const response = await fetch(
       `${API_BASE}/recommendations/get/?mode=${mode}&limit=${limit}`,
@@ -103,8 +101,30 @@ export const getFallbackRecommendations = (userProfile) => {
   };
 };
 
+/**
+ * Opcje algorytmów rekomendacji dla selektora
+ */
+export const algorithmOptions = [
+  {
+    value: 'hybrid',
+    name: 'Hybrydowy (Zalecany)',
+    // ...inne właściwości jeśli są potrzebne
+  },
+  {
+    value: 'product',
+    name: 'Na podstawie ankiety',
+    // ...inne właściwości jeśli są potrzebne
+  },
+  {
+    value: 'user',
+    name: 'Popularne wśród podobnych',
+    // ...inne właściwości jeśli są potrzebne
+  },
+];
+
 export default {
   getRecommendations,
   getUserProfileAndRecommendations,
-  getFallbackRecommendations
+  getFallbackRecommendations,
+  algorithmOptions,
 };

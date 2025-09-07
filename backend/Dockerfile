@@ -1,29 +1,32 @@
-FROM python:3.11-slim
+# backend/Dockerfile
+FROM python:3.12-slim
 
+# Ustawienia środowiska Pythona
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=lasko_backend.settings
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
-    libpq-dev \
-    gcc \
-    netcat-openbsd \
-    && rm -rf /var/lib/apt/lists/*
+# Narzędzia pomocnicze
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    netcat-traditional \
+  && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# ✅ KLUCZOWE: doinstaluj setuptools (pkg_resources) zanim zainstalujesz requirements
+RUN python -m pip install --upgrade pip \
+ && pip install --no-cache-dir "setuptools<81" wheel
 
-COPY . .
+# Zależności projektu
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-RUN mkdir -p logs
+# Kod aplikacji
+COPY . /app
 
+# (jeśli masz entrypoint.sh w repo — zostawiamy, ale Compose i tak go nadpisuje)
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh || true && chmod +x /entrypoint.sh || true
 
-EXPOSE 8000
-
+# Domyślnie obraz może używać entrypointa, ale w dev nadpisujemy go w docker-compose
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

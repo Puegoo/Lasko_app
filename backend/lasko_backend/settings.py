@@ -10,7 +10,10 @@ CELERY_BROKER_URL = 'redis://redis:6379/0'
 
 SECRET_KEY = 'django-insecure-o@2&8j*89r=8k-1e3*q^sph%8s#k=%2x1s593nd$*ld640!r^v'
 
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+def _truthy(val: str) -> bool:
+    return str(val).lower() in ('1', 'true', 'yes', 'y')
+
+DEBUG = _truthy(os.environ.get('DEBUG', 'False'))
 
 # Hosty dozwolone w Docker
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'backend', '0.0.0.0', '*']
@@ -99,17 +102,14 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
 }
 
-# CORS settings dla Dockera
+# CORS
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://localhost:3000", "http://127.0.0.1:3000",
+    "http://localhost:5173", "http://127.0.0.1:5173",
     "http://frontend:80",
 ]
-
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Tylko w trybie debug
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOW_CREDENTIALS = True
-
-# Dodatkowe nagłówki CORS
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -122,13 +122,10 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# Ustawienia logowania - dostosowane do środowiska
-LOG_DIR = os.environ.get('LOG_DIR', BASE_DIR / 'logs')  # Używaj lokalnego katalogu logs jeśli nie w Docker
-
-# Utwórz katalog logs
+# Logi
+LOG_DIR = os.environ.get('LOG_DIR', BASE_DIR / 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -142,7 +139,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'django.log'),  # Używaj LOG_DIR zamiast zakodowanej ścieżki
+            'filename': os.path.join(LOG_DIR, 'django.log'),
             'formatter': 'verbose',
         },
         'console': {
@@ -169,33 +166,14 @@ LOGGING = {
     },
 }
 
-# Password validation
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 8,
-        }
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
-
-# Internationalization
+# I18N
 LANGUAGE_CODE = 'pl-pl'
 TIME_ZONE = 'Europe/Warsaw'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# Static
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Użyj BASE_DIR zamiast /app
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

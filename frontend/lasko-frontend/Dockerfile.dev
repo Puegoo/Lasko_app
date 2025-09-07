@@ -1,3 +1,4 @@
+# Lasko_app/frontend/lasko-frontend/Dockerfile.dev
 FROM node:18-alpine
 
 WORKDIR /app

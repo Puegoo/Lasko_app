@@ -1,3 +1,5 @@
+-- Lasko_app/SQL/01_schema.sql
+
 -- =================================================================
 -- KOMPLETNY SCHEMAT BAZY DANYCH LASKO Z ALGORYTMEM REKOMENDACYJNYM
 -- Wersja: 2.1 z pełnym wsparciem dla AI recommendations

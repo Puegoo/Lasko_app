@@ -1,3 +1,4 @@
+# Lasko_app/SQL/02_insert_data.py
 import psycopg2
 from faker import Faker
 import random

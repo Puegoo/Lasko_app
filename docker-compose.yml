@@ -1,10 +1,9 @@
-# docker-compose.yml (umieść w głównym katalogu projektu)
-version: '3.9'
+# Docker Compose (bez przestarzałego pola 'version')
 
 services:
-  # Frontend React z Nginx
+  # Frontend React z Nginx (produkcyjny obraz frontu)
   frontend:
-    build: 
+    build:
       context: ./frontend/lasko-frontend
       dockerfile: Dockerfile
     ports:
@@ -16,7 +15,7 @@ services:
 
   # Backend Django
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
@@ -25,6 +24,8 @@ services:
       - ./backend:/app
       - backend_logs:/app/logs
     environment:
+      # Wycisza ostrzeżenie o pkg_resources z simplejwt
+      - PYTHONWARNINGS=ignore:pkg_resources is deprecated:UserWarning
       - DEBUG=1
       - DJANGO_SETTINGS_MODULE=lasko_backend.settings
       - POSTGRES_DB=LaskoDB
@@ -35,6 +36,12 @@ services:
     depends_on:
       - db
       - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     networks:
       - lasko-network
 
@@ -48,20 +55,23 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    # Jeśli masz już lokalnego Postgresa na 5432, możesz przełączyć lewy port na 5433
+    # ports:
+    #   - "5433:5432"
     ports:
       - "5432:5432"
+    command: postgres -c 'max_connections=200'
     networks:
       - lasko-network
-    command: postgres -c 'max_connections=200'
 
-  # Redis dla cache i Celery
+  # Redis dla cache / workers
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
+    command: redis-server --appendonly yes
     networks:
       - lasko-network
-    command: redis-server --appendonly yes
 
 volumes:
   postgres_data:

@@ -1,5 +1,6 @@
+# /Users/piotr/Desktop/GitHub/Praca_inzynierska/Lasko_app/backend/export_from_local.sh - Eksport danych z lokalnej bazy
 #!/bin/bash
-# export_from_local.sh - Eksport danych z lokalnej bazy
+
 
 echo "📤 Eksportowanie danych z lokalnej bazy..."
 
