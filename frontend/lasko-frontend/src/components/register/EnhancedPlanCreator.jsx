@@ -1,6 +1,8 @@
+// src/components/register/EnhancedPlanCreator.jsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import RegisterBackground from '../../assets/Photos/Register_background.png';
+import LaskoBody from '../../assets/lasko_pose/lasko_body.webp'; // obraz po prawej w "Pomiary ciała"
 import { isAuthenticated } from '../../services/authService';
 import { RecommendationService } from '../../services/recommendationService';
 
@@ -27,58 +29,60 @@ const EnhancedPlanCreator = () => {
   // Walidacja
   const [errors, setErrors] = useState({});
 
-  // Kroki
+  // KROKI — zamieniony krok 3 na „Pomiary ciała”
   const steps = [
     'Wybór algorytmu',
     'Informacje podstawowe',
     'Preferencje treningowe',
-    'Obszary skupienia',
+    'Pomiary ciała',
     'Generowanie planu',
     'Dostosowanie ćwiczeń',
     'Finalizacja'
   ];
-  const [currentStep, setCurrentStep] = useState(skipBasicInfo ? 4 : 0);
+  const [currentStep, setCurrentStep] = useState(0);
 
-  // Słowniki UI
+  // pomocnik do wskaźnika etapu
+  const getMaxStep = () => steps.length - 1;
+
+  // Słowniki UI (ikony/obrazy w /public/images)
   const goals = [
-    { value: 'masa', label: 'Budowanie masy mięśniowej', icon: '💪' },
-    { value: 'siła', label: 'Zwiększenie siły', icon: '🏋️' },
-    { value: 'wytrzymałość', label: 'Poprawa wytrzymałości', icon: '🏃' },
-    { value: 'spalanie', label: 'Spalanie tkanki tłuszczowej', icon: '🔥' },
-    { value: 'zdrowie', label: 'Ogólne zdrowie i kondycja', icon: '❤️' }
+    { value: 'masa',          label: 'Budowanie masy mięśniowej',  icon: '/images/goal-mass.webp' },
+    { value: 'siła',          label: 'Zwiększenie siły',           icon: '/images/goal-strength.webp' },
+    { value: 'wytrzymałość',  label: 'Poprawa wytrzymałości',      icon: '/images/goal-endurance.webp' },
+    { value: 'spalanie',      label: 'Spalanie tkanki tłuszczowej',icon: '/images/goal-fatloss.webp' },
+    { value: 'zdrowie',       label: 'Ogólne zdrowie i kondycja',  icon: '/images/goal-health.webp' }
   ];
   const levels = [
-    { value: 'początkujący', label: 'Początkujący' },
+    { value: 'początkujący',        label: 'Początkujący' },
     { value: 'średniozaawansowany', label: 'Średniozaawansowany' },
-    { value: 'zaawansowany', label: 'Zaawansowany' }
+    { value: 'zaawansowany',        label: 'Zaawansowany' }
   ];
   const equipmentOptions = [
-    { value: 'siłownia', label: 'Pełne wyposażenie siłowni', icon: '🏋️‍♂️' },
-    { value: 'dom_podstawowy', label: 'Podstawowy sprzęt domowy', icon: '🏠' },
-    { value: 'dom_zaawansowany', label: 'Zaawansowane home gym', icon: '🏡' },
-    { value: 'masa_ciała', label: 'Tylko masa ciała', icon: '🤸‍♂️' },
-    { value: 'minimalne', label: 'Minimalne wyposażenie', icon: '⚡' }
-  ];
-  const focusAreasOptions = [
-    { id: 'upper_body', label: 'Górna część ciała', icon: '💪' },
-    { id: 'lower_body', label: 'Dolna część ciała', icon: '🦵' },
-    { id: 'core', label: 'Mięśnie głębokie', icon: '🏋️' },
-    { id: 'cardio', label: 'Wytrzymałość kardio', icon: '❤️' },
-    { id: 'flexibility', label: 'Elastyczność', icon: '🤸' },
-    { id: 'functional', label: 'Trening funkcjonalny', icon: '⚡' }
-  ];
-  const avoidanceOptions = [
-    { id: 'knee_issues', label: 'Problemy z kolanami', icon: '🦵' },
-    { id: 'back_issues', label: 'Problemy z kręgosłupem', icon: '🏃' },
-    { id: 'shoulder_issues', label: 'Problemy z barkami', icon: '💪' },
-    { id: 'time_constraints', label: 'Ograniczenia czasowe', icon: '⏰' },
-    { id: 'high_impact', label: 'Unikanie wysokiego obciążenia', icon: '⚠️' },
-    { id: 'complex_movements', label: 'Unikanie skomplikowanych ruchów', icon: '🤔' }
+    { value: 'siłownia',         label: 'Pełne wyposażenie siłowni',    icon: '/images/equipment-gym.webp' },
+    { value: 'dom_podstawowy',   label: 'Podstawowy sprzęt domowy',     icon: '/images/equipment-home-basic.webp' },
+    { value: 'dom_zaawansowany', label: 'Zaawansowane home gym',        icon: '/images/equipment-home-adv.webp' },
+    { value: 'masa_ciała',       label: 'Tylko masa ciała',             icon: '/images/equipment-bodyweight.webp' },
+    { value: 'minimalne',        label: 'Minimalne wyposażenie',        icon: '/images/equipment-minimal.webp' }
   ];
   const algoOptions = [
-    { value: 'product', title: 'Algorytm produktowy', desc: 'Proponuje plany podobne do wybranych planów (item→item).' },
-    { value: 'client',  title: 'Algorytm klientowy',  desc: 'Dopasowuje na podstawie Twojego profilu i preferencji (user/content).' },
-    { value: 'hybrid',  title: 'Algorytm hybrydowy',  desc: 'Łączy podejście produktowe i klientowe.' }
+    {
+      value: 'product',
+      title: 'Algorytm produktowy',
+      desc: 'Proponuje plany podobne do wybranych planów (item→item).',
+      img: '/images/alg-product.webp'
+    },
+    {
+      value: 'client',
+      title: 'Algorytm klientowy',
+      desc: 'Dopasowuje na podstawie Twojego profilu i preferencji (user/content).',
+      img: '/images/alg-client.webp'
+    },
+    {
+      value: 'hybrid',
+      title: 'Algorytm hybrydowy',
+      desc: 'Łączy podejście produktowe i klientowe.',
+      img: '/images/alg-hybrid.webp'
+    }
   ];
 
   // Normalizacja danych z ankiety
@@ -86,15 +90,15 @@ const EnhancedPlanCreator = () => {
     const mapGoal = (g) => {
       const v = (g || '').toString().toLowerCase();
       if (['mass', 'bulking', 'masa'].includes(v)) return 'masa';
-      if (['strength', 'siła', 'power'].includes(v)) return 'siła';
-      if (['endurance', 'stamina', 'wytrzymałość'].includes(v)) return 'wytrzymałość';
+      if (['strength', 'siła', 'power', 'sila'].includes(v)) return 'siła';
+      if (['endurance', 'stamina', 'wytrzymałość', 'wytrzymalosc'].includes(v)) return 'wytrzymałość';
       if (['fatloss', 'fat_loss', 'spalanie', 'cut'].includes(v)) return 'spalanie';
       if (['health', 'zdrowie', 'wellbeing'].includes(v)) return 'zdrowie';
       return '';
     };
     const mapLevel = (lv) => {
       const v = (lv || '').toString().toLowerCase();
-      if (['beginner', 'początkujący'].includes(v)) return 'początkujący';
+      if (['beginner', 'początkujący', 'poczatkujacy'].includes(v)) return 'początkujący';
       if (['intermediate', 'średniozaawansowany', 'sredniozaawansowany'].includes(v)) return 'średniozaawansowany';
       if (['advanced', 'zaawansowany'].includes(v)) return 'zaawansowany';
       return '';
@@ -116,8 +120,11 @@ const EnhancedPlanCreator = () => {
       trainingDaysPerWeek: Number(data.trainingDaysPerWeek) || 3,
       sessionDuration: Number(data.sessionDuration) || 60,
       planDuration: Number(data.planDuration) || 12,
-      focusAreas: Array.isArray(data.focusAreas) ? data.focusAreas : [],
-      avoidances: Array.isArray(data.avoidances) ? data.avoidances : [],
+      body: {
+        age: Number(data.age) || null,
+        weightKg: Number(data.weightKg) || null,
+        heightCm: Number(data.heightCm) || null,
+      },
       recommendationMethod: ['product', 'client', 'hybrid'].includes(data.recommendationMethod)
         ? data.recommendationMethod
         : 'hybrid'
@@ -151,8 +158,11 @@ const EnhancedPlanCreator = () => {
       planDuration: norm.planDuration ?? 12,
       sessionDuration: norm.sessionDuration ?? 60,
       restDays: 'flexible',
-      focusAreas: norm.focusAreas || [],
-      avoidances: norm.avoidances || [],
+      body: {
+        age: norm.body?.age ?? '',
+        weightKg: norm.body?.weightKg ?? '',
+        heightCm: norm.body?.heightCm ?? '',
+      },
       weekPlan: [],
       generatedExercises: [],
       notes: '',
@@ -166,6 +176,16 @@ const EnhancedPlanCreator = () => {
       sourceAlgorithm: null
     };
   });
+
+  // BMI
+  const bmi = useMemo(() => {
+    const w = Number(planData.body?.weightKg);
+    const h = Number(planData.body?.heightCm);
+    if (!w || !h) return null;
+    const hm = h / 100;
+    const val = w / (hm * hm);
+    return Number.isFinite(val) ? Math.round(val * 10) / 10 : null;
+  }, [planData.body]);
 
   // Walidacje
   const validateBasics = useMemo(() => {
@@ -184,11 +204,24 @@ const EnhancedPlanCreator = () => {
     return errs;
   }, [planData.sessionDuration, planData.planDuration]);
 
+  const validateBody = useMemo(() => {
+    const errs = {};
+    const age = Number(planData.body?.age);
+    const weight = Number(planData.body?.weightKg);
+    const height = Number(planData.body?.heightCm);
+
+    if (!age || age < 13 || age > 90) errs.age = 'Podaj wiek 13–90.';
+    if (!weight || weight < 30 || weight > 300) errs.weightKg = 'Podaj wagę 30–300 kg.';
+    if (!height || height < 120 || height > 230) errs.heightCm = 'Podaj wzrost 120–230 cm.';
+
+    return errs;
+  }, [planData.body]);
+
   const isStepValid = (stepIndex) => {
     if (stepIndex === 0) return !!planData.recommendationMethod;
     if (stepIndex === 1) return Object.keys(validateBasics).length === 0;
     if (stepIndex === 2) return Object.keys(validatePreferences).length === 0;
-    if (stepIndex === 3) return true;
+    if (stepIndex === 3) return Object.keys(validateBody).length === 0;
     if (stepIndex === 4) return (planData.weekPlan?.length || 0) > 0;
     if (stepIndex === 5) return (planData.weekPlan?.length || 0) > 0;
     if (stepIndex === 6) return !!planData.name?.trim();
@@ -198,6 +231,7 @@ const EnhancedPlanCreator = () => {
   const showErrorsForStep = (stepIndex) => {
     if (stepIndex === 1) setErrors(validateBasics);
     else if (stepIndex === 2) setErrors(validatePreferences);
+    else if (stepIndex === 3) setErrors(validateBody);
     else setErrors({});
   };
 
@@ -243,10 +277,14 @@ const EnhancedPlanCreator = () => {
         trainingDaysPerWeek: planData.trainingDaysPerWeek,
         equipment: planData.equipment,
         sessionDuration: planData.sessionDuration,
-        focusAreas: planData.focusAreas,
-        avoidances: planData.avoidances,
         planDuration: planData.planDuration,
-        source: fromSurvey ? 'survey' : 'creator'
+        source: fromSurvey ? 'survey' : 'creator',
+        body: {
+          age: Number(planData.body?.age) || null,
+          weightKg: Number(planData.body?.weightKg) || null,
+          heightCm: Number(planData.body?.heightCm) || null,
+          bmi: bmi
+        }
       };
 
       const { recommendations } = await rec.getRecommendations({ mode, top: 3, preferences: payload });
@@ -254,7 +292,7 @@ const EnhancedPlanCreator = () => {
         throw new Error('Brak rekomendacji dla wybranych parametrów.');
       }
 
-      const best = recommendations[0]; // ✅ pierwszy wynik
+      const best = recommendations[0];
       const bestPlanId = best?.planId ?? best?.id ?? best?.plan_id;
       if (!bestPlanId) {
         throw new Error('Błędna odpowiedź serwera: brak planId w rekomendacji.');
@@ -304,12 +342,12 @@ const EnhancedPlanCreator = () => {
           best.goalType ? `Cel: ${best.goalType}` : null,
           best.difficultyLevel ? `Poziom: ${best.difficultyLevel}` : null,
           best.trainingDaysPerWeek ? `${best.trainingDaysPerWeek} dni/tydzień` : null,
-          best.equipmentRequired ? `Sprzęt: ${best.equipmentRequired}` : null
+          best.equipmentRequired ? `Sprzęt: ${best.equipmentRequired}` : null,
+          ...(Array.isArray(best.bodyHints) ? best.bodyHints : [])
         ].filter(Boolean),
         estimatedDuration: planData.sessionDuration
       });
 
-      // Alternatywy
       const rest = recommendations.slice(1);
       const mappedAlts = rest.map((r) => ({
         planId: r.planId ?? r.id ?? r.plan_id ?? null,
@@ -382,20 +420,49 @@ const EnhancedPlanCreator = () => {
     }
   };
 
-  // Debounce (StrictMode w dev potrafi odpalić efekt 2x)
+  // --- Edycja ćwiczeń (bezpieczne implementacje) ---
+  const updateExercise = (dayIndex, exerciseIndex, field, value) => {
+    setPlanData((prev) => {
+      const weekPlan = prev.weekPlan.map((day, di) => {
+        if (di !== dayIndex) return day;
+        const exercises = day.exercises.map((ex, ei) => (ei === exerciseIndex ? { ...ex, [field]: value } : ex));
+        return { ...day, exercises };
+      });
+      const generatedExercises = weekPlan.flatMap((d) => d.exercises);
+      return { ...prev, weekPlan, generatedExercises };
+    });
+  };
+
+  // Placeholder „Zamień ćwiczenie”
+  const replaceExercise = (dayIndex, exerciseIndex) => {
+    setPlanData((prev) => {
+      const weekPlan = prev.weekPlan.map((day, di) => {
+        if (di !== dayIndex) return day;
+        const exercises = day.exercises.map((ex, ei) =>
+          ei === exerciseIndex
+            ? {
+                ...ex,
+                name: ex.name + ' (zamiana)',
+                reps: ex.reps,
+                sets: ex.sets,
+                rest: ex.rest
+              }
+            : ex
+        );
+        return { ...day, exercises };
+      });
+      const generatedExercises = weekPlan.flatMap((d) => d.exercises);
+      return { ...prev, weekPlan, generatedExercises };
+    });
+  };
+
+  // Debounce (StrictMode w dev)
   const generatedOnceRef = useRef(false);
   useEffect(() => {
     if (currentStep === 4) {
-      if (!isStepValid(1)) {
-        setCurrentStep(1);
-        showErrorsForStep(1);
-        return;
-      }
-      if (!isStepValid(2)) {
-        setCurrentStep(2);
-        showErrorsForStep(2);
-        return;
-      }
+      if (!isStepValid(1)) { setCurrentStep(1); showErrorsForStep(1); return; }
+      if (!isStepValid(2)) { setCurrentStep(2); showErrorsForStep(2); return; }
+      if (!isStepValid(3)) { setCurrentStep(3); showErrorsForStep(3); return; }
       if (!generatedOnceRef.current) {
         generatedOnceRef.current = true;
         generateRecommendedPlan();
@@ -406,61 +473,14 @@ const EnhancedPlanCreator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
-  // ---------- helpery UI ----------
-  const toggleFocusArea = (id) => {
-    setPlanData((p) => ({
-      ...p,
-      focusAreas: p.focusAreas.includes(id) ? p.focusAreas.filter((x) => x !== id) : [...p.focusAreas, id]
-    }));
-  };
-  const toggleAvoidance = (id) => {
-    setPlanData((p) => ({
-      ...p,
-      avoidances: p.avoidances.includes(id) ? p.avoidances.filter((x) => x !== id) : [...p.avoidances, id]
-    }));
-  };
-  const updateExercise = (dayIndex, exerciseIndex, field, value) => {
-    setPlanData((prev) => {
-      const newWeek = [...prev.weekPlan];
-      newWeek[dayIndex].exercises[exerciseIndex][field] = value;
-      return { ...prev, weekPlan: newWeek };
-    });
-  };
-
-  const alternativesMap = {
-    'Pompki klasyczne': [
-      { name: 'Pompki na kolanach', muscle: 'Klatka piersiowa' },
-      { name: 'Pompki diamentowe', muscle: 'Triceps' },
-      { name: 'Pompki szerokie', muscle: 'Klatka piersiowa' }
-    ],
-    'Przysiady z masą ciała': [
-      { name: 'Przysiady jump', muscle: 'Nogi' },
-      { name: 'Przysiady sumo', muscle: 'Nogi' },
-      { name: 'Wykroki', muscle: 'Nogi' }
-    ],
-    'Wyciskanie sztangi leżąc': [
-      { name: 'Wyciskanie hantli leżąc', muscle: 'Klatka piersiowa' },
-      { name: 'Wyciskanie na maszynie', muscle: 'Klatka piersiowa' },
-      { name: 'Rozpiętki z hantlami', muscle: 'Klatka piersiowa' }
-    ]
-  };
-
-  const replaceExercise = (dayIndex, exerciseIndex) => {
-    const current = planData.weekPlan[dayIndex].exercises[exerciseIndex];
-    const options = alternativesMap[current.name] || [];
-    if (!options.length) return;
-    const next = options[Math.floor(Math.random() * options.length)];
-    updateExercise(dayIndex, exerciseIndex, 'name', next.name);
-    updateExercise(dayIndex, exerciseIndex, 'muscle', next.muscle);
-  };
-
   // --- Finalizacja / aktywacja planu ---
   const handleFinalizePlan = async () => {
     const finalPlan = {
       ...planData,
       generatedAt: new Date().toISOString(),
       algorithmUsed: planData.recommendationMethod,
-      aiInsights
+      aiInsights,
+      body: { ...planData.body, bmi }
     };
 
     try {
@@ -494,28 +514,16 @@ const EnhancedPlanCreator = () => {
   };
 
   // =========================
-  //  Render kroków
+  //  UI: panele pomocnicze
   // =========================
-  const SurveyInfoBanner = () =>
-    fromSurvey ? (
-      <div className="mb-6 bg-[#0D7A61]/10 border border-[#0D7A61]/30 rounded-xl p-4">
-        <div className="flex items-center space-x-3">
-          <span className="text-[#1DCD9F] text-lg">📋</span>
-          <div>
-            <div className="text-[#1DCD9F] text-sm font-bold">Dane z ankiety</div>
-            <div className="text-gray-300 text-xs">Pola zostały wypełnione na podstawie Twojej ankiety. Możesz je edytować.</div>
-          </div>
-        </div>
-      </div>
-    ) : null;
-
-  const FieldError = ({ name }) => (errors[name] ? <div className="text-xs text-red-400 mt-1">{errors[name]}</div> : null);
+  const FieldError = ({ name }) =>
+    errors[name] ? <div className="text-xs text-red-400 mt-1">{errors[name]}</div> : null;
 
   const APIErrorPanel = () =>
     apiError ? (
       <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
         <div className="flex items-center mb-2">
-          <span className="text-red-400 text-lg mr-2">⚠️</span>
+          <img src="/images/warning.webp" alt="" className="w-5 h-5 mr-2" loading="lazy" />
           <span className="text-red-400 font-bold">Błąd rekomendacji</span>
         </div>
         <div className="text-red-300 text-sm mb-3">{apiError}</div>
@@ -561,85 +569,6 @@ const EnhancedPlanCreator = () => {
       </div>
     ) : null;
 
-  const AIInsightsPanel = () =>
-    aiInsights ? (
-      <div className="bg-gradient-to-r from-[#0D7A61]/20 to-[#1DCD9F]/20 rounded-2xl p-4 border border-[#1DCD9F]/30 mb-6">
-        <div className="flex items-center mb-3">
-          <span className="text-[#1DCD9F] text-xl mr-2">🤖</span>
-        <span className="text-white font-bold">AI Analysis</span>
-          {'score' in aiInsights && aiInsights.score != null && (
-            <span className="ml-auto text-[#1DCD9F] text-sm font-bold">Score: {aiInsights.score}/100</span>
-          )}
-        </div>
-        <div className="text-gray-300 text-sm space-y-2">
-          {Array.isArray(aiInsights.whyRecommended) && aiInsights.whyRecommended.length > 0 && (
-            <div>
-              <div className="font-semibold text-white mb-1">Dlaczego ten plan:</div>
-              <div className="grid grid-cols-1 gap-1">
-                {aiInsights.whyRecommended.slice(0, 4).map((r, i) => (
-                  <div key={i} className="text-xs flex items-center">
-                    <span className="text-[#1DCD9F] mr-1">✓</span>
-                    {r}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {Array.isArray(aiInsights.warnings) && aiInsights.warnings.length > 0 && (
-            <div className="pt-2 border-t border-gray-600">
-              <div className="text-yellow-400 text-xs">⚠️ {aiInsights.warnings.join(', ')}</div>
-            </div>
-          )}
-
-          <div className="pt-2 border-t border-gray-600 text-gray-400 text-xs">
-            {planData.isFromDatabase ? '🗄️ Plan z bazy danych' : '🔎 Rekomendacja dynamiczna'} | Algorytm:{' '}
-            {planData.recommendationMethod.toUpperCase()} ({planData.algorithmVersion || 'v1'}) | Czas: ~
-            {(aiInsights.estimatedDuration ?? planData.sessionDuration) || 60}min
-          </div>
-        </div>
-      </div>
-    ) : null;
-
-  const AlternativePlansPanel = () =>
-    alternatives.length > 0 ? (
-      <div className="bg-[#1D1D1D] rounded-2xl p-4 border border-[#333333] mb-6">
-        <div className="flex items-center mb-3">
-          <span className="text-[#1DCD9F] text-lg mr-2">🔄</span>
-          <span className="text-white font-bold">Alternatywne plany</span>
-        </div>
-
-        <div className="space-y-2">
-          {alternatives.slice(0, 3).map((alt) => (
-            <div
-              key={alt.planId}
-              className="bg-[#333333]/50 rounded-lg p-3 hover:bg-[#333333]/70 transition-colors cursor-pointer"
-              onClick={() => switchToAlternativePlan(alt)}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="text-white text-sm font-medium">{alt.name}</div>
-                  <div className="text-gray-400 text-xs">
-                    {alt.score != null ? <>Score: {alt.score}/100</> : null}
-                    {alt.difficulty ? <> | {alt.difficulty}</> : null}
-                    {alt.training_days ? <> | {alt.training_days} dni</> : null}
-                  </div>
-                  {(
-                    Array.isArray(alt.whyRecommended) ? alt.whyRecommended.length > 0 : !!alt.whyRecommended
-                  ) && (
-                    <div className="text-gray-500 text-xs mt-1">
-                      {Array.isArray(alt.whyRecommended) ? alt.whyRecommended[0] : alt.whyRecommended}
-                    </div>
-                  )}
-                </div>
-                <div className="text-[#1DCD9F] text-xs ml-2">Zmień →</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    ) : null;
-
   // ------------------ Render kroków ------------------
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -650,7 +579,7 @@ const EnhancedPlanCreator = () => {
               <h3 className="text-white text-2xl font-bold mb-2">Wybierz algorytm rekomendacji</h3>
               <p className="text-gray-300 text-sm">Możesz w każdej chwili wrócić i zmienić wybór.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {algoOptions.map((a) => {
                 const active = planData.recommendationMethod === a.value;
                 return (
@@ -661,9 +590,12 @@ const EnhancedPlanCreator = () => {
                       active ? 'border-[#1DCD9F] bg-[#1DCD9F]/10' : 'border-[#333333] bg-[#1D1D1D] hover:border-[#555555]'
                     }`}
                   >
+                    <div className="aspect-[16/9] w-full mb-3 overflow-hidden rounded-xl bg-[#111]">
+                      <img src={a.img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    </div>
                     <div className="text-white font-semibold mb-1">{a.title}</div>
                     <div className="text-gray-400 text-sm">{a.desc}</div>
-                    {active && <div className="text-[#1DCD9F] text-xs mt-2">✓ Wybrano</div>}
+                    {active && <div className="text-[#1DCD9F] text-xs mt-2">Wybrano</div>}
                   </button>
                 );
               })}
@@ -674,8 +606,6 @@ const EnhancedPlanCreator = () => {
       case 1:
         return (
           <div className="space-y-6">
-            <SurveyInfoBanner />
-
             <div className="text-center mb-2">
               <h3 className="text-white text-2xl font-bold mb-4">Podstawowe informacje</h3>
               <p className="text-gray-300 text-sm">Te pola są wymagane do działania rekomendacji.</p>
@@ -696,7 +626,7 @@ const EnhancedPlanCreator = () => {
             {/* Cel */}
             <div>
               <label className="block text-white text-sm font-bold mb-3">Główny cel treningowy *</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {goals.map((g) => {
                   const active = planData.goal === g.value;
                   return (
@@ -708,7 +638,7 @@ const EnhancedPlanCreator = () => {
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <span className="text-2xl">{g.icon}</span>
+                        <img src={g.icon} alt="" className="w-6 h-6" loading="lazy" />
                         <span className="text-white font-medium">{g.label}</span>
                       </div>
                     </div>
@@ -721,7 +651,7 @@ const EnhancedPlanCreator = () => {
             {/* Poziom */}
             <div>
               <label className="block text-white text-sm font-bold mb-3">Poziom zaawansowania *</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-4">
                 {levels.map((lv) => {
                   const active = planData.level === lv.value;
                   return (
@@ -743,7 +673,7 @@ const EnhancedPlanCreator = () => {
             {/* Dni */}
             <div>
               <label className="block text-white text-sm font-bold mb-3">Dni treningowe / tydzień *</label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-4">
                 {[3, 4, 5, 6].map((d) => {
                   const active = planData.trainingDaysPerWeek === d;
                   return (
@@ -765,7 +695,7 @@ const EnhancedPlanCreator = () => {
             {/* Sprzęt */}
             <div>
               <label className="block text-white text-sm font-bold mb-3">Dostępny sprzęt *</label>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {equipmentOptions.map((e) => {
                   const active = planData.equipment === e.value;
                   return (
@@ -777,7 +707,7 @@ const EnhancedPlanCreator = () => {
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <span className="text-xl">{e.icon}</span>
+                        <img src={e.icon} alt="" className="w-6 h-6" loading="lazy" />
                         <span className="text-white font-medium">{e.label}</span>
                       </div>
                     </div>
@@ -792,8 +722,6 @@ const EnhancedPlanCreator = () => {
       case 2:
         return (
           <div className="space-y-6">
-            <SurveyInfoBanner />
-
             <div className="text-center mb-2">
               <h3 className="text-white text-2xl font-bold mb-4">Preferencje treningowe</h3>
               <p className="text-gray-300 text-sm">Doprecyzuj parametry potrzebne algorytmowi.</p>
@@ -802,7 +730,7 @@ const EnhancedPlanCreator = () => {
             {/* Długość sesji */}
             <div>
               <label className="block text-white text-sm font-bold mb-3">Preferowana długość sesji *</label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-4">
                 {[30, 45, 60, 90].map((duration) => {
                   const active = planData.sessionDuration === duration;
                   return (
@@ -824,7 +752,7 @@ const EnhancedPlanCreator = () => {
             {/* Długość planu */}
             <div>
               <label className="block text-white text-sm font-bold mb-3">Długość całego planu *</label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-4">
                 {[4, 8, 12, 16].map((weeks) => {
                   const active = planData.planDuration === weeks;
                   return (
@@ -856,7 +784,7 @@ const EnhancedPlanCreator = () => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-2xl mb-2">🔄</div>
+                    <img src="/images/flex.webp" alt="" className="w-6 h-6 mx-auto mb-2 opacity-80" loading="lazy" />
                     <div>Elastyczne</div>
                     <div className="text-xs text-gray-400 mt-1">Mogę przesuwać dni</div>
                   </div>
@@ -870,7 +798,7 @@ const EnhancedPlanCreator = () => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-2xl mb-2">📅</div>
+                    <img src="/images/calendar.webp" alt="" className="w-6 h-6 mx-auto mb-2 opacity-80" loading="lazy" />
                     <div>Stałe</div>
                     <div className="text-xs text-gray-400 mt-1">Określone dni tygodnia</div>
                   </div>
@@ -880,61 +808,98 @@ const EnhancedPlanCreator = () => {
           </div>
         );
 
-      case 3:
+      case 3: // ✅ NOWY KROK: Pomiary ciała (lewo: formularz, prawo: obraz)
         return (
           <div className="space-y-6">
-            <SurveyInfoBanner />
-
             <div className="text-center mb-2">
-              <h3 className="text-white text-2xl font-bold mb-4">Obszary skupienia i ograniczenia</h3>
-              <p className="text-gray-300 text-sm">Opcjonalne — pomagają lepiej dopasować plan.</p>
+              <h3 className="text-white text-2xl font-bold mb-4">Pomiary ciała</h3>
+              <p className="text-gray-300 text-sm">Wiek, waga i wzrost pomogą lepiej dopasować objętość i trudność.</p>
             </div>
 
-            {/* Obszary skupienia */}
-            <div>
-              <label className="block text-white text-sm font-bold mb-3">Obszary skupienia (0–3)</label>
-              <div className="grid grid-cols-2 gap-3">
-                {focusAreasOptions.map((area) => (
-                  <div
-                    key={area.id}
-                    onClick={() => toggleFocusArea(area.id)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      planData.focusAreas.includes(area.id)
-                        ? 'border-[#1DCD9F] bg-[#1DCD9F]/10'
-                        : 'border-[#333333] bg-[#1D1D1D] hover:border-[#555555]'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-xl">{area.icon}</span>
-                      <span className="text-white font-medium">{area.label}</span>
-                      {planData.focusAreas.includes(area.id) && <span className="ml-auto text-[#1DCD9F]">✓</span>}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+              {/* Lewy kafelek: formularz */}
+              <div className="bg-[#1D1D1D] rounded-2xl p-6 border border-[#333333]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-white text-sm font-bold mb-2">Wiek *</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={13}
+                        max={90}
+                        value={planData.body?.age ?? ''}
+                        onChange={(e) =>
+                          setPlanData((p) => ({ ...p, body: { ...p.body, age: e.target.value } }))
+                        }
+                        placeholder="np. 28"
+                        className="w-full bg-[#1D1D1D] border border-[#333333] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#1DCD9F] focus:outline-none"
+                      />
+                      <img src="/images/user.webp" alt="" className="w-4 h-4 absolute right-3 top-3.5 opacity-60" loading="lazy" />
                     </div>
+                    <FieldError name="age" />
                   </div>
-                ))}
+
+                  <div>
+                    <label className="block text-white text-sm font-bold mb-2">Waga (kg) *</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min={30}
+                        max={300}
+                        value={planData.body?.weightKg ?? ''}
+                        onChange={(e) =>
+                          setPlanData((p) => ({ ...p, body: { ...p.body, weightKg: e.target.value } }))
+                        }
+                        placeholder="np. 82"
+                        className="w-full bg-[#1D1D1D] border border-[#333333] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#1DCD9F] focus:outline-none"
+                      />
+                      <img src="/images/scale.webp" alt="" className="w-4 h-4 absolute right-3 top-3.5 opacity-60" loading="lazy" />
+                    </div>
+                    <FieldError name="weightKg" />
+                  </div>
+
+                  <div>
+                    <label className="block text-white text-sm font-bold mb-2">Wzrost (cm) *</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={120}
+                        max={230}
+                        value={planData.body?.heightCm ?? ''}
+                        onChange={(e) =>
+                          setPlanData((p) => ({ ...p, body: { ...p.body, heightCm: e.target.value } }))
+                        }
+                        placeholder="np. 180"
+                        className="w-full bg-[#1D1D1D] border border-[#333333] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#1DCD9F] focus:outline-none"
+                      />
+                      <img src="/images/height.webp" alt="" className="w-4 h-4 absolute right-3 top-3.5 opacity-60" loading="lazy" />
+                    </div>
+                    <FieldError name="heightCm" />
+                  </div>
+                </div>
+
+                {/* BMI podgląd */}
+                <div className="mt-6 bg-[#111111] rounded-2xl p-4 border border-[#333333]">
+                  <div className="flex items-center">
+                    <img src="/images/bmi.webp" alt="" className="w-5 h-5 mr-2 opacity-80" loading="lazy" />
+                    <div className="text-white font-semibold">BMI</div>
+                    <div className="ml-auto text-[#1DCD9F] font-bold">{bmi ?? '—'}</div>
+                  </div>
+                  <div className="text-xs text-gray-400 mt-2">
+                    BMI jest orientacyjne. Służy jedynie do modyfikacji objętości/poziomu planu.
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Ograniczenia */}
-            <div>
-              <label className="block text-white text-sm font-bold mb-3">Ograniczenia (opcjonalnie)</label>
-              <div className="grid grid-cols-1 gap-3">
-                {avoidanceOptions.map((avoidance) => (
-                  <div
-                    key={avoidance.id}
-                    onClick={() => toggleAvoidance(avoidance.id)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      planData.avoidances.includes(avoidance.id)
-                        ? 'border-red-500 bg-red-500/10'
-                        : 'border-[#333333] bg-[#1D1D1D] hover:border-[#555555]'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-xl">{avoidance.icon}</span>
-                      <span className="text-white font-medium">{avoidance.label}</span>
-                      {planData.avoidances.includes(avoidance.id) && <span className="ml-auto text-red-400">⚠️</span>}
-                    </div>
-                  </div>
-                ))}
+              {/* Prawa kolumna: obraz */}
+              <div className="rounded-2xl overflow-hidden border border-[#333333] bg-[#0b0b0b] flex items-center justify-center">
+                <img
+                  src={LaskoBody}
+                  alt="Lasko — sylwetka do pomiarów ciała"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>
@@ -943,7 +908,6 @@ const EnhancedPlanCreator = () => {
       case 4:
         return (
           <div className="space-y-6">
-            <SurveyInfoBanner />
             <APIErrorPanel />
 
             <div className="text-center mb-6">
@@ -958,11 +922,11 @@ const EnhancedPlanCreator = () => {
                 <div className="relative">
                   <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-[#1DCD9F] mx-auto"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl">🤖</span>
+                    <img src="/images/ai.webp" alt="" className="w-8 h-8 opacity-80" loading="lazy" />
                   </div>
                 </div>
                 <div className="space-y-1 text-gray-300">
-                  <div className="text-white font-semibold">Algorytm analizuje Twoje preferencje…</div>
+                  <div className="text-white font-semibold">Algorytm analizuje Twoje dane…</div>
                   <div className="text-sm">Dobieranie ćwiczeń i struktury tygodnia</div>
                 </div>
                 <div className="w-full bg-[#333333] rounded-full h-2">
@@ -971,19 +935,42 @@ const EnhancedPlanCreator = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                <AIInsightsPanel />
+                {aiInsights && (
+                  <div className="bg-gradient-to-r from-[#0D7A61]/20 to-[#1DCD9F]/20 rounded-2xl p-4 border border-[#1DCD9F]/30 mb-2">
+                    <div className="flex items-center mb-3">
+                      <img src="/images/ai.webp" alt="" className="w-5 h-5 mr-2" loading="lazy" />
+                      <span className="text-white font-bold">AI Analysis</span>
+                      {'score' in aiInsights && aiInsights.score != null && (
+                        <span className="ml-auto text-[#1DCD9F] text-sm font-bold">Score: {aiInsights.score}/100</span>
+                      )}
+                    </div>
+                    {Array.isArray(aiInsights.whyRecommended) && aiInsights.whyRecommended.length > 0 && (
+                      <ul className="text-gray-300 text-sm grid grid-cols-1 gap-1">
+                        {aiInsights.whyRecommended.slice(0, 4).map((r, i) => (
+                          <li key={i} className="text-xs flex items-center">
+                            <img src="/images/check.webp" alt="" className="w-4 h-4 mr-2 opacity-80" loading="lazy" />
+                            {r}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
 
                 <div className="bg-[#1D1D1D] rounded-2xl p-6 border border-[#333333]">
                   <h4 className="text-[#1DCD9F] font-bold mb-4">Twoje parametry:</h4>
 
                   {planData.isFromDatabase && planData.originalPlanName && (
                     <div className="mb-4 p-3 bg-[#0D7A61]/10 rounded-lg border border-[#0D7A61]/30">
-                      <div className="text-white font-medium">{planData.originalPlanName}</div>
+                      <div className="flex items-center">
+                        <img src="/images/plan.webp" alt="" className="w-4 h-4 mr-2 opacity-80" loading="lazy" />
+                        <div className="text-white font-medium">{planData.originalPlanName}</div>
+                      </div>
                       {planData.createdBy && <div className="text-gray-400 text-sm">Autor: {planData.createdBy}</div>}
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4 text-white">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-white">
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-400">Cel:</span>
@@ -997,52 +984,61 @@ const EnhancedPlanCreator = () => {
                         <span className="text-gray-400">Długość sesji:</span>
                         <span>{planData.sessionDuration} min</span>
                       </div>
-                    </div>
-                    <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-400">Sprzęt:</span>
                         <span className="text-xs">
                           {equipmentOptions.find((e) => e.value === planData.equipment)?.label || '—'}
                         </span>
                       </div>
+                    </div>
+                    <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-400">Długość planu:</span>
                         <span>{planData.planDuration} tygodni</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Obszary skupienia:</span>
-                        <span className="text-xs">{(planData.focusAreas?.length ?? 0)} wybranych</span>
+                        <span className="text-gray-400">Wiek / Waga / Wzrost:</span>
+                        <span>
+                          {(planData.body?.age ?? '—')} / {(planData.body?.weightKg ?? '—')}kg / {(planData.body?.heightCm ?? '—')}cm
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">BMI:</span>
+                        <span>{bmi ?? '—'}</span>
                       </div>
                     </div>
                   </div>
-
-                  {(planData.focusAreas.length > 0 || planData.avoidances.length > 0) && (
-                    <div className="mt-4 pt-4 border-t border-[#333333]">
-                      {planData.focusAreas.length > 0 && (
-                        <div className="mb-1 text-sm">
-                          <span className="text-gray-400">Skupienie: </span>
-                          <span className="text-[#1DCD9F]">
-                            {planData.focusAreas
-                              .map((a) => focusAreasOptions.find((o) => o.id === a)?.label)
-                              .filter(Boolean)
-                              .join(', ')}
-                          </span>
-                        </div>
-                      )}
-                      {planData.avoidances.length > 0 && (
-                        <div className="text-sm">
-                          <span className="text-gray-400">Ograniczenia: </span>
-                          <span className="text-red-400">
-                            {planData.avoidances
-                              .map((a) => avoidanceOptions.find((o) => o.id === a)?.label)
-                              .filter(Boolean)
-                              .join(', ')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
+
+                {alternatives.length > 0 && (
+                  <div className="bg-[#1D1D1D] rounded-2xl p-4 border border-[#333333]">
+                    <div className="flex items-center mb-3">
+                      <img src="/images/swap.webp" alt="" className="w-5 h-5 mr-2" loading="lazy" />
+                      <span className="text-white font-bold">Alternatywne plany</span>
+                    </div>
+                    <div className="space-y-2">
+                      {alternatives.slice(0, 3).map((alt) => (
+                        <div
+                          key={alt.planId}
+                          className="bg-[#333333]/50 rounded-lg p-3 hover:bg-[#333333]/70 transition-colors cursor-pointer"
+                          onClick={() => switchToAlternativePlan(alt)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="text-white text-sm font-medium">{alt.name}</div>
+                              <div className="text-gray-400 text-xs">
+                                {alt.score != null ? <>Score: {alt.score}/100</> : null}
+                                {alt.difficulty ? <> | {alt.difficulty}</> : null}
+                                {alt.training_days ? <> | {alt.training_days} dni</> : null}
+                              </div>
+                            </div>
+                            <div className="text-[#1DCD9F] text-xs ml-2">Zmień →</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1051,10 +1047,6 @@ const EnhancedPlanCreator = () => {
       case 5:
         return (
           <div className="space-y-6">
-            <SurveyInfoBanner />
-            <AIInsightsPanel />
-            <AlternativePlansPanel />
-
             <div className="text-center mb-4">
               <h3 className="text-white text-2xl font-bold">Twój wygenerowany plan</h3>
               <p className="text-gray-300 text-sm">Możesz edytować parametry lub zamienić ćwiczenia.</p>
@@ -1088,7 +1080,7 @@ const EnhancedPlanCreator = () => {
                             onClick={() => replaceExercise(dayIndex, exerciseIndex)}
                             className="text-gray-400 hover:text-white text-sm ml-2 bg-[#333333] hover:bg-[#555555] px-2 py-1 rounded transition-colors"
                           >
-                            Zamień ↻
+                            Zamień
                           </button>
                         </div>
 
@@ -1133,9 +1125,6 @@ const EnhancedPlanCreator = () => {
       case 6:
         return (
           <div className="space-y-6">
-            <SurveyInfoBanner />
-            <AIInsightsPanel />
-
             <div className="text-center mb-6">
               <h3 className="text-white text-2xl font-bold mb-2">Finalizacja planu</h3>
               <p className="text-gray-300 text-sm">
@@ -1174,13 +1163,15 @@ const EnhancedPlanCreator = () => {
 
               {planData.isFromDatabase && (
                 <div className="mb-4 p-3 bg-[#0D7A61]/10 rounded-lg border border-[#0D7A61]/30">
-                  <div className="text-white font-medium">📋 Plan bazodanowy: {planData.originalPlanName}</div>
-                  <div className="text-gray-400 text-sm">Dostosowany algorytmem do Twoich preferencji</div>
-                  {planData.createdBy && <div className="text-gray-500 text-xs">Autor: {planData.createdBy}</div>}
+                  <div className="flex items-center">
+                    <img src="/images/plan.webp" alt="" className="w-4 h-4 mr-2 opacity-80" loading="lazy" />
+                    <div className="text-white font-medium">Plan bazodanowy: {planData.originalPlanName}</div>
+                  </div>
+                  <div className="text-gray-400 text-sm">Dostosowany algorytmem do Twoich danych</div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 text-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-white">
                 <div className="space-y-2">
                   <div className="flex justify-between"><span className="text-gray-400">Cel:</span><span className="text-sm">{goals.find((g) => g.value === planData.goal)?.label || '—'}</span></div>
                   <div className="flex justify-between"><span className="text-gray-400">Dni w tygodniu:</span><span>{planData.trainingDaysPerWeek}</span></div>
@@ -1189,17 +1180,11 @@ const EnhancedPlanCreator = () => {
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between"><span className="text-gray-400">Ćwiczeń łącznie:</span><span>{planData.generatedExercises.length}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Średni czas sesji:</span><span>~{planData.sessionDuration} min</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Skupienie:</span><span className="text-sm">{(planData.focusAreas?.length ?? 0)} obsz.</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">Ograniczenia:</span><span className="text-sm">{(planData.avoidances?.length ?? 0)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">Śr. czas sesji:</span><span>~{planData.sessionDuration} min</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">Wiek/Waga/Wzrost:</span><span>{(planData.body?.age ?? '—')} / {(planData.body?.weightKg ?? '—')}kg / {(planData.body?.heightCm ?? '—')}cm</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">BMI:</span><span>{bmi ?? '—'}</span></div>
                 </div>
               </div>
-
-              {aiInsights && (
-                <div className="mt-4 pt-4 border-t border-[#333333] text-gray-500 text-xs">
-                  AI Score: {aiInsights.score ?? '—'}/100 | Źródło: {planData.isFromDatabase ? 'Baza planów' : 'Rekomendacja dynamiczna'}
-                </div>
-              )}
             </div>
           </div>
         );
@@ -1217,11 +1202,12 @@ const EnhancedPlanCreator = () => {
 
   return (
     <div
-      className="min-h-screen w-full px-4 py-10"
+      className="min-h-screen w-full px-6 py-8"
       style={{
         backgroundImage: `url(${RegisterBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
         position: 'relative'
       }}
     >
@@ -1235,87 +1221,90 @@ const EnhancedPlanCreator = () => {
         </Link>
       </div>
 
-      <div className="max-w-4xl mx-auto z-10 relative pt-20">
-        {/* Header z krokami */}
-        <div className="text-center mb-8">
-          <h1 className="text-white text-4xl font-bold mb-2">Kreator planu treningowego</h1>
-          <p className="text-gray-300 text-sm mb-4">Wybierz algorytm i skonfiguruj swoje preferencje</p>
-
-          {/* Progress steps */}
-          <div className="flex justify-center items-center space-x-2 mb-6 overflow-x-auto">
-            {steps.map((step, index) => (
-              <React.Fragment key={index}>
-                <div className="flex flex-col items-center min-w-max">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                      index <= currentStep ? 'bg-[#1DCD9F] text-black' : 'bg-[#333333] text-gray-400'
-                    }`}
-                  >
-                    {index < currentStep ? '✓' : index + 1}
-                  </div>
-                  <span className={`text-xs mt-2 text-center max-w-20 ${index <= currentStep ? 'text-white' : 'text-gray-400'}`}>
-                    {step}
-                  </span>
-                </div>
-                {index < steps.length - 1 && <div className={`w-8 h-0.5 ${index < currentStep ? 'bg-[#1DCD9F]' : 'bg-[#333333]'}`} />}
-              </React.Fragment>
-            ))}
-          </div>
+      {/* WSKAŹNIK ETAPU – prawy górny róg */}
+      <div className="absolute top-8 right-8 z-10 text-right">
+        <div className="text-white text-sm mb-1">
+          Krok {currentStep + 1} z {getMaxStep() + 1}
         </div>
+        <div className="w-32 h-2 bg-gray-600 rounded-full mt-2">
+          <div
+            className="h-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] rounded-full transition-all duration-300"
+            style={{ width: `${((currentStep + 1) / (getMaxStep() + 1)) * 100}%` }}
+          />
+        </div>
+      </div>
 
-        {/* Kontent kroku */}
-        <div className="bg-[#0a0a0a]/95 rounded-3xl p-8 border border-[#222222] shadow-[0_0_30px_10px_rgba(0,0,0,0.5)] min-h-[600px]">
+      <div className="max-w-6xl mx-auto z-10 relative pt-24">
+        {/* KAFEL (szerszy, przewijany wewnątrz w razie potrzeby) */}
+        <div className="bg-[#0a0a0a]/95 rounded-3xl p-10 border border-[#222222] shadow-[0_0_30px_10px_rgba(0,0,0,0.5)]
+                        min-h-[calc(100vh-220px)] overflow-y-auto">
+          {APIErrorPanel()}
           {renderCurrentStep()}
 
-          {/* Przyciski nawigacji */}
-          <div className="flex justify-between items-center mt-8 pt-6 border-t border-[#333333]">
-            <div className="flex space-x-4">
-              {currentStep > 0 && (
+          {/* Przyciski nawigacji – jak na stronie głównej */}
+          <div className="mt-8 pt-6 border-t border-[#333333]">
+            {/* Desktop navigation buttons - visible above 768px */}
+            <div className="hidden md:flex gap-2 justify-between items-center">
+              <div>
+                {currentStep > 0 ? (
+                  <button
+                    onClick={handlePrev}
+                    disabled={loading}
+                    className="text-[#e0e0e0] px-6 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white hover:shadow-[0_0_15px_rgba(29,205,159,0.5)] font-black disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ← Poprzedni krok
+                  </button>
+                ) : (
+                  <span />
+                )}
+              </div>
+
+              {currentStep === steps.length - 1 ? (
                 <button
-                  onClick={() => setCurrentStep(0)}
-                  disabled={loading}
-                  className="px-4 py-3 text-gray-400 hover:text-white transition-colors duration-300 text-sm disabled:opacity-50"
+                  onClick={handleFinalizePlan}
+                  disabled={!planData.name?.trim() || loading}
+                  className="text-[#e0e0e0] px-6 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white hover:shadow-[0_0_15px_rgba(29,205,159,0.5)] font-black disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ⚙️ Zmień algorytm
+                  Aktywuj plan
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  disabled={!canGoNext}
+                  className="text-[#e0e0e0] px-6 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white hover:shadow-[0_0_15px_rgba(29,205,159,0.5)] font-black disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading && currentStep === 4 ? 'Algorytm pracuje…' : 'Następny krok →'}
                 </button>
               )}
+            </div>
+
+            {/* Mobile (pełna szerokość) */}
+            <div className="md:hidden grid grid-cols-2 gap-3 mt-3">
               <button
                 onClick={handlePrev}
                 disabled={currentStep === 0 || loading}
-                className="px-6 py-3 text-gray-400 hover:text-white transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-[#e0e0e0] px-4 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white hover:shadow-[0_0_15px_rgba(29,205,159,0.5)] font-black disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ← Poprzedni krok
+                ← Wstecz
               </button>
+              {currentStep === steps.length - 1 ? (
+                <button
+                  onClick={handleFinalizePlan}
+                  disabled={!planData.name?.trim() || loading}
+                  className="text-[#e0e0e0] px-4 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white hover:shadow-[0_0_15px_rgba(29,205,159,0.5)] font-black disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Aktywuj
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  disabled={!canGoNext}
+                  className="text-[#e0e0e0] px-4 py-3 rounded-full transition-all duration-300 hover:bg-gradient-to-r hover:from-[#0D7A61] hover:to-[#1DCD9F] hover:text-white hover:shadow-[0_0_15px_rgba(29,205,159,0.5)] font-black disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Dalej →
+                </button>
+              )}
             </div>
-
-            {currentStep === steps.length - 1 ? (
-              <button
-                onClick={handleFinalizePlan}
-                disabled={!planData.name?.trim() || loading}
-                className={`px-8 py-3 rounded-full font-bold transition-all duration-300 ${
-                  planData.name?.trim()
-                    ? 'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110'
-                    : 'bg-[#333333] text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                🚀 Aktywuj plan
-              </button>
-            ) : (
-              <button
-                onClick={handleNext}
-                disabled={!canGoNext}
-                className="px-8 py-3 bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white font-bold rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110 disabled:opacity-50"
-              >
-                {loading && currentStep === 4 ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Algorytm pracuje…
-                  </div>
-                ) : (
-                  'Następny krok →'
-                )}
-              </button>
-            )}
           </div>
         </div>
       </div>

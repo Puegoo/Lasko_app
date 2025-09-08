@@ -31,10 +31,6 @@ def _get_user_id_from_jwt(request) -> Optional[int]:
 @csrf_exempt
 @require_http_methods(["POST"])
 def reco_dispatch(request, mode: str):
-    """
-    Endpoint rekomendacji: /api/reco/<mode>/
-    Prosty fallback SQL bazujący na polach: goal, level, equipment, trainingDaysPerWeek.
-    """
     mode = (mode or "hybrid").lower()
     try:
         top = int(request.GET.get("top", 3))
@@ -45,6 +41,7 @@ def reco_dispatch(request, mode: str):
         body = json.loads(request.body or "{}")
     except json.JSONDecodeError:
         body = {}
+
     payload = body.get("payload") or body.get("preferences") or body or {}
 
     goal = (payload.get("goal") or "").strip()
@@ -52,12 +49,26 @@ def reco_dispatch(request, mode: str):
     equipment = (payload.get("equipment") or payload.get("equipment_preference") or "").strip()
     tdays = payload.get("trainingDaysPerWeek") or payload.get("training_days_per_week")
 
+    # ✅ NOWE: parametry ciała
+    body_data = payload.get("body") or {}
+    age = body_data.get("age")
+    weight = body_data.get("weightKg") or body_data.get("weight")  # kg
+    height_cm = body_data.get("heightCm") or body_data.get("height")  # cm
+    bmi = body_data.get("bmi")
+    try:
+        if bmi is None and weight and height_cm:
+            h = float(height_cm) / 100.0
+            bmi = round(float(weight) / (h * h), 1)
+    except Exception:
+        bmi = None
+
     sql = """
       SELECT id, name, goal_type, difficulty_level, training_days_per_week, equipment_required
       FROM training_plans
       WHERE (%s = '' OR goal_type = %s)
         AND (%s = '' OR difficulty_level = %s)
         AND (%s = '' OR equipment_required = %s)
+        AND is_active = TRUE
       ORDER BY RANDOM()
       LIMIT %s
     """
@@ -68,14 +79,42 @@ def reco_dispatch(request, mode: str):
     recs = []
     for pid, name, goal_type, diff, days, equip in rows:
         score = 0
+        why = []
+
+        # podstawowe dopasowania
         if goal and goal_type == goal:
-            score += 40
+            score += 40; why.append(f"Dopasowanie celu: {goal_type}")
         if level and diff == level:
-            score += 30
+            score += 30; why.append(f"Dopasowanie poziomu: {diff}")
         if equipment and equip == equipment:
-            score += 20
+            score += 20; why.append(f"Sprzęt: {equip}")
         if tdays and days == tdays:
-            score += 10
+            score += 10; why.append(f"{days} dni/tydzień")
+
+        # ✅ dopasowanie po BMI
+        if bmi:
+            if goal_type == "spalanie" and bmi >= 27:
+                score += 12; why.append("Priorytet redukcji przy podwyższonym BMI")
+            if goal_type in ("masa", "siła") and 18.5 <= bmi <= 24.9:
+                score += 10; why.append("Priorytet siły/masy przy prawidłowym BMI")
+            if diff == "początkujący" and bmi >= 32:
+                score += 6;  why.append("Niższa trudność przy wyższym BMI")
+            if diff == "zaawansowany" and bmi <= 22:
+                score += 4;  why.append("Wyższa trudność przy niższym BMI")
+
+        # ✅ dopasowanie po wieku
+        if age:
+            try:
+                age_i = int(age)
+                if age_i >= 45 and diff in ("początkujący", "średniozaawansowany"):
+                    score += 6;  why.append("Dostosowanie poziomu pod wiek 45+")
+                if age_i >= 55 and days <= 4:
+                    score += 5;  why.append("Umiarkowana częstotliwość przy 55+")
+                if age_i <= 30 and diff == "zaawansowany":
+                    score += 3;  why.append("Wyższy poziom dla młodszych")
+            except Exception:
+                pass
+
         recs.append({
             "planId": pid,
             "name": name,
@@ -84,8 +123,10 @@ def reco_dispatch(request, mode: str):
             "trainingDaysPerWeek": days,
             "equipmentRequired": equip,
             "score": score,
-            "matchPercentage": min(100, score),
+            "matchPercentage": min(100, max(0, score)),
+            "bodyHints": why[-3:]  # wyślij 3 ostatnie wskazówki dot. ciała
         })
+
     return JsonResponse({"recommendations": recs})
 
 
