@@ -46,11 +46,11 @@ const EnhancedPlanCreator = () => {
 
   // Słowniki UI (ikony/obrazy w /public/images)
   const goals = [
-    { value: 'masa',          label: 'Budowanie masy mięśniowej',  icon: '/images/goal-mass.webp' },
-    { value: 'siła',          label: 'Zwiększenie siły',           icon: '/images/goal-strength.webp' },
-    { value: 'wytrzymałość',  label: 'Poprawa wytrzymałości',      icon: '/images/goal-endurance.webp' },
-    { value: 'spalanie',      label: 'Spalanie tkanki tłuszczowej',icon: '/images/goal-fatloss.webp' },
-    { value: 'zdrowie',       label: 'Ogólne zdrowie i kondycja',  icon: '/images/goal-health.webp' }
+    { value: 'masa',          label: 'Budowanie masy mięśniowej',  icon: '/public/icons/goal-mass.webp' },
+    { value: 'siła',          label: 'Zwiększenie siły',           icon: '/public/icons/goal-strength.webp' },
+    { value: 'wytrzymałość',  label: 'Poprawa wytrzymałości',      icon: '/public/icons/goal-endurance.webp' },
+    { value: 'spalanie',      label: 'Spalanie tkanki tłuszczowej',icon: '/public/icons/goal-fatloss.webp' },
+    { value: 'zdrowie',       label: 'Ogólne zdrowie i kondycja',  icon: '/public/icons/goal-health.webp' }
   ];
   const levels = [
     { value: 'początkujący',        label: 'Początkujący' },
@@ -58,30 +58,30 @@ const EnhancedPlanCreator = () => {
     { value: 'zaawansowany',        label: 'Zaawansowany' }
   ];
   const equipmentOptions = [
-    { value: 'siłownia',         label: 'Pełne wyposażenie siłowni',    icon: '/images/equipment-gym.webp' },
-    { value: 'dom_podstawowy',   label: 'Podstawowy sprzęt domowy',     icon: '/images/equipment-home-basic.webp' },
-    { value: 'dom_zaawansowany', label: 'Zaawansowane home gym',        icon: '/images/equipment-home-adv.webp' },
-    { value: 'masa_ciała',       label: 'Tylko masa ciała',             icon: '/images/equipment-bodyweight.webp' },
-    { value: 'minimalne',        label: 'Minimalne wyposażenie',        icon: '/images/equipment-minimal.webp' }
+    { value: 'siłownia',         label: 'Pełne wyposażenie siłowni',    icon: '/public/icons/equipment-gym.webp' },
+    { value: 'dom_podstawowy',   label: 'Podstawowy sprzęt domowy',     icon: '/public/icons/equipment-home-basic.webp' },
+    { value: 'dom_zaawansowany', label: 'Zaawansowane home gym',        icon: '/public/icons/equipment-home-adv.webp' },
+    { value: 'masa_ciała',       label: 'Tylko masa ciała',             icon: '/public/icons/equipment-bodyweight.webp' },
+    { value: 'minimalne',        label: 'Minimalne wyposażenie',        icon: '/public/icons/equipment-minimal.webp' }
   ];
   const algoOptions = [
     {
       value: 'product',
       title: 'Algorytm produktowy',
       desc: 'Proponuje plany podobne do wybranych planów (item→item).',
-      img: '/images/alg-product.webp'
+      img: '/public/icons/alg-product.webp'
     },
     {
       value: 'client',
       title: 'Algorytm klientowy',
       desc: 'Dopasowuje na podstawie Twojego profilu i preferencji (user/content).',
-      img: '/images/alg-client.webp'
+      img: '/public/icons/alg-client.webp'
     },
     {
       value: 'hybrid',
       title: 'Algorytm hybrydowy',
       desc: 'Łączy podejście produktowe i klientowe.',
-      img: '/images/alg-hybrid.webp'
+      img: '/public/icons/alg-hybrid.webp'
     }
   ];
 
@@ -882,7 +882,7 @@ const EnhancedPlanCreator = () => {
                 {/* BMI podgląd */}
                 <div className="mt-6 bg-[#111111] rounded-2xl p-4 border border-[#333333]">
                   <div className="flex items-center">
-                    <img src="/images/bmi.webp" alt="" className="w-5 h-5 mr-2 opacity-80" loading="lazy" />
+                    <img src="/public/icons/bmi.webp" alt="" className="w-5 h-5 mr-2 opacity-80" loading="lazy" />
                     <div className="text-white font-semibold">BMI</div>
                     <div className="ml-auto text-[#1DCD9F] font-bold">{bmi ?? '—'}</div>
                   </div>
