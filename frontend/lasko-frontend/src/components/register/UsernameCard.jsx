@@ -1,4 +1,4 @@
-// frontend/lasko-frontend/src/components/register/UserNameCard.jsx
+// frontend/lasko-frontend/src/components/register/UsernameCard.jsx
 import React, { useEffect, useRef, useState } from 'react';
 
 /**
@@ -7,10 +7,12 @@ import React, { useEffect, useRef, useState } from 'react';
  * - Pływająca etykieta bez tła, taki sam ruch jak w NameCard
  * - Walidacja: [a-zA-Z0-9_] 3–20 znaków (inline, ARIA)
  * - Minimalna wysokość, treść wyśrodkowana pionowo, CTA przy dole
+ * - NAPRAWIONE: eksport jako UsernameCard, lepsze debugowanie
  */
-const UserNameCard = ({
+const UsernameCard = ({
   formData,
   updateFormData,
+  validationErrors = {},
   onNext,
   onPrev,
   isSubmitting = false,
@@ -20,30 +22,52 @@ const UserNameCard = ({
   const [usernameValue, setUsernameValue] = useState('');
   const inputRef = useRef(null);
 
+  console.log('🔍 UsernameCard - Debug info:', {
+    formData,
+    usernameValue,
+    focused,
+    validationErrors
+  });
+
   // Reguła walidacji
   const USERNAME_RGX = /^[a-zA-Z0-9_]{3,20}$/;
 
   // Synchronizacja z formData (usunąć ewentualne '@')
   useEffect(() => {
     const clean = (formData?.username || '').replace(/@/g, '');
+    console.log('🔍 Username sync:', { original: formData?.username, clean });
     setUsernameValue(clean);
   }, [formData?.username]);
 
-  // Zapis zmian (bez '@')
+  // Zapis zmian (bez '@') - NAPRAWIONE: lepsze logowanie
   const handleChange = (e) => {
     const cleanValue = e.target.value.replace(/@/g, '');
+    console.log('🔍 Username change:', { 
+      inputValue: e.target.value, 
+      cleanValue, 
+      beforeUpdate: usernameValue 
+    });
+    
     setUsernameValue(cleanValue);
     updateFormData('username', cleanValue);
   };
 
   // Pływająca etykieta
-  const handleFocus = () => setFocused((s) => ({ ...s, username: true }));
+  const handleFocus = () => {
+    console.log('🔍 Username focused');
+    setFocused((s) => ({ ...s, username: true }));
+  };
+  
   const handleBlur = () => {
+    console.log('🔍 Username blurred, value:', usernameValue);
     if (!usernameValue) setFocused((s) => ({ ...s, username: false }));
   };
 
   // Klik na "@": fokus na input
-  const focusInput = () => inputRef.current?.focus();
+  const focusInput = () => {
+    console.log('🔍 Focusing input via @ click');
+    inputRef.current?.focus();
+  };
 
   // Walidacja pochodna
   const hasValue = (usernameValue || '').trim().length > 0;
@@ -54,6 +78,7 @@ const UserNameCard = ({
   // Wyślij krok
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log('🔍 Username form submit:', { isFormValid, isSubmitting, usernameValue });
     if (!isFormValid || isSubmitting) return;
     onNext();
   };
@@ -85,7 +110,7 @@ const UserNameCard = ({
               <button
                 type="button"
                 onClick={focusInput}
-                className="text-gray-400 select-none cursor-text mr-1"
+                className="text-gray-400 select-none cursor-text mr-1 shrink-0"
                 aria-hidden="true"
                 tabIndex={-1}
                 title="@"
@@ -93,7 +118,7 @@ const UserNameCard = ({
                 @
               </button>
 
-              {/* Input bez placeholdera */}
+              {/* Input bez placeholdera - NAPRAWIONE: dodane debugowanie */}
               <input
                 type="text"
                 id="username"
@@ -103,12 +128,15 @@ const UserNameCard = ({
                 onChange={handleChange}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
-                className="bg-transparent outline-none flex-1 text-white"
+                onInput={(e) => console.log('🔍 Input event:', e.target.value)}
+                className="bg-transparent outline-none flex-1 text-white min-w-0"
                 autoComplete="username"
                 maxLength={20}
                 minLength={3}
+                disabled={isSubmitting}
                 aria-invalid={usernameHasError ? 'true' : 'false'}
                 aria-describedby="username-help username-error"
+                data-testid="username-input"
               />
             </div>
 
@@ -127,44 +155,57 @@ const UserNameCard = ({
 
             {/* Komunikaty walidacyjne / pomocnicze */}
             <div className="mt-2 ml-2 space-y-1 text-sm break-words" aria-live="polite">
-              {usernameHasError && (
+              {validationErrors.username && (
                 <p id="username-error" className="text-red-400">
-                  Dozwolone: litery, cyfry, „_”, długość 3–20.
+                  <strong>Backend:</strong> {validationErrors.username}
                 </p>
               )}
-              {!usernameHasError && hasValue && (
+              
+              {usernameHasError && !validationErrors.username && (
+                <p id="username-error" className="text-red-400">
+                  Dozwolone: litery, cyfry, „_", długość 3–20.
+                </p>
+              )}
+              
+              {!usernameHasError && hasValue && !validationErrors.username && (
                 <p id="username-help" className="text-emerald-400">
                   ✓ Wygląda dobrze: @{usernameValue}
                 </p>
               )}
+              
               {!hasValue && (
                 <p id="username-help" className="text-gray-400">
-                  Użyj liter, cyfr lub „_”, 3–20 znaków.
+                  Użyj liter, cyfr lub „_", 3–20 znaków.
                 </p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Nawigacja */}
-        <div className="mt-auto grid grid-cols-2 gap-4 pt-4">
+        {/* Nawigacja (na dole kontenera) */}
+        <div className="flex gap-4 mt-auto pt-6">
+          {/* Przycisk "Wstecz" */}
           <button
             type="button"
             onClick={onPrev}
             disabled={isSubmitting}
-            className="bg-[#1D1D1D] hover:bg-[#292929] text-white font-bold py-4 rounded-full transition-all duration-300 disabled:opacity-60"
+            className="flex-1 py-4 rounded-full font-bold bg-transparent border border-gray-600 text-gray-300 hover:border-gray-500 hover:text-white transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/60"
           >
             Wstecz
           </button>
+
+          {/* Przycisk "Dalej" */}
           <button
             type="submit"
             disabled={!isFormValid || isSubmitting}
             className={[
-              'py-4 rounded-full font-bold transition-all duration-300',
+              'flex-1 py-4 rounded-full font-bold transition-all duration-300',
               isFormValid && !isSubmitting
                 ? 'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white hover:shadow-[0_0_20px_rgba(29,205,159,0.6)] hover:brightness-110'
                 : 'bg-gray-600 text-gray-300 cursor-not-allowed',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1DCD9F]/60',
             ].join(' ')}
+            aria-busy={isSubmitting ? 'true' : 'false'}
           >
             {isSubmitting ? 'Ładowanie…' : 'Dalej'}
           </button>
@@ -174,4 +215,4 @@ const UserNameCard = ({
   );
 };
 
-export default UserNameCard;
+export default UsernameCard;

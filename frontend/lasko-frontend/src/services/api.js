@@ -1,4 +1,6 @@
-// frontend/lasko-frontend/src/services/api.js (POPRAWIONE Z NOWYMI METODAMI)
+// frontend/lasko-frontend/src/services/api.js - ZSYNCHRONIZOWANY Z authService
+import { getAccessToken, setTokens, clearTokens, isAuthenticated } from './authService';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 class ApiService {
@@ -17,7 +19,8 @@ class ApiService {
       ...options,
     };
 
-    const token = localStorage.getItem('access_token');
+    // Użyj authService zamiast bezpośredniego localStorage
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -79,11 +82,9 @@ class ApiService {
   }
 
   async register(userData) {
-    console.log('🔍 ApiService - Otrzymane dane do rejestracji:');
-    console.log('='.repeat(50));
-    console.log('📝 Oryginalne dane:', userData);
+    console.log('🔍 ApiService - Otrzymane dane do rejestracji:', userData);
     
-    // Przygotuj dane do wysłania - zachowaj oryginalne nazwy pól
+    // Przygotuj dane do wysłania
     const registrationData = {
       username: userData.username,
       email: userData.email,
@@ -97,22 +98,20 @@ class ApiService {
       equipment_preference: userData.equipmentPreference || ''
     };
 
-    console.log('🔧 Debug - Sprawdzenie każdego pola:');
-    console.log('   username:', `"${registrationData.username}"`);
-    console.log('   email:', `"${registrationData.email}"`);
-    console.log('   password length:', registrationData.password?.length || 0);
-    console.log('   first_name:', `"${registrationData.first_name}"`);
-    console.log('   date_of_birth:', `"${registrationData.date_of_birth}"`);
-    console.log('   goal:', `"${registrationData.goal}"`);
-    console.log('   level:', `"${registrationData.level}"`);
-    console.log('   training_days_per_week:', registrationData.training_days_per_week);
-    console.log('   equipment_preference:', `"${registrationData.equipment_preference}"`);
-    console.log('='.repeat(50));
-
-    return this.request('/api/auth/register/', {
+    const response = await this.request('/api/auth/register/', {
       method: 'POST',
       body: JSON.stringify(registrationData),
     });
+
+    // Automatycznie zapisz tokeny jeśli są w odpowiedzi
+    if (response.tokens) {
+      setTokens({
+        access: response.tokens.access,
+        refresh: response.tokens.refresh
+      });
+    }
+
+    return response;
   }
 
   async login(credentials) {
@@ -124,9 +123,12 @@ class ApiService {
       }),
     });
 
+    // Automatycznie zapisz tokeny jeśli są w odpowiedzi
     if (response.tokens) {
-      localStorage.setItem('access_token', response.tokens.access);
-      localStorage.setItem('refresh_token', response.tokens.refresh);
+      setTokens({
+        access: response.tokens.access,
+        refresh: response.tokens.refresh
+      });
     }
 
     return response;
@@ -146,20 +148,21 @@ class ApiService {
   }
 
   logout() {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    console.log('🔐 ApiService: Wylogowanie - czyszczenie tokenów');
+    clearTokens();
   }
 
+  // Deleguj do authService
   isAuthenticated() {
-    return !!localStorage.getItem('access_token');
+    return isAuthenticated();
   }
 
   getAccessToken() {
-    return localStorage.getItem('access_token');
+    return getAccessToken();
   }
 
   // ============================================================================
-  // NOWE METODY DLA REKOMENDACJI - używają this.request() dla spójności
+  // METODY DLA REKOMENDACJI
   // ============================================================================
 
   async setRecommendationMethod(method) {

@@ -1,5 +1,5 @@
 // frontend/lasko-frontend/src/components/register/RegistrationContainer.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { isAuthenticated } from '../../services/authService';
@@ -30,6 +30,17 @@ const RegistrationContainer = () => {
     skipSurvey: false,
   });
 
+  // DODANE: Debugowanie stanu formularza
+  useEffect(() => {
+    console.log('🔍 RegistrationContainer - Stan:', {
+      currentStep,
+      formData,
+      validationErrors,
+      isSubmitting,
+      animating
+    });
+  }, [currentStep, formData, validationErrors, isSubmitting, animating]);
+
   const getFieldDisplayName = (field) => {
     const fieldNames = {
       username: 'Nazwa użytkownika',
@@ -42,15 +53,25 @@ const RegistrationContainer = () => {
     return fieldNames[field] || field;
   };
 
+  // ULEPSZONE: Funkcja updateFormData z debugowaniem
   function updateFormData(field, value) {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    console.log('🔍 updateFormData wywołane:', { field, value, prevValue: formData[field] });
+    
+    setFormData((prev) => {
+      const newFormData = {
+        ...prev,
+        [field]: value,
+      };
+      console.log('🔍 updateFormData - nowy stan:', newFormData);
+      return newFormData;
+    });
+
+    // Usuń błąd walidacji dla tego pola
     if (validationErrors[field]) {
       setValidationErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
+        console.log('🔍 Usunięto błąd walidacji dla:', field);
         return newErrors;
       });
     }
@@ -61,22 +82,48 @@ const RegistrationContainer = () => {
   }
 
   function goToNextStep() {
-    if (animating) return;
+    console.log('🔍 goToNextStep wywołane:', { currentStep, animating, isSubmitting });
+    
+    if (animating) {
+      console.log('⚠️ Animacja w toku, ignoruję');
+      return;
+    }
+
+    if (isSubmitting) {
+      console.log('⚠️ Już wysyłam dane, ignoruję');
+      return;
+    }
+    
     const maxStep = getMaxStep();
+    console.log('🔍 Porównanie kroków:', { currentStep, maxStep });
+    
     if (currentStep < maxStep) {
+      console.log('🔍 Przechodzę do następnego kroku');
       setDirection('next');
       setAnimating(true);
       setTimeout(() => {
-        setCurrentStep((prev) => prev + 1);
+        setCurrentStep((prev) => {
+          const newStep = prev + 1;
+          console.log('🔍 Nowy krok ustawiony:', newStep);
+          return newStep;
+        });
         setAnimating(false);
       }, 250);
     } else {
+      console.log('🔍 Ostatni krok - wywołuję handleSurveyDecision');
+      console.log('🔍 Stan formData przed wysłaniem:', formData);
       handleSurveyDecision();
     }
   }
 
   function goToPrevStep() {
-    if (animating || currentStep === 0) return;
+    console.log('🔍 goToPrevStep wywołane:', { currentStep, animating });
+    
+    if (animating || currentStep === 0) {
+      console.log('⚠️ Nie mogę cofnąć - animacja lub pierwszy krok');
+      return;
+    }
+    
     setDirection('prev');
     setAnimating(true);
     setTimeout(() => {
@@ -86,6 +133,8 @@ const RegistrationContainer = () => {
   }
 
   function renderCurrentCard() {
+    console.log('🔍 renderCurrentCard dla kroku:', currentStep);
+    
     switch (currentStep) {
       case 0:
         return (
@@ -142,12 +191,29 @@ const RegistrationContainer = () => {
           />
         );
       default:
-        return null;
+        console.error('❌ Nieznany krok:', currentStep);
+        return (
+          <div className="bg-red-900/20 border border-red-400 rounded-lg p-4 text-red-300">
+            <h3>Błąd: Nieznany krok {currentStep}</h3>
+            <button onClick={() => setCurrentStep(0)} className="mt-2 text-red-400 underline">
+              Wróć do początku
+            </button>
+          </div>
+        );
     }
   }
 
   const handleSurveyDecision = async () => {
+    console.log('🔍 handleSurveyDecision rozpoczęte:', { formData, isSubmitting });
+    
+    if (isSubmitting) {
+      console.log('⚠️ Już wysyłam dane, ignoruję kolejne wywołanie');
+      return;
+    }
+    
     setIsSubmitting(true);
+    setValidationErrors({}); // Wyczyść poprzednie błędy
+    
     try {
       const registrationData = {
         username: formData.username,
@@ -165,11 +231,13 @@ const RegistrationContainer = () => {
 
       // Jeżeli po register nadal brak tokenu — wykonaj login
       if (!isAuthenticated()) {
+        console.log('🔄 Brak tokenu po rejestracji, wykonuję login');
         await login({ email: formData.email, password: formData.password });
       }
 
       // Best-effort zapis profilu tylko gdy mamy token
       if (isAuthenticated()) {
+        console.log('🔄 Zapisuję profil użytkownika');
         const userProfileData = {
           registrationComplete: true,
           surveyChoice: formData.surveyChoice,
@@ -178,23 +246,28 @@ const RegistrationContainer = () => {
         await saveUserProfile(userProfileData);
       }
 
+      // Nawigacja w zależności od wyboru
+      const navigationState = {
+        userData: formData,
+        surveyCompleted: false,
+        registrationSuccessful: true,
+        skipBasicInfo: false,
+        fromSurvey: false,
+      };
+
       if (formData.skipSurvey) {
+        console.log('🔄 Przekierowuję do kreatora planu (pominięcie ankiety)');
         navigate('/plan-creator', {
           state: {
-            userData: formData,
-            surveyCompleted: false,
-            registrationSuccessful: true,
-            skipBasicInfo: false,
-            fromSurvey: false,
+            ...navigationState,
             mode: 'manual',
           },
         });
       } else {
+        console.log('🔄 Przekierowuję do szczegółowej ankiety');
         navigate('/enhanced-plan-creator', {
           state: {
-            userData: formData,
-            surveyCompleted: false,
-            registrationSuccessful: true,
+            ...navigationState,
             skipBasicInfo: true,
             fromSurvey: true,
             mode: 'survey',
@@ -205,6 +278,8 @@ const RegistrationContainer = () => {
       console.error('❌ Błąd rejestracji:', error);
 
       if (error.validationErrors) {
+        console.log('🔍 Błędy walidacji z serwera:', error.validationErrors);
+        
         const mappedErrors = {};
         Object.entries(error.validationErrors).forEach(([field, messages]) => {
           const messagesList = Array.isArray(messages) ? messages : [messages];
@@ -222,8 +297,17 @@ const RegistrationContainer = () => {
           .join('\n');
 
         alert(`Błędy rejestracji:\n${errorMessages}`);
+        
+        // Przejdź do kroku z błędem
+        if (mappedErrors.email || mappedErrors.password) setCurrentStep(0);
+        else if (mappedErrors.first_name) setCurrentStep(1);
+        else if (mappedErrors.date_of_birth) setCurrentStep(2);
+        else if (mappedErrors.username) setCurrentStep(3);
+        
       } else {
-        alert(`Błąd: ${error.message || 'Nieoczekiwany błąd'}. Spróbuj ponownie.`);
+        const errorMessage = error.message || 'Nieoczekiwany błąd podczas rejestracji';
+        console.error('❌ Błąd ogólny:', errorMessage);
+        alert(`Błąd: ${errorMessage}. Spróbuj ponownie.`);
       }
     } finally {
       setIsSubmitting(false);
@@ -262,6 +346,19 @@ const RegistrationContainer = () => {
         </div>
       </div>
 
+      {/* DODANE: Panel debugowania w trybie development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 left-4 bg-black/80 text-white text-xs p-2 rounded max-w-xs z-50">
+          <div><strong>Krok:</strong> {currentStep}</div>
+          <div><strong>Animacja:</strong> {animating ? 'TAK' : 'NIE'}</div>
+          <div><strong>Wysyłanie:</strong> {isSubmitting ? 'TAK' : 'NIE'}</div>
+          <div><strong>Błędy:</strong> {Object.keys(validationErrors).length}</div>
+          <div><strong>Email:</strong> {formData.email}</div>
+          <div><strong>Nazwa:</strong> {formData.name}</div>
+          <div><strong>Username:</strong> {formData.username}</div>
+        </div>
+      )}
+
       <div className="max-w-lg w-full mx-auto z-10 relative overflow-hidden" style={{ height: 'min(650px, 85vh)' }}>
         {isSubmitting && (
           <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 rounded-3xl">
@@ -279,39 +376,14 @@ const RegistrationContainer = () => {
           className={`absolute inset-0 transition-all duration-500 ease-in-out ${
             animating
               ? direction === 'next'
-                ? 'transform translate-x-full opacity-0'
-                : 'transform -translate-x-full opacity-0'
-              : 'transform translate-x-0 opacity-100'
+                ? '-translate-x-full opacity-0'
+                : 'translate-x-full opacity-0'
+              : 'translate-x-0 opacity-100'
           }`}
         >
           {renderCurrentCard()}
         </div>
       </div>
-
-      {import.meta.env.DEV && (
-        <>
-          {Object.keys(validationErrors).length > 0 && (
-            <div className="absolute bottom-4 left-4 bg-red-600 text-white p-4 rounded max-w-md z-50">
-              <h4 className="font-bold">Błędy walidacji:</h4>
-              <pre className="text-xs mt-2">{JSON.stringify(validationErrors, null, 2)}</pre>
-            </div>
-          )}
-
-          <div className="absolute bottom-4 right-4 bg-blue-600 text-white p-4 rounded max-w-sm z-50">
-            <h4 className="font-bold">Stan formularza:</h4>
-            <div className="text-xs mt-2">
-              <div>Krok: {currentStep}/{getMaxStep()}</div>
-              <div>Name: "{formData.name}"</div>
-              <div>Username: "{formData.username}"</div>
-              <div>Survey Choice: "{formData.surveyChoice}"</div>
-              <div>Skip Survey: {formData.skipSurvey ? 'YES' : 'NO'}</div>
-              <div className="mt-1 text-yellow-200">
-                Przekierowanie: {formData.skipSurvey ? '/plan-creator' : '/enhanced-plan-creator'}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 };
