@@ -1,13 +1,11 @@
-# backend/recommendations/urls.py
+# backend/recommendations/urls.py - ZASTĄP CAŁY PLIK
 from django.urls import path
-from lasko_backend.views import (
-    get_recommendations,
-    activate_plan,
-    create_custom_plan,
-)
+from . import views  # ✅ POPRAWNY IMPORT z tego samego modułu
 
 urlpatterns = [
-    path('', get_recommendations, name='get_recommendations'),                       # POST /api/recommendations/
-    path('activate/', activate_plan, name='activate_plan'),                          # POST /api/recommendations/activate/
-    path('create-custom-plan/', create_custom_plan, name='create_custom_plan'),      # POST /api/recommendations/create-custom-plan/
+    # Główny endpoint rekomendacji
+    path('', views.generate_recommendations, name='generate_recommendations'),
+    
+    # Aktywacja planu  
+    path('activate/', views.activate_plan, name='activate_plan'),
 ]

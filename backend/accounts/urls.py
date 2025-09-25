@@ -3,18 +3,19 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Auth
+    # Autoryzacja
     path('register/', views.register, name='register'),
     path('login/', views.login, name='login'),
     path('logout/', views.logout, name='logout'),
-
+    path('refresh/', views.refresh_token, name='refresh_token'),  # ✅ TO JEST KLUCZOWE
+    
     # Profil
     path('profile/', views.profile, name='profile'),
     path('profile/update/', views.update_profile, name='update_profile'),
-
-    # Preferencje rekomendacji
+    
+    # Preferencje  
     path('set-recommendation-method/', views.set_recommendation_method, name='set_recommendation_method'),
-
-    # (opcjonalnie) JWT-chroniony endpoint rekomendacji – zwraca taki sam format jak /api/recommendations/
-    path('generate-recommendations/', views.generate_recommendations, name='generate_recommendations'),
+    
+    # Debug
+    path('debug/', views.debug_auth, name='debug_auth'),
 ]

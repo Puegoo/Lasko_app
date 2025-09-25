@@ -1,192 +1,367 @@
-// frontend/lasko-frontend/src/services/api.js - ZSYNCHRONIZOWANY Z authService
-import { getAccessToken, setTokens, clearTokens, isAuthenticated } from './authService';
+// frontend/lasko-frontend/src/services/api.js - KOMPLETNIE NAPRAWIONY
+import { 
+  getAccessToken, 
+  refreshAccessToken, 
+  clearTokens,
+  isTokenValid,
+  setTokens,
+  getUserData
+} from './authService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
+    this.isRefreshing = false; // Zapobiega wielokrotnym żądaniom refresh
+    this.refreshPromise = null;
   }
 
+  // ============================================================================
+  // PODSTAWOWA METODA REQUEST Z AUTORYZACJĄ I RETRY
+  // ============================================================================
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    };
+    let attempt = 0;
+    const maxAttempts = 2; // Pierwsze żądanie + retry po refresh
 
-    // Użyj authService zamiast bezpośredniego localStorage
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    while (attempt < maxAttempts) {
+      attempt++;
+      
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      };
 
-    try {
-      console.log(`🌐 API Request: ${config.method || 'GET'} ${url}`);
-      if (config.body) {
-        console.log('📤 Request payload:', JSON.parse(config.body));
+      // Dodaj token autoryzacji jeśli dostępny
+      const token = getAccessToken();
+      if (token && isTokenValid(token)) {
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log(`🔐 [ApiService] Dodano Authorization header (próba ${attempt})`);
+      } else if (token && !isTokenValid(token)) {
+        console.warn('⚠️ [ApiService] Token nieprawidłowy lub wygasły');
+        
+        // Spróbuj odświeżyć token tylko przy pierwszej próbie
+        if (attempt === 1) {
+          try {
+            await this.refreshTokenIfNeeded();
+            const newToken = getAccessToken();
+            if (newToken && isTokenValid(newToken)) {
+              config.headers.Authorization = `Bearer ${newToken}`;
+              console.log('✅ [ApiService] Token odświeżony, dodano Authorization header');
+            }
+          } catch (refreshError) {
+            console.error('❌ [ApiService] Nie udało się odświeżyć tokenu:', refreshError);
+            clearTokens();
+          }
+        }
+      } else {
+        console.log('ℹ️ [ApiService] Żądanie bez autoryzacji (brak tokenu)');
       }
 
-      const response = await fetch(url, config);
-      
-      console.log(`📥 Response status: ${response.status} ${response.statusText}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
+      try {
+        console.log(`🌐 [ApiService] ${config.method || 'GET'} ${url} (próba ${attempt})`);
         
-        console.log('❌ Error response data:', errorData);
+        if (config.body && typeof config.body === 'string') {
+          console.log('📤 [ApiService] Request payload:', JSON.parse(config.body));
+        }
+
+        const response = await fetch(url, config);
         
-        // Ulepszona obsługa błędów walidacji
-        if (errorData.errors && typeof errorData.errors === 'object') {
-          const errorMessages = [];
+        console.log(`📥 [ApiService] Response: ${response.status} ${response.statusText}`);
+
+        // Obsługa błędu 401 - tylko przy pierwszej próbie
+        if (response.status === 401 && attempt === 1) {
+          console.warn('🚨 [ApiService] Błąd 401 - próba odświeżenia tokenu...');
           
-          Object.entries(errorData.errors).forEach(([field, messages]) => {
-            if (Array.isArray(messages)) {
-              messages.forEach(message => {
-                errorMessages.push(`${field}: ${message}`);
-              });
-            } else {
-              errorMessages.push(`${field}: ${messages}`);
-            }
+          try {
+            await this.refreshTokenIfNeeded();
+            // Kontynuuj pętlę while dla retry
+            continue;
+          } catch (refreshError) {
+            console.error('❌ [ApiService] Odświeżanie tokenu nie powiodło się');
+            clearTokens();
+            throw new Error('Sesja wygasła - zaloguj się ponownie');
+          }
+        }
+
+        // Parsuj odpowiedź
+        let responseData;
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          responseData = await response.json();
+        } else {
+          responseData = await response.text();
+        }
+
+        // Obsługa błędów HTTP
+        if (!response.ok) {
+          console.error('❌ [ApiService] Błąd HTTP:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: responseData
           });
-          
-          console.log('🔄 Processed validation errors:', errorMessages);
-          
-          const error = new Error(errorMessages.join('\n'));
-          error.validationErrors = errorData.errors;
-          error.field = Object.keys(errorData.errors)[0];
-          
-          console.log('🚨 Throwing validation error:', {
-            message: error.message,
-            validationErrors: error.validationErrors,
-            field: error.field
-          });
+
+          // Stwórz czytelny błąd
+          const errorMessage = this.extractErrorMessage(responseData, response.status);
+          const error = new Error(errorMessage);
+          error.status = response.status;
+          error.response = responseData;
           
           throw error;
         }
-        
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
 
-      const responseData = await response.json();
-      console.log('✅ Success response:', responseData);
-      return responseData;
-    } catch (error) {
-      console.error('🚨 API Request failed:', error);
-      throw error;
+        console.log('✅ [ApiService] Żądanie zakończone sukcesem');
+        return responseData;
+
+      } catch (error) {
+        // Jeśli to błąd sieci i mamy jeszcze próby, spróbuj ponownie
+        if (attempt < maxAttempts && this.isNetworkError(error)) {
+          console.warn(`⚠️ [ApiService] Błąd sieci, retry (${attempt}/${maxAttempts}):`, error.message);
+          await this.delay(1000); // Czekaj 1s przed retry
+          continue;
+        }
+
+        // W przeciwnym razie rzuć błąd
+        throw error;
+      }
     }
   }
 
-  async register(userData) {
-    console.log('🔍 ApiService - Otrzymane dane do rejestracji:', userData);
-    
-    // Przygotuj dane do wysłania
-    const registrationData = {
-      username: userData.username,
-      email: userData.email,
-      password: userData.password,
-      password_confirm: userData.password,
-      first_name: userData.name,
-      date_of_birth: userData.birthDate,
-      goal: userData.goal || '',
-      level: userData.level || '',
-      training_days_per_week: userData.trainingDaysPerWeek || 3,
-      equipment_preference: userData.equipmentPreference || ''
-    };
+  // ============================================================================
+  // ODŚWIEŻANIE TOKENÓW Z ZABEZPIECZENIEM PRZED WIELOKROTNYM WYWOŁANIEM
+  // ============================================================================
+  async refreshTokenIfNeeded() {
+    // Jeśli już trwa odświeżanie, czekaj na zakończenie
+    if (this.isRefreshing && this.refreshPromise) {
+      console.log('🔄 [ApiService] Czekanie na zakończenie odświeżania tokenu...');
+      return await this.refreshPromise;
+    }
 
-    const response = await this.request('/api/auth/register/', {
-      method: 'POST',
-      body: JSON.stringify(registrationData),
+    this.isRefreshing = true;
+    this.refreshPromise = refreshAccessToken().finally(() => {
+      this.isRefreshing = false;
+      this.refreshPromise = null;
     });
 
-    // Automatycznie zapisz tokeny jeśli są w odpowiedzi
+    return await this.refreshPromise;
+  }
+
+  // ============================================================================
+  // METODY POMOCNICZE
+  // ============================================================================
+  extractErrorMessage(responseData, status) {
+    if (typeof responseData === 'string') {
+      return responseData;
+    }
+    
+    if (responseData && typeof responseData === 'object') {
+      // Sprawdź różne formaty błędów z backendu
+      if (responseData.message) {
+        return responseData.message;
+      }
+      if (responseData.error) {
+        return responseData.error;
+      }
+      if (responseData.errors && typeof responseData.errors === 'object') {
+        // Błędy walidacji
+        const errorMessages = [];
+        Object.entries(responseData.errors).forEach(([field, messages]) => {
+          if (Array.isArray(messages)) {
+            errorMessages.push(`${field}: ${messages.join(', ')}`);
+          } else {
+            errorMessages.push(`${field}: ${messages}`);
+          }
+        });
+        return errorMessages.join('\n');
+      }
+    }
+
+    // Fallback na kod statusu
+    const statusMessages = {
+      400: 'Nieprawidłowe żądanie',
+      401: 'Brak autoryzacji',
+      403: 'Brak uprawnień',
+      404: 'Nie znaleziono',
+      500: 'Błąd serwera',
+    };
+
+    return statusMessages[status] || `Błąd HTTP ${status}`;
+  }
+
+  isNetworkError(error) {
+    return error instanceof TypeError && error.message.includes('fetch');
+  }
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ============================================================================
+  // METODY AUTORYZACJI
+  // ============================================================================
+  async register(userData) {
+    console.log('🔄 [ApiService] Rejestracja użytkownika:', userData.username);
+    
+    const response = await this.request('/api/auth/register/', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+
+    // Zapisz tokeny jeśli są w odpowiedzi
     if (response.tokens) {
       setTokens({
         access: response.tokens.access,
-        refresh: response.tokens.refresh
+        refresh: response.tokens.refresh,
+        user: response.user
       });
+      console.log('✅ [ApiService] Tokeny zapisane po rejestracji');
     }
 
     return response;
   }
 
   async login(credentials) {
+    console.log('🔄 [ApiService] Logowanie użytkownika:', credentials.login || credentials.email);
+    
     const response = await this.request('/api/auth/login/', {
       method: 'POST',
-      body: JSON.stringify({
-        login: credentials.email,
-        password: credentials.password,
-      }),
+      body: JSON.stringify(credentials),
     });
 
-    // Automatycznie zapisz tokeny jeśli są w odpowiedzi
+    // Zapisz tokeny
     if (response.tokens) {
       setTokens({
         access: response.tokens.access,
-        refresh: response.tokens.refresh
+        refresh: response.tokens.refresh,
+        user: response.user
       });
+      console.log('✅ [ApiService] Tokeny zapisane po logowaniu');
     }
 
     return response;
   }
 
+  async logout() {
+    console.log('🔓 [ApiService] Wylogowanie');
+    
+    try {
+      await this.request('/api/auth/logout/', {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.warn('⚠️ [ApiService] Błąd wylogowania na serwerze:', error.message);
+    } finally {
+      clearTokens();
+      console.log('✅ [ApiService] Tokeny wyczyszczone');
+    }
+  }
+
+  // ============================================================================
+  // METODY PROFILU UŻYTKOWNIKA
+  // ============================================================================
   async getProfile() {
-    return this.request('/api/auth/profile/', {
+    console.log('🔄 [ApiService] Pobieranie profilu użytkownika');
+    return await this.request('/api/auth/profile/', {
       method: 'GET',
     });
   }
 
   async updateProfile(profileData) {
-    return this.request('/api/auth/profile/', {
+    console.log('🔄 [ApiService] Aktualizacja profilu użytkownika');
+    return await this.request('/api/auth/profile/', {
       method: 'PUT',
       body: JSON.stringify(profileData),
     });
   }
 
-  logout() {
-    console.log('🔐 ApiService: Wylogowanie - czyszczenie tokenów');
-    clearTokens();
+  // ============================================================================
+  // METODY REKOMENDACJI I PLANÓW
+  // ============================================================================
+  async generateRecommendations(mode = 'hybrid', preferences = {}, top = 3) {
+    console.log('🤖 [ApiService] Generowanie rekomendacji:', { mode, preferences, top });
+    
+    return await this.request('/api/recommendations/', {
+      method: 'POST',
+      body: JSON.stringify({
+        mode,
+        preferences,
+        top
+      }),
+    });
   }
 
-  // Deleguj do authService
+  async getPlanDetails(planId) {
+    console.log('🔄 [ApiService] Pobieranie szczegółów planu:', planId);
+    return await this.request(`/api/plans/${planId}/detailed/`, {
+      method: 'GET',
+    });
+  }
+
+  async activatePlan(planId) {
+    console.log('🔄 [ApiService] Aktywacja planu:', planId);
+    return await this.request(`/api/plans/${planId}/activate/`, {
+      method: 'POST',
+    });
+  }
+
+  async createCustomPlan(planData) {
+    console.log('🔄 [ApiService] Tworzenie niestandardowego planu');
+    return await this.request('/api/plans/', {
+      method: 'POST',
+      body: JSON.stringify(planData),
+    });
+  }
+
+  // ============================================================================
+  // FUNKCJE SPRAWDZAJĄCE
+  // ============================================================================
   isAuthenticated() {
-    return isAuthenticated();
+    const token = getAccessToken();
+    const user = getUserData();
+    const isValid = token && isTokenValid(token) && user;
+    
+    console.log('🔍 [ApiService] Sprawdzanie autoryzacji:', {
+      hasToken: !!token,
+      tokenValid: token ? isTokenValid(token) : false,
+      hasUser: !!user,
+      result: !!isValid
+    });
+    
+    return !!isValid;
   }
 
   getAccessToken() {
     return getAccessToken();
   }
 
-  // ============================================================================
-  // METODY DLA REKOMENDACJI
-  // ============================================================================
-
-  async setRecommendationMethod(method) {
-    console.log('🎯 ApiService: Ustawianie metody rekomendacji:', method);
-    
-    if (!['product', 'user', 'hybrid'].includes(method)) {
-      throw new Error('Nieprawidłowa metoda rekomendacji. Dozwolone: product, user, hybrid');
-    }
-
-    return this.request('/api/auth/set-recommendation-method/', {
-      method: 'POST',
-      body: JSON.stringify({ method }),
-    });
+  getCurrentUser() {
+    return getUserData();
   }
 
-  async generateRecommendations(method) {
-    console.log('🤖 ApiService: Generowanie rekomendacji metodą:', method);
-    
-    return this.request('/api/auth/generate-recommendations/', {
-      method: 'POST',
-      body: JSON.stringify({ method }),
-    });
+  // ============================================================================
+  // DEBUG
+  // ============================================================================
+  debugStatus() {
+    console.log('🔍 [ApiService] === STATUS SERWISU API ===');
+    console.log('Base URL:', this.baseURL);
+    console.log('Is Authenticated:', this.isAuthenticated());
+    console.log('Current User:', this.getCurrentUser()?.username);
+    console.log('Access Token:', this.getAccessToken() ? 'PRESENT' : 'MISSING');
+    console.log('Token Valid:', this.getAccessToken() ? isTokenValid(this.getAccessToken()) : false);
   }
 }
 
+// Eksportuj singleton
 const apiService = new ApiService();
+
+// Dodaj do window dla debugowania
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  window.ApiService = apiService;
+}
+
 export default apiService;

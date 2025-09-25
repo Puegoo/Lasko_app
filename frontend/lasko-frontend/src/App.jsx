@@ -1,7 +1,7 @@
-// frontend/lasko-frontend/src/App.jsx
+// frontend/lasko-frontend/src/App.jsx - NAPRAWIONY - USUŃ PODWÓJNY ROUTER
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom'; // ✅ USUNIĘTO Router i BrowserRouter
+import { useAuth } from './contexts/AuthContext'; // ✅ USUNIĘTO AuthProvider import
 
 // Komponenty
 import RegistrationContainer from './components/register/RegistrationContainer.jsx';
@@ -248,45 +248,41 @@ const HomePage = () => {
   );
 };
 
-// Główna aplikacja z routingiem
+// ✅ GŁÓWNA APLIKACJA - TYLKO Routes (BEZ ROUTER I AUTHPROVIDER)
 const App = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Strona główna */}
-          <Route path="/" element={<HomePage />} />
-          
-          {/* Logowanie */}
-          <Route path="/login" element={<LoginPage />} />
-          
-          {/* Rejestracja */}
-          <Route path="/register" element={<RegistrationContainer />} />
-          
-          {/* Wybór algorytmu (po rejestracji) */}
-          <Route path="/choose-algorithm" element={<AlgorithmChoicePage />} />
-          
-          {/* Kreator planu (rozszerzony) */}
-          <Route path="/enhanced-plan-creator" element={<EnhancedPlanCreator />} />
-          
-          {/* Chronione trasy - wymagają zalogowania */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/plan-preview" element={
-            <ProtectedRoute>
-              <PlanCreatorPreview />
-            </ProtectedRoute>
-          } />
-          
-          {/* Przekierowanie nieznanych tras */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <Routes>
+      {/* Strona główna */}
+      <Route path="/" element={<HomePage />} />
+      
+      {/* Logowanie */}
+      <Route path="/login" element={<LoginPage />} />
+      
+      {/* Rejestracja */}
+      <Route path="/register" element={<RegistrationContainer />} />
+      
+      {/* Wybór algorytmu (po rejestracji) */}
+      <Route path="/choose-algorithm" element={<AlgorithmChoicePage />} />
+      
+      {/* Kreator planu (rozszerzony) */}
+      <Route path="/enhanced-plan-creator" element={<EnhancedPlanCreator />} />
+      
+      {/* Chronione trasy - wymagają zalogowania */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <DashboardPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/plan-preview" element={
+        <ProtectedRoute>
+          <PlanCreatorPreview />
+        </ProtectedRoute>
+      } />
+      
+      {/* Przekierowanie nieznanych tras */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 };
 

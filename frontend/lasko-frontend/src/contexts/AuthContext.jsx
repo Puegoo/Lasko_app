@@ -1,12 +1,21 @@
-// frontend/lasko-frontend/src/contexts/AuthContext.jsx (POPRAWIONY)
+// frontend/lasko-frontend/src/contexts/AuthContext.jsx - KOMPLETNIE NAPRAWIONY
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  setTokens, 
+  getAccessToken, 
+  getUserData, 
+  clearTokens, 
+  isAuthenticated as checkAuth,
+  refreshAccessToken,
+  debugAuth 
+} from '../services/authService';
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth musi być używane wewnątrz AuthProvider');
   }
   return context;
 };
@@ -14,54 +23,96 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(null);
+  const [authError, setAuthError] = useState(null);
 
-  // Sprawdź token przy ładowaniu aplikacji
+  // ============================================================================
+  // INICJALIZACJA - sprawdź czy użytkownik jest zalogowany
+  // ============================================================================
   useEffect(() => {
-    const storedToken = localStorage.getItem('token') || localStorage.getItem('access_token');
-    const storedRefreshToken = localStorage.getItem('refreshToken') || localStorage.getItem('refresh_token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        // Wyczyść nieprawidłowe dane
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        localStorage.removeItem('access_token');
-      }
-    }
-    
-    setLoading(false);
+    initializeAuth();
   }, []);
 
-  // Funkcja do zapisywania tokenów (centralna)
-  const saveTokens = (accessToken, refreshToken, userData) => {
-    // Zapisz w obu formatach dla kompatybilności
-    localStorage.setItem('token', accessToken);
-    localStorage.setItem('access_token', accessToken);
-    
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('refresh_token', refreshToken);
+  const initializeAuth = async () => {
+    try {
+      console.log('🚀 [AuthContext] Inicjalizacja autoryzacji...');
+      
+      if (checkAuth()) {
+        const userData = getUserData();
+        setUser(userData);
+        console.log('✅ [AuthContext] Użytkownik zalogowany:', userData?.username);
+        
+        // Opcjonalnie: sprawdź aktualność danych profilu
+        try {
+          await fetchUserProfile();
+        } catch (error) {
+          console.warn('⚠️ [AuthContext] Nie udało się pobrać profilu:', error.message);
+          // Nie wylogowuj - może być tymczasowy błąd sieciowy
+        }
+      } else {
+        console.log('❌ [AuthContext] Użytkownik nie jest zalogowany');
+      }
+    } catch (error) {
+      console.error('❌ [AuthContext] Błąd inicjalizacji:', error);
+      setAuthError(error.message);
+    } finally {
+      setLoading(false);
     }
-    
-    if (userData) {
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
-    }
-    
-    setToken(accessToken);
   };
 
-  // Funkcja rejestracji
+  // ============================================================================
+  // POBIERANIE PROFILU UŻYTKOWNIKA
+  // ============================================================================
+  const fetchUserProfile = async () => {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error('Brak tokenu autoryzacji');
+    }
+
+    console.log('🔄 [AuthContext] Pobieranie profilu użytkownika...');
+
+    const response = await fetch('/api/auth/profile/', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status === 401) {
+      // Token wygasł - spróbuj odświeżyć
+      try {
+        console.log('🔄 [AuthContext] Token wygasł, próba odświeżenia...');
+        await refreshAccessToken();
+        // Powtórz żądanie z nowym tokenem
+        return fetchUserProfile();
+      } catch (refreshError) {
+        console.error('❌ [AuthContext] Nie udało się odświeżyć tokenu:', refreshError);
+        logout();
+        throw new Error('Sesja wygasła - zaloguj się ponownie');
+      }
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+
+    const profileData = await response.json();
+    console.log('✅ [AuthContext] Profil pobrany:', profileData.user?.username);
+    
+    return profileData;
+  };
+
+  // ============================================================================
+  // REJESTRACJA
+  // ============================================================================
   const register = async (userData) => {
     try {
-      console.log('🔍 AuthContext - Rozpoczynam rejestrację:', userData);
+      setLoading(true);
+      setAuthError(null);
       
+      console.log('🔄 [AuthContext] Rozpoczynam rejestrację:', userData.username);
+
       const response = await fetch('/api/auth/register/', {
         method: 'POST',
         headers: {
@@ -70,57 +121,59 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify(userData),
       });
 
-      const responseText = await response.text();
-      console.log('📥 AuthContext - Raw response:', responseText);
+      const responseData = await response.json();
 
       if (!response.ok) {
-        let errorData;
-        try {
-          errorData = JSON.parse(responseText);
-        } catch {
-          errorData = { message: 'Błąd serwera' };
+        console.error('❌ [AuthContext] Błąd rejestracji:', responseData);
+        
+        // Obsłuż błędy walidacji
+        if (responseData.errors && typeof responseData.errors === 'object') {
+          const errorMessages = [];
+          Object.entries(responseData.errors).forEach(([field, messages]) => {
+            if (Array.isArray(messages)) {
+              errorMessages.push(`${field}: ${messages.join(', ')}`);
+            } else {
+              errorMessages.push(`${field}: ${messages}`);
+            }
+          });
+          throw new Error(errorMessages.join('\n'));
         }
         
-        console.error('❌ AuthContext - Registration failed:', errorData);
-        
-        // Przekształć błędy z backendu
-        const error = new Error(errorData.message || 'Registration failed');
-        error.validationErrors = errorData.errors || errorData;
-        throw error;
+        throw new Error(responseData.message || 'Błąd rejestracji');
       }
 
-      const data = JSON.parse(responseText);
-      console.log('✅ AuthContext - Registration success:', data);
-      
-      // Zapisz tokeny i dane użytkownika
-      if (data.tokens || (data.access && data.refresh)) {
-        const accessToken = data.tokens?.access || data.access;
-        const refreshToken = data.tokens?.refresh || data.refresh;
-        const userData = data.user;
-        
-        console.log('💾 AuthContext - Saving tokens:', { 
-          hasAccess: !!accessToken, 
-          hasRefresh: !!refreshToken, 
-          hasUser: !!userData 
+      console.log('✅ [AuthContext] Rejestracja udana:', responseData);
+
+      // Zapisz tokeny jeśli są w odpowiedzi
+      if (responseData.tokens) {
+        setTokens({
+          access: responseData.tokens.access,
+          refresh: responseData.tokens.refresh,
+          user: responseData.user
         });
-        
-        saveTokens(accessToken, refreshToken, userData);
-      } else {
-        console.warn('⚠️ AuthContext - No tokens in registration response');
+        setUser(responseData.user);
       }
 
-      return data;
+      return responseData;
     } catch (error) {
-      console.error('❌ AuthContext - Registration error:', error);
+      console.error('❌ [AuthContext] Błąd rejestracji:', error);
+      setAuthError(error.message);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Funkcja logowania
+  // ============================================================================
+  // LOGOWANIE
+  // ============================================================================
   const login = async (credentials) => {
     try {
-      console.log('🔍 AuthContext - Starting login:', credentials.login);
+      setLoading(true);
+      setAuthError(null);
       
+      console.log('🔄 [AuthContext] Rozpoczynam logowanie dla:', credentials.login || credentials.email);
+
       const response = await fetch('/api/auth/login/', {
         method: 'POST',
         headers: {
@@ -129,116 +182,166 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify(credentials),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
+        console.error('❌ [AuthContext] Błąd logowania:', responseData);
+        throw new Error(responseData.message || 'Błąd logowania');
       }
 
-      const data = await response.json();
-      console.log('✅ AuthContext - Login success:', data);
-      
+      console.log('✅ [AuthContext] Logowanie udane:', responseData);
+
       // Zapisz tokeny i dane użytkownika
-      const accessToken = data.tokens?.access || data.access;
-      const refreshToken = data.tokens?.refresh || data.refresh;
-      const userData = data.user;
-      
-      if (accessToken && userData) {
-        saveTokens(accessToken, refreshToken, userData);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('❌ AuthContext - Login error:', error);
-      throw error;
-    }
-  };
-
-  // Funkcja wylogowania
-  const logout = () => {
-    console.log('🔓 AuthContext - Logging out');
-    
-    // Wyczyść wszystkie wersje tokenów
-    localStorage.removeItem('token');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    
-    setToken(null);
-    setUser(null);
-  };
-
-  // Funkcja odświeżania tokenu
-  const refreshToken = async () => {
-    try {
-      const refresh = localStorage.getItem('refreshToken') || localStorage.getItem('refresh_token');
-      if (!refresh) {
-        throw new Error('No refresh token available');
-      }
-
-      const response = await fetch('/api/auth/refresh/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Token refresh failed');
-      }
-
-      const data = await response.json();
-      const newAccessToken = data.access;
-      
-      if (newAccessToken) {
-        // Zapisz tylko nowy access token
-        localStorage.setItem('token', newAccessToken);
-        localStorage.setItem('access_token', newAccessToken);
-        setToken(newAccessToken);
-        
-        return newAccessToken;
+      if (responseData.tokens && responseData.user) {
+        setTokens({
+          access: responseData.tokens.access,
+          refresh: responseData.tokens.refresh,
+          user: responseData.user
+        });
+        setUser(responseData.user);
       } else {
-        throw new Error('No access token in refresh response');
+        throw new Error('Brak tokenów w odpowiedzi serwera');
       }
-      
+
+      return responseData;
     } catch (error) {
-      console.error('❌ AuthContext - Token refresh error:', error);
-      logout(); // Wyloguj użytkownika jeśli odświeżanie się nie powiodło
+      console.error('❌ [AuthContext] Błąd logowania:', error);
+      setAuthError(error.message);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Funkcja sprawdzania czy użytkownik jest zalogowany
-  const isAuthenticated = () => {
-    const currentToken = token || localStorage.getItem('token') || localStorage.getItem('access_token');
-    const currentUser = user || (() => {
-      try {
-        const storedUser = localStorage.getItem('user');
-        return storedUser ? JSON.parse(storedUser) : null;
-      } catch {
-        return null;
-      }
-    })();
+  // ============================================================================
+  // WYLOGOWANIE
+  // ============================================================================
+  const logout = async () => {
+    console.log('🔓 [AuthContext] Wylogowywanie użytkownika...');
     
-    return !!(currentToken && currentUser);
+    // Opcjonalnie wyślij żądanie wylogowania na serwer
+    try {
+      const token = getAccessToken();
+      if (token) {
+        await fetch('/api/auth/logout/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+    } catch (error) {
+      console.warn('⚠️ [AuthContext] Błąd podczas wylogowania na serwerze:', error);
+      // Kontynuuj lokalnie
+    }
+
+    // Wyczyść stan lokalny
+    clearTokens();
+    setUser(null);
+    setAuthError(null);
+    
+    console.log('✅ [AuthContext] Użytkownik wylogowany');
   };
 
-  // Funkcja do pobierania aktualnego tokenu
+  // ============================================================================
+  // FUNKCJE POMOCNICZE
+  // ============================================================================
+  const isAuthenticated = () => {
+    return checkAuth() && !!user;
+  };
+
   const getToken = () => {
-    return token || localStorage.getItem('token') || localStorage.getItem('access_token');
+    return getAccessToken();
   };
 
+  const getCurrentUser = () => {
+    return user || getUserData();
+  };
+
+  // ============================================================================
+  // GENEROWANIE REKOMENDACJI (dla EnhancedPlanCreator)
+  // ============================================================================
+  const generateRecommendations = async (method = 'hybrid', preferences = {}) => {
+    const token = getAccessToken();
+    if (!token) {
+      throw new Error('Brak autoryzacji - zaloguj się ponownie');
+    }
+
+    console.log('🤖 [AuthContext] Generowanie rekomendacji:', { method, preferences });
+
+    const response = await fetch('/api/recommendations/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mode: method,
+        preferences,
+        top: 3
+      }),
+    });
+
+    if (response.status === 401) {
+      throw new Error('Brak autoryzacji - zaloguj się ponownie');
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Błąd generowania rekomendacji');
+    }
+
+    const data = await response.json();
+    console.log('✅ [AuthContext] Rekomendacje wygenerowane:', data);
+    
+    return data;
+  };
+
+  // Debug w trybie development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      window.AuthContext = {
+        user,
+        isAuthenticated: isAuthenticated(),
+        debugAuth,
+        logout,
+        generateRecommendations
+      };
+    }
+  }, [user]);
+
+  // ============================================================================
+  // PROVIDER VALUE
+  // ============================================================================
   const value = {
     user,
-    token: getToken(),
     loading,
+    authError,
+    
+    // Metody autoryzacji
     register,
     login,
     logout,
-    refreshToken,
+    
+    // Funkcje sprawdzające
     isAuthenticated,
     getToken,
+    getCurrentUser,
+    
+    // Funkcje API
+    generateRecommendations,
+    fetchUserProfile,
+    
+    // Debug
+    debugAuth: () => {
+      console.log('🔍 [AuthContext] Stan AuthContext:');
+      console.log('User:', user);
+      console.log('Loading:', loading);
+      console.log('Error:', authError);
+      console.log('Is Authenticated:', isAuthenticated());
+      debugAuth();
+    }
   };
 
   return (
