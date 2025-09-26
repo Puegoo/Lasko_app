@@ -1,84 +1,67 @@
-# Docker Compose (bez przestarzałego pola 'version')
+version: '3.8'
 
 services:
-  # Frontend React z Nginx (produkcyjny obraz frontu)
-  frontend:
-    build:
-      context: ./frontend/lasko-frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:80"
+  db:
+    image: postgres:15
     environment:
-      - DOCKER_ENV=true  # ← DODAJ TO
-    depends_on:
-      - backend
-    networks:
-      - lasko-network
+      POSTGRES_DB: LaskoDB
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./SQL/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  # Backend Django
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-      - backend_logs:/app/logs
     environment:
-      # Wycisza ostrzeżenie o pkg_resources z simplejwt
-      - PYTHONWARNINGS=ignore:pkg_resources is deprecated:UserWarning
       - DEBUG=1
-      - DJANGO_SETTINGS_MODULE=lasko_backend.settings
       - POSTGRES_DB=LaskoDB
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - DB_HOST=db
       - DB_PORT=5432
-    depends_on:
-      - db
-      - redis
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health/ || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
-    networks:
-      - lasko-network
-
-  # Baza danych PostgreSQL
-  db:
-    image: postgres:13-alpine
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      POSTGRES_DB: LaskoDB
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
-    # Jeśli masz już lokalnego Postgresa na 5432, możesz przełączyć lewy port na 5433
-    # ports:
-    #   - "5433:5432"
+      - ./backend:/app
     ports:
-      - "5432:5432"
-    command: postgres -c 'max_connections=200'
-    networks:
-      - lasko-network
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        python manage.py check_db_ready &&
+        echo 'Running migrations...' &&
+        python manage.py makemigrations &&
+        python manage.py migrate --fake-initial &&
+        echo 'Converting passwords...' &&
+        python manage.py convert_passwords &&
+        echo 'Starting server...' &&
+        python manage.py runserver 0.0.0.0:8000
+      "
 
-  # Redis dla cache / workers
-  redis:
-    image: redis:alpine
+  frontend:
+    build:
+      context: ./frontend/lasko-frontend
+      dockerfile: Dockerfile
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    volumes:
+      - ./frontend/lasko-frontend:/app
+      - /app/node_modules
     ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    networks:
-      - lasko-network
+      - "3000:3000"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
-  backend_logs:
-
-networks:
-  lasko-network:
-    driver: bridge

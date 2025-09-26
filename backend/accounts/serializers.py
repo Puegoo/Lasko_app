@@ -1,145 +1,137 @@
-# backend/accounts/serializers.py - CORRECTED SERIALIZERS
+# backend/accounts/serializers.py - NAPRAWIONA WERSJA
+import logging
 from rest_framework import serializers
 from django.db import transaction
-import logging
-
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from .models import AuthAccount, UserProfile
 
 logger = logging.getLogger(__name__)
 
 
 class UserRegistrationSerializer(serializers.Serializer):
-    """Serializer for user registration - clean implementation"""
+    """
+    Serializer do rejestracji użytkowników - NAPRAWIONA WERSJA
+    Używa tylko Django ORM, bez bezpośrednich zapytań SQL
+    """
     
-    # Account data
+    # Account fields
     username = serializers.CharField(max_length=50)
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, min_length=8)
+    email = serializers.EmailField(max_length=100)
+    password = serializers.CharField(write_only=True, min_length=6)
     password_confirm = serializers.CharField(write_only=True)
     first_name = serializers.CharField(max_length=50, required=False, allow_blank=True)
     
-    # Profile data (optional)
+    # Profile fields
+    goal = serializers.ChoiceField(
+        choices=UserProfile.GOAL_CHOICES, 
+        default='zdrowie'
+    )
+    level = serializers.ChoiceField(
+        choices=UserProfile.LEVEL_CHOICES, 
+        default='poczatkujacy'
+    )
+    training_days_per_week = serializers.IntegerField(
+        min_value=1, 
+        max_value=7, 
+        default=3
+    )
+    equipment_preference = serializers.ChoiceField(
+        choices=UserProfile.EQUIPMENT_CHOICES, 
+        default='silownia'
+    )
+    recommendation_method = serializers.ChoiceField(
+        choices=UserProfile.RECO_CHOICES, 
+        default='hybrid'
+    )
+    
+    # Optional profile fields
     date_of_birth = serializers.DateField(required=False, allow_null=True)
-    goal = serializers.CharField(max_length=50, required=False, allow_blank=True)
-    level = serializers.CharField(max_length=50, required=False, allow_blank=True)
-    training_days_per_week = serializers.IntegerField(required=False, allow_null=True)
-    equipment_preference = serializers.CharField(max_length=50, required=False, allow_blank=True)
-    preferred_session_duration = serializers.IntegerField(required=False, allow_null=True)
-    recommendation_method = serializers.CharField(max_length=10, required=False, allow_blank=True)
-    
-    def validate_username(self, value):
-        """Username validation"""
-        value = value.lower().strip()
-        if AuthAccount.objects.filter(username=value).exists():
-            raise serializers.ValidationError("This username is already taken.")
-        
-        if len(value) < 3:
-            raise serializers.ValidationError("Username must be at least 3 characters long.")
-        
-        import re
-        if not re.match(r'^[a-zA-Z0-9_]+$', value):
-            raise serializers.ValidationError("Username can only contain letters, numbers and underscore.")
-        
-        return value
-    
-    def validate_email(self, value):
-        """Email validation"""
-        value = value.lower().strip()
-        if AuthAccount.objects.filter(email=value).exists():
-            raise serializers.ValidationError("This email is already registered.")
-        return value
-    
-    def validate_password(self, value):
-        """Password validation"""
-        if len(value) < 8:
-            raise serializers.ValidationError("Password must be at least 8 characters long.")
-        
-        import re
-        if not re.search(r'[A-Za-z]', value):
-            raise serializers.ValidationError("Password must contain at least one letter.")
-        if not re.search(r'\d', value):
-            raise serializers.ValidationError("Password must contain at least one digit.")
-        
-        return value
-    
-    def validate_goal(self, value):
-        """Goal validation"""
-        if value and value not in ['masa', 'redukcja', 'sila', 'wytrzymalosc', 'zdrowie']:
-            raise serializers.ValidationError("Invalid training goal.")
-        return value
-    
-    def validate_level(self, value):
-        """Level validation"""
-        if value and value not in ['poczatkujacy', 'sredniozaawansowany', 'zaawansowany']:
-            raise serializers.ValidationError("Invalid skill level.")
-        return value
-    
-    def validate_equipment_preference(self, value):
-        """Equipment validation"""
-        if value and value not in ['silownia', 'dom_hantle', 'dom_masa', 'minimalne', 'dom', 'wolne_ciezary']:
-            raise serializers.ValidationError("Invalid equipment preference.")
-        return value
-    
-    def validate_training_days_per_week(self, value):
-        """Training days validation"""
-        if value is not None and (value < 1 or value > 7):
-            raise serializers.ValidationError("Training days must be between 1 and 7.")
-        return value
-    
-    def validate_recommendation_method(self, value):
-        """Recommendation method validation"""
-        if value and value not in ['product', 'user', 'hybrid']:
-            raise serializers.ValidationError("Invalid recommendation method.")
-        return value
+    preferred_session_duration = serializers.IntegerField(
+        min_value=15, 
+        max_value=180, 
+        required=False, 
+        allow_null=True
+    )
+    avoid_exercises = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        required=False,
+        allow_empty=True
+    )
+    focus_areas = serializers.ListField(
+        child=serializers.CharField(max_length=50),
+        required=False,
+        allow_empty=True
+    )
     
     def validate(self, data):
-        """Cross validation"""
-        if data.get('password') != data.get('password_confirm'):
+        """Walidacja całego obiektu"""
+        
+        # 1. Sprawdź zgodność haseł
+        if data['password'] != data['password_confirm']:
             raise serializers.ValidationError({
-                'password_confirm': 'Passwords do not match.'
+                'password_confirm': 'Hasła nie są zgodne'
+            })
+        
+        # 2. Walidacja hasła Django
+        try:
+            validate_password(data['password'])
+        except ValidationError as e:
+            raise serializers.ValidationError({
+                'password': list(e.messages)
             })
         
         return data
     
+    def validate_username(self, value):
+        """Walidacja username - unikalność"""
+        if AuthAccount.objects.filter(username=value).exists():
+            raise serializers.ValidationError(
+                'Użytkownik o tej nazwie już istnieje'
+            )
+        return value
+    
+    def validate_email(self, value):
+        """Walidacja email - unikalność"""
+        if AuthAccount.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                'Konto z tym emailem już istnieje'
+            )
+        return value.lower()
+    
     def create(self, validated_data):
-        """Create user account with profile using Django ORM"""
+        """
+        Utwórz konto użytkownika i profil
+        NAPRAWIONA WERSJA - tylko Django ORM
+        """
         try:
-            logger.info(f"Creating user account: {validated_data.get('username')}")
+            logger.info(f"[Registration] Tworzenie konta: {validated_data['username']}")
             
-            # Remove password confirmation from data
-            validated_data.pop('password_confirm', None)
+            # Usuń password_confirm z danych
+            password_confirm = validated_data.pop('password_confirm', None)
             
-            # Separate account and profile data
-            account_data = {
-                'username': validated_data.pop('username'),
-                'email': validated_data.pop('email'),
-                'password': validated_data.pop('password'),
-                'first_name': validated_data.pop('first_name', ''),
-            }
-            
-            # Profile data - only existing fields
-            profile_data = {}
-            existing_fields = [
-                'first_name', 'date_of_birth', 'goal', 'level', 
-                'training_days_per_week', 'equipment_preference',
-                'preferred_session_duration', 'recommendation_method'
+            # Podziel dane na konto i profil
+            account_fields = ['username', 'email', 'password', 'first_name']
+            profile_fields = [
+                'goal', 'level', 'training_days_per_week', 'equipment_preference',
+                'recommendation_method', 'date_of_birth', 'preferred_session_duration',
+                'avoid_exercises', 'focus_areas'
             ]
             
-            for field in existing_fields:
-                if field in validated_data and validated_data[field] is not None:
-                    # Don't add empty strings
-                    if isinstance(validated_data[field], str) and validated_data[field].strip() == '':
-                        continue
-                    profile_data[field] = validated_data[field]
+            account_data = {key: validated_data[key] for key in account_fields if key in validated_data}
+            profile_data = {key: validated_data[key] for key in profile_fields if key in validated_data}
             
-            # Copy first_name from account to profile
+            # Kopiuj first_name do profilu jeśli istnieje
             if account_data.get('first_name'):
                 profile_data['first_name'] = account_data['first_name']
             
-            logger.info(f"Profile data: {profile_data}")
+            logger.info(f"[Registration] Account data: {list(account_data.keys())}")
+            logger.info(f"[Registration] Profile data: {list(profile_data.keys())}")
             
+            # Transakcja atomowa
             with transaction.atomic():
-                # Create account using Django ORM
+                
+                # 1. Utwórz konto używając Django ORM
                 auth_account = AuthAccount.objects.create(
                     username=account_data['username'],
                     email=account_data['email'],
@@ -150,20 +142,31 @@ class UserRegistrationSerializer(serializers.Serializer):
                     is_active=True
                 )
                 
-                # Set password using model method
+                # 2. Ustaw hasło używając metody modelu (automatyczne hashowanie)
                 auth_account.set_password(account_data['password'])
                 auth_account.save()
                 
-                logger.info(f"Account created: ID {auth_account.id}")
+                logger.info(f"[Registration] Konto utworzone: ID {auth_account.id}")
                 
-                # Create profile
+                # 3. Utwórz profil
                 profile_data['auth_account'] = auth_account
-                if not profile_data.get('recommendation_method'):
-                    profile_data['recommendation_method'] = 'hybrid'
+                
+                # Ustaw domyślne wartości jeśli brakuje
+                profile_defaults = {
+                    'goal': 'zdrowie',
+                    'level': 'poczatkujacy',
+                    'training_days_per_week': 3,
+                    'equipment_preference': 'silownia',
+                    'recommendation_method': 'hybrid'
+                }
+                
+                for key, default_value in profile_defaults.items():
+                    if key not in profile_data or profile_data[key] is None:
+                        profile_data[key] = default_value
                 
                 user_profile = UserProfile.objects.create(**profile_data)
                 
-                logger.info(f"Profile created for: {auth_account.username}")
+                logger.info(f"[Registration] Profil utworzony dla: {auth_account.username}")
                 
                 return {
                     'auth_account': auth_account,
@@ -171,21 +174,96 @@ class UserRegistrationSerializer(serializers.Serializer):
                 }
         
         except Exception as e:
-            logger.error(f"Error in create(): {str(e)}")
-            raise serializers.ValidationError(f"Error creating account: {str(e)}")
+            logger.error(f"[Registration] Error in create(): {str(e)}")
+            import traceback
+            logger.error(f"[Registration] Traceback: {traceback.format_exc()}")
+            raise serializers.ValidationError(f"Błąd podczas tworzenia konta: {str(e)}")
 
 
 class UserLoginSerializer(serializers.Serializer):
-    """Serializer for user login - simplified logic"""
+    """Serializer do logowania użytkowników"""
     
-    login = serializers.CharField()
+    login = serializers.CharField(help_text="Username lub email")
     password = serializers.CharField(write_only=True)
     
-    # No validation logic here - move it to views for better error handling
+    def validate(self, data):
+        """Podstawowa walidacja - logika autoryzacji w views"""
+        login = data.get('login', '').strip()
+        password = data.get('password', '')
+        
+        if not login or not password:
+            raise serializers.ValidationError(
+                'Login i hasło są wymagane'
+            )
+        
+        return {
+            'login': login.lower(),
+            'password': password
+        }
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for user profile - existing fields only"""
+    """Serializer do profilu użytkownika"""
+    
+    # Dodatkowe pola tylko do odczytu
+    age = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = UserProfile
+        fields = [
+            'first_name', 'date_of_birth', 'age', 'goal', 'level',
+            'training_days_per_week', 'equipment_preference',
+            'preferred_session_duration', 'avoid_exercises', 
+            'focus_areas', 'last_survey_date', 'recommendation_method'
+        ]
+        
+        extra_kwargs = {
+            'avoid_exercises': {'required': False, 'allow_null': True},
+            'focus_areas': {'required': False, 'allow_null': True},
+            'last_survey_date': {'read_only': True},
+        }
+    
+    def get_age(self, obj):
+        """Oblicz wiek na podstawie daty urodzenia"""
+        if obj.date_of_birth:
+            from datetime import date
+            today = date.today()
+            return today.year - obj.date_of_birth.year - (
+                (today.month, today.day) < (obj.date_of_birth.month, obj.date_of_birth.day)
+            )
+        return None
+    
+    def validate_training_days_per_week(self, value):
+        """Walidacja dni treningowych"""
+        if value is not None and (value < 1 or value > 7):
+            raise serializers.ValidationError("Dni treningowe muszą być między 1 a 7.")
+        return value
+    
+    def validate_preferred_session_duration(self, value):
+        """Walidacja czasu trwania sesji"""
+        if value is not None and (value < 15 or value > 180):
+            raise serializers.ValidationError("Czas sesji musi być między 15 a 180 minut.")
+        return value
+
+
+# ============================================================================
+# INNE SERIALIZERY
+# ============================================================================
+
+class AuthAccountSerializer(serializers.ModelSerializer):
+    """Serializer dla danych konta (bez hasła)"""
+    
+    class Meta:
+        model = AuthAccount
+        fields = [
+            'id', 'username', 'email', 'first_name', 
+            'is_admin', 'created_at', 'last_login'
+        ]
+        read_only_fields = ['id', 'created_at', 'last_login']
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    """Serializer do aktualizacji profilu"""
     
     class Meta:
         model = UserProfile
@@ -193,65 +271,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'first_name', 'date_of_birth', 'goal', 'level',
             'training_days_per_week', 'equipment_preference',
             'preferred_session_duration', 'avoid_exercises', 
-            'focus_areas', 'last_survey_date', 'recommendation_method'
+            'focus_areas', 'recommendation_method'
         ]
         
         extra_kwargs = {
-            'avoid_exercises': {'required': False},
-            'focus_areas': {'required': False},
-            'last_survey_date': {'read_only': True},
+            'avoid_exercises': {'required': False, 'allow_null': True},
+            'focus_areas': {'required': False, 'allow_null': True},
         }
     
     def validate_training_days_per_week(self, value):
         if value is not None and (value < 1 or value > 7):
             raise serializers.ValidationError("Training days must be between 1 and 7.")
         return value
-    
-    def validate_preferred_session_duration(self, value):
-        if value is not None and (value < 15 or value > 180):
-            raise serializers.ValidationError("Session duration must be between 15 and 180 minutes.")
-        return value
-    
-    def validate_goal(self, value):
-        if value and value not in ['masa', 'redukcja', 'sila', 'wytrzymalosc', 'zdrowie']:
-            raise serializers.ValidationError("Invalid training goal.")
-        return value
-    
-    def validate_level(self, value):
-        if value and value not in ['poczatkujacy', 'sredniozaawansowany', 'zaawansowany']:
-            raise serializers.ValidationError("Invalid skill level.")
-        return value
-    
-    def validate_equipment_preference(self, value):
-        if value and value not in ['silownia', 'dom_hantle', 'dom_masa', 'minimalne', 'dom', 'wolne_ciezary']:
-            raise serializers.ValidationError("Invalid equipment preference.")
-        return value
-    
-    def validate_recommendation_method(self, value):
-        if value and value not in ['product', 'user', 'hybrid']:
-            raise serializers.ValidationError("Invalid recommendation method.")
-        return value
-    
-    def to_representation(self, instance):
-        """Convert data to JSON format"""
-        data = super().to_representation(instance)
-        
-        # Ensure array fields are lists (not None)
-        if data.get('avoid_exercises') is None:
-            data['avoid_exercises'] = []
-        if data.get('focus_areas') is None:
-            data['focus_areas'] = []
-        
-        # Set default values
-        if not data.get('goal'):
-            data['goal'] = ''
-        if not data.get('level'):
-            data['level'] = ''
-        if not data.get('equipment_preference'):
-            data['equipment_preference'] = ''
-        if not data.get('first_name'):
-            data['first_name'] = ''
-        if not data.get('recommendation_method'):
-            data['recommendation_method'] = 'hybrid'
-            
-        return data

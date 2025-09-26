@@ -189,6 +189,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Logging configuration
+# Logging configuration - NAPRAWIONA WERSJA
+# Utwórz katalog logs jeśli nie istnieje
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -203,16 +208,16 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': '/app/logs/django.log',
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': str(LOGS_DIR / 'django.log'),  # ← NAPRAWIONA ŚCIEŻKA!
+            'formatter': 'verbose',
         },
     },
     'root': {
@@ -227,7 +232,7 @@ LOGGING = {
         },
         'accounts.views': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': 'DEBUG',  # ← Zwiększyłem poziom dla debugowania
             'propagate': False,
         },
         'recommendations.views': {

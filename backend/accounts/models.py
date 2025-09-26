@@ -1,14 +1,14 @@
-# backend/accounts/models.py - CORRECTED MODELS
+# backend/accounts/models.py - NAPRAWIONA WERSJA Z password_hash
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.postgres.fields import ArrayField
 
 class AuthAccount(models.Model):
-    """User account model - aligned with database schema"""
+    """User account model - dopasowany do rzeczywistej struktury bazy (password_hash)"""
     
     username = models.CharField(max_length=50, unique=True)
     email = models.CharField(max_length=100, unique=True)
-    password = models.CharField(max_length=255)  # Correct field name: password (not password_hash)
+    password_hash = models.CharField(max_length=255)  # ← NAPRAWIONE! Używa password_hash jak w bazie
     
     first_name = models.CharField(max_length=50, null=True, blank=True)
     is_admin = models.BooleanField(default=False)
@@ -25,19 +25,19 @@ class AuthAccount(models.Model):
         db_table = 'auth_accounts'
     
     def set_password(self, raw_password):
-        """Set hashed password"""
-        self.password = make_password(raw_password)
+        """Set hashed password - używa password_hash"""
+        self.password_hash = make_password(raw_password)
     
     def check_password(self, raw_password):
-        """Check password"""
-        return check_password(raw_password, self.password)
+        """Check password - używa password_hash"""
+        return check_password(raw_password, self.password_hash)
     
     def __str__(self):
         return self.username
 
 
 class UserProfile(models.Model):
-    """User profile model - aligned with database schema"""
+    """User profile model - dopasowany do rzeczywistej struktury bazy"""
     
     GOAL_CHOICES = [
         ('masa', 'Muscle Mass'),
@@ -76,16 +76,18 @@ class UserProfile(models.Model):
         related_name='userprofile'
     )
     
-    # Basic profile fields
+    # Basic profile fields - tylko pola które rzeczywiście istnieją w bazie
     first_name = models.CharField(max_length=50, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     goal = models.CharField(max_length=50, choices=GOAL_CHOICES, null=True, blank=True)
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES, null=True, blank=True)
     training_days_per_week = models.IntegerField(null=True, blank=True)
     equipment_preference = models.CharField(max_length=50, choices=EQUIPMENT_CHOICES, null=True, blank=True)
+    
+    # Te pola mogą nie istnieć w rzeczywistej tabeli - sprawdź po migracjach
     preferred_session_duration = models.IntegerField(default=60, null=True, blank=True)
     
-    # Array fields for PostgreSQL
+    # Array fields - mogą nie istnieć w rzeczywistej tabeli
     avoid_exercises = ArrayField(
         models.CharField(max_length=100),
         size=20,

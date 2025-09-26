@@ -7,3 +7,10 @@ django-cors-headers==4.3.1
 celery==5.3.4
 redis==5.0.1
 python-dotenv==1.0.0
+
+# Development and debugging (optional)
+django-debug-toolbar==4.2.0
+
+# Additional useful packages
+Pillow==10.0.1  # For image handling if needed
+pytz==2023.3    # Timezone handling

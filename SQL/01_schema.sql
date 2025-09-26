@@ -2,23 +2,20 @@
 
 -- =================================================================
 -- KOMPLETNY SCHEMAT BAZY DANYCH LASKO Z ALGORYTMEM REKOMENDACYJNYM
--- Wersja: 2.1 z pełnym wsparciem dla AI recommendations
+-- Wersja: 2.1 (spójna z Django; password, is_superuser, itp.)
 -- =================================================================
 
--- =================================================================
--- USUWANIE OBIEKTÓW BAZY DANYCH (W ODWROTNEJ KOLEJNOŚCI ZALEŻNOŚCI)
--- =================================================================
+-- ===========================
+-- DROP w odwrotnej kolejności
+-- ===========================
 
--- Usuń views
-DROP VIEW IF EXISTS v_plan_statistics;
-DROP VIEW IF EXISTS v_similar_users;
+DROP VIEW  IF EXISTS v_plan_statistics;
+DROP VIEW  IF EXISTS v_similar_users;
 
--- Usuń funkcje i triggery
 DROP TRIGGER IF EXISTS trigger_update_rating_date ON user_active_plans;
 DROP FUNCTION IF EXISTS update_rating_date();
 DROP FUNCTION IF EXISTS extract_muscle_groups(TEXT, TEXT);
 
--- Usuń indeksy
 DROP INDEX IF EXISTS idx_recommendation_logs_user_plan;
 DROP INDEX IF EXISTS idx_recommendation_logs_created;
 DROP INDEX IF EXISTS idx_user_active_plans_rating;
@@ -33,7 +30,6 @@ DROP INDEX IF EXISTS idx_training_sessions_user;
 DROP INDEX IF EXISTS idx_training_plans_attrs;
 DROP INDEX IF EXISTS idx_auth_accounts_email;
 
--- Usuń tabele z największą liczbą zależności lub na końcu łańcucha zależności
 DROP TABLE IF EXISTS recommendation_logs;
 DROP TABLE IF EXISTS exercise_alternatives;
 DROP TABLE IF EXISTS user_progress_tracking;
@@ -42,12 +38,10 @@ DROP TABLE IF EXISTS completed_plan_days;
 DROP TABLE IF EXISTS session_exercises;
 DROP TABLE IF EXISTS logged_sets;
 
--- Tabele, od których zależą powyższe
 DROP TABLE IF EXISTS training_sessions;
 DROP TABLE IF EXISTS plan_exercises;
 DROP TABLE IF EXISTS plan_days;
 
--- Tabele pomocnicze i historii
 DROP TABLE IF EXISTS exercise_tags;
 DROP TABLE IF EXISTS exercise_equipment;
 DROP TABLE IF EXISTS exercise_variants;
@@ -55,43 +49,40 @@ DROP TABLE IF EXISTS exercise_feedback;
 DROP TABLE IF EXISTS plan_history;
 DROP TABLE IF EXISTS user_active_plans;
 
--- Tabele główne, od których zależą powyższe
 DROP TABLE IF EXISTS training_plans;
 DROP TABLE IF EXISTS tags;
 DROP TABLE IF EXISTS equipment;
 DROP TABLE IF EXISTS exercises;
 
--- Tabele bezpośrednio powiązane z kontem użytkownika
 DROP TABLE IF EXISTS user_profiles;
 DROP TABLE IF EXISTS user_measurements;
 DROP TABLE IF EXISTS user_goals_history;
 DROP TABLE IF EXISTS user_notes;
 DROP TABLE IF EXISTS notifications;
 
--- Główna tabela kont użytkowników (na samym końcu)
 DROP TABLE IF EXISTS auth_accounts;
 
--- =================================================================
--- TWORZENIE OBIEKTÓW BAZY DANYCH - NOWY SCHEMAT Z ALGORYTMEM
--- =================================================================
+-- ===========================
+-- CREATE
+-- ===========================
 
--- Tabela: Konta logowania
+-- Konta logowania (zgodne z oczekiwaniami Django)
 CREATE TABLE auth_accounts (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,          -- Django hashed password (pbkdf2_sha256:...)
     first_name VARCHAR(50),
     is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-    is_staff BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
+    is_staff BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     date_joined TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMPTZ
 );
 
--- ✅ Tabela: Profile użytkowników (ROZSZERZONA dla algorytmu)
+-- Profile użytkowników
 CREATE TABLE user_profiles (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL UNIQUE,
@@ -101,15 +92,14 @@ CREATE TABLE user_profiles (
     level VARCHAR(50),
     training_days_per_week INT,
     equipment_preference VARCHAR(50),
-    -- ✅ NOWE kolumny dla algorytmu rekomendacyjnego
     preferred_session_duration INT DEFAULT 60,
-    avoid_exercises TEXT[], -- array problemowych ćwiczeń/kategorii
-    focus_areas TEXT[], -- array obszarów skupienia
+    avoid_exercises TEXT[],
+    focus_areas TEXT[],
     last_survey_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE
 );
 
--- Tabela: Ćwiczenia
+-- Ćwiczenia
 CREATE TABLE exercises (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
@@ -129,7 +119,7 @@ CREATE TABLE exercise_variants (
     FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
 );
 
--- Tagi ćwiczeń
+-- Tagi
 CREATE TABLE tags (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE
@@ -157,7 +147,7 @@ CREATE TABLE exercise_equipment (
     FOREIGN KEY (equipment_id) REFERENCES equipment(id) ON DELETE CASCADE
 );
 
--- ✅ Tabela: Plany treningowe (ROZSZERZONA dla algorytmu)
+-- Plany
 CREATE TABLE training_plans (
     id SERIAL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
@@ -167,24 +157,23 @@ CREATE TABLE training_plans (
     difficulty_level VARCHAR(50) NOT NULL,
     training_days_per_week INT NOT NULL,
     equipment_required VARCHAR(50) NOT NULL,
-    -- ✅ NOWE kolumny dla algorytmu
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE SET NULL
 );
 
--- Historia zmian planów
+-- Historia planów
 CREATE TABLE plan_history (
     id SERIAL PRIMARY KEY,
     plan_id INT NOT NULL,
-    changed_by INT NOT NULL,
+    changed_by INT,
     changed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     changes JSONB,
     FOREIGN KEY (plan_id) REFERENCES training_plans(id) ON DELETE CASCADE,
     FOREIGN KEY (changed_by) REFERENCES auth_accounts(id) ON DELETE SET NULL
 );
 
--- Dni w planie
+-- Dni planu
 CREATE TABLE plan_days (
     id SERIAL PRIMARY KEY,
     plan_id INT NOT NULL,
@@ -207,7 +196,7 @@ CREATE TABLE plan_exercises (
     FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
 );
 
--- ✅ Tabela: Aktywne plany użytkowników (ROZSZERZONA dla collaborative filtering)
+-- Aktywne plany użytkowników
 CREATE TABLE user_active_plans (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL UNIQUE,
@@ -215,7 +204,6 @@ CREATE TABLE user_active_plans (
     start_date DATE NOT NULL DEFAULT CURRENT_DATE,
     end_date DATE,
     is_completed BOOLEAN NOT NULL DEFAULT FALSE,
-    -- ✅ NOWE kolumny dla ocen i feedback
     rating INTEGER CHECK (rating >= 1 AND rating <= 5),
     rating_date TIMESTAMPTZ,
     feedback_text TEXT,
@@ -223,7 +211,7 @@ CREATE TABLE user_active_plans (
     FOREIGN KEY (plan_id) REFERENCES training_plans(id) ON DELETE CASCADE
 );
 
--- Sesje treningowe
+-- Sesje
 CREATE TABLE training_sessions (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -259,7 +247,7 @@ CREATE TABLE logged_sets (
     FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
 );
 
--- Wykonane dni planu
+-- Wykonane dni
 CREATE TABLE completed_plan_days (
     id SERIAL PRIMARY KEY,
     session_id INT NOT NULL,
@@ -269,7 +257,7 @@ CREATE TABLE completed_plan_days (
     FOREIGN KEY (plan_day_id) REFERENCES plan_days(id) ON DELETE SET NULL
 );
 
--- Pomiary użytkownika
+-- Pomiary
 CREATE TABLE user_measurements (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -281,7 +269,7 @@ CREATE TABLE user_measurements (
     UNIQUE (auth_account_id, measurement_date)
 );
 
--- Rekordy osobiste
+-- Rekordy
 CREATE TABLE personal_records (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -296,7 +284,7 @@ CREATE TABLE personal_records (
     UNIQUE (auth_account_id, exercise_id, reps)
 );
 
--- Historia celów użytkownika
+-- Historia celów
 CREATE TABLE user_goals_history (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -306,7 +294,7 @@ CREATE TABLE user_goals_history (
     FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE
 );
 
--- Notatki użytkownika
+-- Notatki
 CREATE TABLE user_notes (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -315,7 +303,7 @@ CREATE TABLE user_notes (
     FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE
 );
 
--- Feedback do ćwiczeń
+-- Feedback ćwiczeń
 CREATE TABLE exercise_feedback (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -337,11 +325,10 @@ CREATE TABLE notifications (
     FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE
 );
 
--- =================================================================
--- ✅ NOWE TABELE DLA ALGORYTMU REKOMENDACYJNEGO
--- =================================================================
+-- ===========================
+-- Rekomendacje
+-- ===========================
 
--- Tabela logowania rekomendacji (do analizy i uczenia się algorytmu)
 CREATE TABLE recommendation_logs (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -354,7 +341,6 @@ CREATE TABLE recommendation_logs (
     FOREIGN KEY (plan_id) REFERENCES training_plans(id) ON DELETE CASCADE
 );
 
--- Tabela alternatywnych ćwiczeń (dla funkcji zamiany)
 CREATE TABLE exercise_alternatives (
     id SERIAL PRIMARY KEY,
     exercise_id INT NOT NULL,
@@ -367,12 +353,11 @@ CREATE TABLE exercise_alternatives (
     UNIQUE(exercise_id, alternative_exercise_id)
 );
 
--- Tabela trackingu postępów użytkowników (przyszłe ulepszenia algorytmu)
 CREATE TABLE user_progress_tracking (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
     plan_id INT,
-    metric_name VARCHAR(50) NOT NULL, -- 'strength', 'endurance', 'weight', 'body_fat'
+    metric_name VARCHAR(50) NOT NULL,
     metric_value DECIMAL(8,2),
     measurement_date DATE DEFAULT CURRENT_DATE,
     notes TEXT,
@@ -381,38 +366,31 @@ CREATE TABLE user_progress_tracking (
     FOREIGN KEY (plan_id) REFERENCES training_plans(id) ON DELETE SET NULL
 );
 
--- =================================================================
--- ✅ INDEKSY WYDAJNOŚCIOWE (STARE + NOWE DLA ALGORYTMU)
--- =================================================================
+-- ===========================
+-- Indeksy
+-- ===========================
 
--- Stare indeksy
 CREATE INDEX idx_auth_accounts_email ON auth_accounts(email);
 CREATE INDEX idx_training_sessions_user ON training_sessions(auth_account_id, session_date DESC);
 CREATE INDEX idx_logged_sets_session ON logged_sets(session_id);
 
--- ✅ NOWE indeksy dla algorytmu rekomendacyjnego
--- Indeksy dla zapytań rekomendacyjnych
 CREATE INDEX idx_recommendation_logs_user_plan ON recommendation_logs(auth_account_id, plan_id);
 CREATE INDEX idx_recommendation_logs_created ON recommendation_logs(created_at);
 
--- Indeksy dla collaborative filtering
 CREATE INDEX idx_user_active_plans_rating ON user_active_plans(rating) WHERE rating IS NOT NULL;
 CREATE INDEX idx_user_active_plans_plan_rating ON user_active_plans(plan_id, rating);
 
--- Nowy indeks dla planów treningowych z filtrem is_active
 CREATE INDEX idx_training_plans_filters ON training_plans(goal_type, difficulty_level, training_days_per_week, equipment_required) WHERE is_active = true;
 
--- Dodatkowe indeksy wydajnościowe
 CREATE INDEX idx_exercises_muscle_type ON exercises(muscle_group, type);
 CREATE INDEX idx_user_profiles_combined ON user_profiles(goal, level, training_days_per_week, equipment_preference);
 CREATE INDEX idx_progress_tracking_user_metric ON user_progress_tracking(auth_account_id, metric_name, measurement_date);
 CREATE INDEX idx_plan_exercises_exercise_plan ON plan_exercises(exercise_id, plan_day_id);
 
--- =================================================================
--- ✅ VIEWS DLA ALGORYTMU REKOMENDACYJNEGO
--- =================================================================
+-- ===========================
+-- Widoki
+-- ===========================
 
--- View dla statystyk planów (popularność, oceny)
 CREATE VIEW v_plan_statistics AS
 SELECT 
     tp.id as plan_id,
@@ -438,79 +416,63 @@ LEFT JOIN plan_exercises pe ON pd.id = pe.plan_day_id
 WHERE tp.is_active = true
 GROUP BY tp.id, tp.name, tp.goal_type, tp.difficulty_level, tp.training_days_per_week, tp.equipment_required, tp.is_active, tp.created_at;
 
--- View dla podobnych użytkowników (collaborative filtering)
+-- Naprawa: HAVING bez GROUP BY powodował błąd; robimy podzapytanie
 CREATE VIEW v_similar_users AS
-SELECT 
-    up1.auth_account_id as user_id,
-    up2.auth_account_id as similar_user_id,
-    -- Oblicz podobieństwo na podstawie profilu
-    CASE 
-        WHEN up1.goal = up2.goal THEN 25 ELSE 0 
-    END +
-    CASE 
-        WHEN up1.level = up2.level THEN 20 ELSE 0 
-    END +
-    CASE 
-        WHEN up1.training_days_per_week = up2.training_days_per_week THEN 15 ELSE 0 
-    END +
-    CASE 
-        WHEN up1.equipment_preference = up2.equipment_preference THEN 20 ELSE 0 
-    END +
-    CASE 
-        WHEN ABS(COALESCE(up1.preferred_session_duration, 60) - COALESCE(up2.preferred_session_duration, 60)) <= 15 THEN 10 ELSE 0 
-    END as similarity_score
-FROM user_profiles up1
-CROSS JOIN user_profiles up2
-WHERE up1.auth_account_id != up2.auth_account_id
-HAVING similarity_score >= 50; -- tylko podobni użytkownicy (50%+ podobieństwa)
+SELECT * FROM (
+    SELECT 
+        up1.auth_account_id as user_id,
+        up2.auth_account_id as similar_user_id,
+        (
+            (CASE WHEN up1.goal = up2.goal THEN 25 ELSE 0 END) +
+            (CASE WHEN up1.level = up2.level THEN 20 ELSE 0 END) +
+            (CASE WHEN up1.training_days_per_week = up2.training_days_per_week THEN 15 ELSE 0 END) +
+            (CASE WHEN up1.equipment_preference = up2.equipment_preference THEN 20 ELSE 0 END) +
+            (CASE WHEN ABS(COALESCE(up1.preferred_session_duration, 60) - COALESCE(up2.preferred_session_duration, 60)) <= 15 THEN 10 ELSE 0 END)
+        ) AS similarity_score
+    FROM user_profiles up1
+    JOIN user_profiles up2 ON up1.auth_account_id <> up2.auth_account_id
+) s
+WHERE s.similarity_score >= 50;
 
--- =================================================================
--- ✅ FUNKCJE POMOCNICZE DLA ALGORYTMU
--- =================================================================
+-- ===========================
+-- Funkcje i triggery
+-- ===========================
 
--- Funkcja do wydzielania grup mięśniowych z nazwy ćwiczenia
 CREATE OR REPLACE FUNCTION extract_muscle_groups(exercise_name TEXT, muscle_group TEXT)
 RETURNS TEXT[] AS $$
 BEGIN
-    -- Prosta heurystyka wydzielania grup mięśniowych
     RETURN ARRAY[
         CASE 
             WHEN LOWER(exercise_name) LIKE ANY(ARRAY['%squat%', '%lunge%', '%leg%']) 
-                OR LOWER(muscle_group) LIKE '%leg%' THEN 'legs'
+                 OR LOWER(muscle_group) LIKE '%leg%' THEN 'legs'
             WHEN LOWER(exercise_name) LIKE ANY(ARRAY['%press%', '%push%', '%chest%']) 
-                OR LOWER(muscle_group) LIKE '%chest%' THEN 'chest'
+                 OR LOWER(muscle_group) LIKE '%chest%' THEN 'chest'
             WHEN LOWER(exercise_name) LIKE ANY(ARRAY['%pull%', '%row%', '%back%']) 
-                OR LOWER(muscle_group) LIKE '%back%' THEN 'back'
+                 OR LOWER(muscle_group) LIKE '%back%' THEN 'back'
             WHEN LOWER(exercise_name) LIKE ANY(ARRAY['%shoulder%', '%raise%']) 
-                OR LOWER(muscle_group) LIKE '%shoulder%' THEN 'shoulders'
+                 OR LOWER(muscle_group) LIKE '%shoulder%' THEN 'shoulders'
             WHEN LOWER(exercise_name) LIKE ANY(ARRAY['%curl%', '%bicep%']) 
-                OR LOWER(muscle_group) LIKE '%bicep%' THEN 'biceps'
+                 OR LOWER(muscle_group) LIKE '%bicep%' THEN 'biceps'
             WHEN LOWER(exercise_name) LIKE ANY(ARRAY['%dip%', '%tricep%']) 
-                OR LOWER(muscle_group) LIKE '%tricep%' THEN 'triceps'
+                 OR LOWER(muscle_group) LIKE '%tricep%' THEN 'triceps'
             WHEN LOWER(exercise_name) LIKE ANY(ARRAY['%core%', '%plank%', '%abs%']) 
-                OR LOWER(muscle_group) LIKE '%core%' THEN 'core'
+                 OR LOWER(muscle_group) LIKE '%core%' THEN 'core'
             ELSE 'other'
         END
     ];
 END;
 $$ LANGUAGE plpgsql;
 
--- =================================================================
--- ✅ TRIGGERY DLA ALGORYTMU
--- =================================================================
-
--- Trigger do automatycznego ustawiania daty oceny
 CREATE OR REPLACE FUNCTION update_rating_date()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.rating IS NOT NULL AND (OLD.rating IS NULL OR NEW.rating != OLD.rating) THEN
+    IF NEW.rating IS NOT NULL AND (OLD.rating IS NULL OR NEW.rating <> OLD.rating) THEN
         NEW.rating_date = CURRENT_TIMESTAMP;
     END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Utwórz trigger
 CREATE TRIGGER trigger_update_rating_date
     BEFORE UPDATE ON user_active_plans
     FOR EACH ROW

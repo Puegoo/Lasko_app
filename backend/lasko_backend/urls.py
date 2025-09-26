@@ -1,25 +1,44 @@
-# backend/lasko_backend/urls.py - ZASTĄP CAŁY PLIK  
+# backend/lasko_backend/urls.py
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
+@csrf_exempt
 def health_check(request):
+    """Health check endpoint"""
     return JsonResponse({
-        "status": "ok", 
-        "service": "Lasko Backend",
-        "version": "1.0.0"
+        'status': 'ok',
+        'message': 'Lasko Backend API is running'
+    })
+
+@csrf_exempt 
+def api_root(request):
+    """API root endpoint with available endpoints"""
+    return JsonResponse({
+        'message': 'Lasko Backend API',
+        'version': '1.0',
+        'endpoints': {
+            'auth': '/api/auth/',
+            'recommendations': '/api/recommendations/',
+            'admin': '/admin/',
+            'health': '/health/'
+        }
     })
 
 urlpatterns = [
-    # Admin i health
+    # Admin
     path('admin/', admin.site.urls),
-    path('health/', health_check, name='health'),
-    path('', health_check, name='root'),
-
-    # ✅ POPRAWIONY ROUTING
-    # Autoryzacja i profil
-    path('api/auth/', include('accounts.urls')),
     
-    # Rekomendacje - kieruj do recommendations app
+    # Health check
+    path('health/', health_check, name='health_check'),
+    path('', health_check, name='root'),  # Root endpoint
+    
+    # API endpoints
+    path('api/', api_root, name='api_root'),
+    path('api/auth/', include('accounts.urls')),
     path('api/recommendations/', include('recommendations.urls')),
+    
+    # Fallback views for additional functionality
+    path('reco/<str:mode>/', include('recommendations.urls')),  # Alternative routing
 ]
