@@ -1,4 +1,4 @@
-// frontend/lasko-frontend/src/services/api.js - KOMPLETNIE NAPRAWIONY
+// frontend/lasko-frontend/src/services/api.js - NAPRAWIONY PROXY
 import { 
   getAccessToken, 
   refreshAccessToken, 
@@ -8,12 +8,13 @@ import {
   getUserData
 } from './authService';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// ✅ NAPRAWIONE: Używaj proxy zamiast bezpośredniego API URL
+const API_BASE_URL = ''; // Puste - używa proxy Vite: /api -> http://localhost:8000
 
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
-    this.isRefreshing = false; // Zapobiega wielokrotnym żądaniom refresh
+    this.isRefreshing = false;
     this.refreshPromise = null;
   }
 
@@ -21,9 +22,12 @@ class ApiService {
   // PODSTAWOWA METODA REQUEST Z AUTORYZACJĄ I RETRY
   // ============================================================================
   async request(endpoint, options = {}) {
+    // ✅ NAPRAWIONE: URL używa proxy
     const url = `${this.baseURL}${endpoint}`;
     let attempt = 0;
-    const maxAttempts = 2; // Pierwsze żądanie + retry po refresh
+    const maxAttempts = 2;
+
+    console.log(`🌐 [ApiService] Request: ${options.method || 'GET'} ${url}`);
 
     while (attempt < maxAttempts) {
       attempt++;
@@ -59,309 +63,148 @@ class ApiService {
           }
         }
       } else {
-        console.log('ℹ️ [ApiService] Żądanie bez autoryzacji (brak tokenu)');
+        console.log('ℹ️ [ApiService] Brak tokenu - żądanie bez autoryzacji');
       }
 
       try {
-        console.log(`🌐 [ApiService] ${config.method || 'GET'} ${url} (próba ${attempt})`);
+        console.log('📤 [ApiService] Wysyłanie żądania:', config.method || 'GET', url);
+        console.log('📋 [ApiService] Headers:', Object.keys(config.headers));
         
-        if (config.body && typeof config.body === 'string') {
-          console.log('📤 [ApiService] Request payload:', JSON.parse(config.body));
-        }
-
         const response = await fetch(url, config);
         
-        console.log(`📥 [ApiService] Response: ${response.status} ${response.statusText}`);
+        console.log(`📥 [ApiService] Odpowiedź: ${response.status} ${response.statusText}`);
 
-        // Obsługa błędu 401 - tylko przy pierwszej próbie
-        if (response.status === 401 && attempt === 1) {
-          console.warn('🚨 [ApiService] Błąd 401 - próba odświeżenia tokenu...');
-          
-          try {
-            await this.refreshTokenIfNeeded();
-            // Kontynuuj pętlę while dla retry
-            continue;
-          } catch (refreshError) {
-            console.error('❌ [ApiService] Odświeżanie tokenu nie powiodło się');
-            clearTokens();
-            throw new Error('Sesja wygasła - zaloguj się ponownie');
-          }
-        }
-
-        // Parsuj odpowiedź
-        let responseData;
-        const contentType = response.headers.get('content-type');
-        
-        if (contentType && contentType.includes('application/json')) {
-          responseData = await response.json();
-        } else {
-          responseData = await response.text();
-        }
-
-        // Obsługa błędów HTTP
         if (!response.ok) {
-          console.error('❌ [ApiService] Błąd HTTP:', {
-            status: response.status,
-            statusText: response.statusText,
-            data: responseData
-          });
+          if (response.status === 401 && attempt === 1) {
+            console.warn('🔄 [ApiService] 401 - próba odświeżenia tokenu');
+            // Spróbuj odświeżyć token i spróbuj ponownie
+            try {
+              await this.refreshTokenIfNeeded();
+              continue; // Ponów próbę z nowym tokenem
+            } catch (refreshError) {
+              console.error('❌ [ApiService] Nie udało się odświeżyć tokenu:', refreshError);
+              clearTokens();
+              throw new Error('Sesja wygasła - zaloguj się ponownie');
+            }
+          }
 
-          // Stwórz czytelny błąd
-          const errorMessage = this.extractErrorMessage(responseData, response.status);
-          const error = new Error(errorMessage);
-          error.status = response.status;
-          error.response = responseData;
-          
-          throw error;
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
         }
 
-        console.log('✅ [ApiService] Żądanie zakończone sukcesem');
-        return responseData;
+        const data = await response.json().catch(() => ({}));
+        console.log('✅ [ApiService] Sukces:', Object.keys(data));
+        return data;
 
       } catch (error) {
-        // Jeśli to błąd sieci i mamy jeszcze próby, spróbuj ponownie
-        if (attempt < maxAttempts && this.isNetworkError(error)) {
-          console.warn(`⚠️ [ApiService] Błąd sieci, retry (${attempt}/${maxAttempts}):`, error.message);
-          await this.delay(1000); // Czekaj 1s przed retry
-          continue;
+        if (attempt === maxAttempts) {
+          console.error(`❌ [ApiService] Ostateczny błąd (próba ${attempt}/${maxAttempts}):`, error.message);
+          throw error;
         }
-
-        // W przeciwnym razie rzuć błąd
-        throw error;
+        console.warn(`⚠️ [ApiService] Błąd (próba ${attempt}/${maxAttempts}):`, error.message);
       }
     }
   }
 
   // ============================================================================
-  // ODŚWIEŻANIE TOKENÓW Z ZABEZPIECZENIEM PRZED WIELOKROTNYM WYWOŁANIEM
+  // ODŚWIEŻANIE TOKENU
   // ============================================================================
   async refreshTokenIfNeeded() {
-    // Jeśli już trwa odświeżanie, czekaj na zakończenie
-    if (this.isRefreshing && this.refreshPromise) {
-      console.log('🔄 [ApiService] Czekanie na zakończenie odświeżania tokenu...');
-      return await this.refreshPromise;
+    if (this.isRefreshing) {
+      return this.refreshPromise;
     }
 
     this.isRefreshing = true;
-    this.refreshPromise = refreshAccessToken().finally(() => {
-      this.isRefreshing = false;
-      this.refreshPromise = null;
-    });
+    this.refreshPromise = refreshAccessToken()
+      .then((tokens) => {
+        console.log('✅ [ApiService] Token odświeżony pomyślnie');
+        return tokens;
+      })
+      .catch((error) => {
+        console.error('❌ [ApiService] Błąd odświeżania tokenu:', error);
+        clearTokens();
+        throw error;
+      })
+      .finally(() => {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+      });
 
-    return await this.refreshPromise;
+    return this.refreshPromise;
   }
 
   // ============================================================================
-  // METODY POMOCNICZE
+  // METODY PUBLICZNE
   // ============================================================================
-  extractErrorMessage(responseData, status) {
-    if (typeof responseData === 'string') {
-      return responseData;
-    }
-    
-    if (responseData && typeof responseData === 'object') {
-      // Sprawdź różne formaty błędów z backendu
-      if (responseData.message) {
-        return responseData.message;
-      }
-      if (responseData.error) {
-        return responseData.error;
-      }
-      if (responseData.errors && typeof responseData.errors === 'object') {
-        // Błędy walidacji
-        const errorMessages = [];
-        Object.entries(responseData.errors).forEach(([field, messages]) => {
-          if (Array.isArray(messages)) {
-            errorMessages.push(`${field}: ${messages.join(', ')}`);
-          } else {
-            errorMessages.push(`${field}: ${messages}`);
-          }
-        });
-        return errorMessages.join('\n');
-      }
-    }
-
-    // Fallback na kod statusu
-    const statusMessages = {
-      400: 'Nieprawidłowe żądanie',
-      401: 'Brak autoryzacji',
-      403: 'Brak uprawnień',
-      404: 'Nie znaleziono',
-      500: 'Błąd serwera',
-    };
-
-    return statusMessages[status] || `Błąd HTTP ${status}`;
-  }
-
-  isNetworkError(error) {
-    return error instanceof TypeError && error.message.includes('fetch');
-  }
-
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // ============================================================================
-  // METODY AUTORYZACJI
-  // ============================================================================
+  
+  // Autoryzacja
   async register(userData) {
-    console.log('🔄 [ApiService] Rejestracja użytkownika:', userData.username);
-    
-    const response = await this.request('/api/auth/register/', {
+    return this.request('/api/auth/register/', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
-
-    // Zapisz tokeny jeśli są w odpowiedzi
-    if (response.tokens) {
-      setTokens({
-        access: response.tokens.access,
-        refresh: response.tokens.refresh,
-        user: response.user
-      });
-      console.log('✅ [ApiService] Tokeny zapisane po rejestracji');
-    }
-
-    return response;
   }
 
   async login(credentials) {
-    console.log('🔄 [ApiService] Logowanie użytkownika:', credentials.login || credentials.email);
-    
-    const response = await this.request('/api/auth/login/', {
+    return this.request('/api/auth/login/', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
-
-    // Zapisz tokeny
-    if (response.tokens) {
-      setTokens({
-        access: response.tokens.access,
-        refresh: response.tokens.refresh,
-        user: response.user
-      });
-      console.log('✅ [ApiService] Tokeny zapisane po logowaniu');
-    }
-
-    return response;
   }
 
   async logout() {
-    console.log('🔓 [ApiService] Wylogowanie');
-    
-    try {
-      await this.request('/api/auth/logout/', {
-        method: 'POST',
-      });
-    } catch (error) {
-      console.warn('⚠️ [ApiService] Błąd wylogowania na serwerze:', error.message);
-    } finally {
-      clearTokens();
-      console.log('✅ [ApiService] Tokeny wyczyszczone');
-    }
-  }
-
-  // ============================================================================
-  // METODY PROFILU UŻYTKOWNIKA
-  // ============================================================================
-  async getProfile() {
-    console.log('🔄 [ApiService] Pobieranie profilu użytkownika');
-    return await this.request('/api/auth/profile/', {
-      method: 'GET',
+    return this.request('/api/auth/logout/', {
+      method: 'POST',
     });
   }
 
-  async updateProfile(profileData) {
-    console.log('🔄 [ApiService] Aktualizacja profilu użytkownika');
-    return await this.request('/api/auth/profile/', {
+  // Profil
+  async fetchUserProfile() {
+    return this.request('/api/auth/profile/');
+  }
+
+  async updateUserProfile(profileData) {
+    return this.request('/api/auth/profile/update/', {
       method: 'PUT',
       body: JSON.stringify(profileData),
     });
   }
 
-  // ============================================================================
-  // METODY REKOMENDACJI I PLANÓW
-  // ============================================================================
-  async generateRecommendations(mode = 'hybrid', preferences = {}, top = 3) {
-    console.log('🤖 [ApiService] Generowanie rekomendacji:', { mode, preferences, top });
-    
-    return await this.request('/api/recommendations/', {
+  // Rekomendacje
+  async generateRecommendations(method = 'hybrid', preferences = {}) {
+    return this.request('/api/recommendations/', {
       method: 'POST',
       body: JSON.stringify({
-        mode,
+        mode: method,
         preferences,
-        top
+        top: 3,
       }),
     });
   }
 
-  async getPlanDetails(planId) {
-    console.log('🔄 [ApiService] Pobieranie szczegółów planu:', planId);
-    return await this.request(`/api/plans/${planId}/detailed/`, {
-      method: 'GET',
-    });
-  }
-
-  async activatePlan(planId) {
-    console.log('🔄 [ApiService] Aktywacja planu:', planId);
-    return await this.request(`/api/plans/${planId}/activate/`, {
-      method: 'POST',
-    });
-  }
-
-  async createCustomPlan(planData) {
-    console.log('🔄 [ApiService] Tworzenie niestandardowego planu');
-    return await this.request('/api/plans/', {
-      method: 'POST',
-      body: JSON.stringify(planData),
-    });
-  }
-
-  // ============================================================================
-  // FUNKCJE SPRAWDZAJĄCE
-  // ============================================================================
-  isAuthenticated() {
-    const token = getAccessToken();
-    const user = getUserData();
-    const isValid = token && isTokenValid(token) && user;
-    
-    console.log('🔍 [ApiService] Sprawdzanie autoryzacji:', {
-      hasToken: !!token,
-      tokenValid: token ? isTokenValid(token) : false,
-      hasUser: !!user,
-      result: !!isValid
-    });
-    
-    return !!isValid;
-  }
-
-  getAccessToken() {
-    return getAccessToken();
-  }
-
-  getCurrentUser() {
-    return getUserData();
-  }
-
-  // ============================================================================
-  // DEBUG
-  // ============================================================================
-  debugStatus() {
-    console.log('🔍 [ApiService] === STATUS SERWISU API ===');
-    console.log('Base URL:', this.baseURL);
-    console.log('Is Authenticated:', this.isAuthenticated());
-    console.log('Current User:', this.getCurrentUser()?.username);
-    console.log('Access Token:', this.getAccessToken() ? 'PRESENT' : 'MISSING');
-    console.log('Token Valid:', this.getAccessToken() ? isTokenValid(this.getAccessToken()) : false);
+  // Health check
+  async healthCheck() {
+    try {
+      const response = await this.request('/health/');
+      return response.status === 'ok';
+    } catch (error) {
+      console.error('❌ [ApiService] Health check failed:', error);
+      return false;
+    }
   }
 }
 
-// Eksportuj singleton
+// Singleton instance
 const apiService = new ApiService();
-
-// Dodaj do window dla debugowania
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  window.ApiService = apiService;
-}
-
 export default apiService;
+
+// Export głównych metod dla wygody
+export const {
+  register,
+  login,
+  logout,
+  fetchUserProfile,
+  updateUserProfile,
+  generateRecommendations,
+  healthCheck
+} = apiService;

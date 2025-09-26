@@ -8,6 +8,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:80"
+    environment:
+      - DOCKER_ENV=true  # ← DODAJ TO
     depends_on:
       - backend
     networks:

@@ -1,6 +1,6 @@
 # backend/lasko_backend/settings.py
 from pathlib import Path
-from datetime import timedelta
+from datetime import timedelta  # ← TO BYŁO BRAKUJĄCE!
 import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -91,7 +91,7 @@ REST_FRAMEWORK = {
 
 # JWT Configuration
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # ← TERAZ TO BĘDZIE DZIAŁAĆ!
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -102,17 +102,34 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
 }
 
-# CORS
+# ============================================================================
+# ✅ NAPRAWIONA KONFIGURACJA CORS - KOMPLETNA WERSJA
+# ============================================================================
+
+# CORS - development i produkcja
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", "http://127.0.0.1:3000",
-    "http://localhost:5173", "http://127.0.0.1:5173",
+    "http://localhost:3000", 
+    "http://127.0.0.1:3000",
+    "http://localhost:5173", 
+    "http://127.0.0.1:5173",
+    "http://frontend:3000",
     "http://frontend:80",
 ]
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+
+# ✅ KLUCZOWE: W development pozwalamy na wszystko
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS += [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = [
+
+# ✅ NAPRAWIONE: Kompletna lista CORS headers
+CORS_ALLOWED_HEADERS = [
     'accept',
-    'accept-encoding',
+    'accept-encoding', 
     'authorization',
     'content-type',
     'dnt',
@@ -120,12 +137,58 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'access-control-allow-origin',
+    'access-control-allow-headers',
+    'access-control-allow-methods',
 ]
 
-# Logi
-LOG_DIR = os.environ.get('LOG_DIR', BASE_DIR / 'logs')
-os.makedirs(LOG_DIR, exist_ok=True)
+# ✅ NAPRAWIONE: Pozwól na wszystkie HTTP metody
+CORS_ALLOWED_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
+# ✅ NAPRAWIONE: Preflight requests
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 godziny
+
+# ============================================================================
+# POZOSTAŁE USTAWIENIA
+# ============================================================================
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# Internationalization
+LANGUAGE_CODE = 'pl-pl'
+TIME_ZONE = 'Europe/Warsaw'
+USE_I18N = True
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -134,22 +197,26 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
     },
     'handlers': {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'django.log'),
+            'filename': '/app/logs/django.log',
             'formatter': 'verbose',
         },
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': 'simple',
         },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'INFO',
     },
     'loggers': {
@@ -158,22 +225,15 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'accounts': {
+        'accounts.views': {
             'handlers': ['console', 'file'],
-            'level': 'DEBUG',
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'recommendations.views': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
 }
-
-# I18N
-LANGUAGE_CODE = 'pl-pl'
-TIME_ZONE = 'Europe/Warsaw'
-USE_I18N = True
-USE_TZ = True
-
-# Static
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -1,10 +1,10 @@
-# backend/accounts/views.py - KOMPLETNIE NAPRAWIONY - ZASTĄP CAŁY PLIK
+# backend/accounts/views.py - CORRECTED VIEWS
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer  # ✅ DODANO
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from django.db import transaction
 from django.contrib.auth.hashers import check_password
 import logging
@@ -19,13 +19,13 @@ from .models import AuthAccount, UserProfile
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# REJESTRACJA
+# REGISTRATION
 # ============================================================================
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
     try:
-        logger.info(f"🔥 [Register] Dane: {request.data}")
+        logger.info(f"[Register] Registration attempt: {request.data.get('username')}")
         
         serializer = UserRegistrationSerializer(data=request.data)
         
@@ -34,14 +34,15 @@ def register(request):
             auth_account = result['auth_account']
             user_profile = result['user_profile']
             
-            logger.info(f"✅ [Register] Utworzony: {auth_account.username}")
+            logger.info(f"[Register] User created: {auth_account.username}")
             
+            # Create JWT tokens
             refresh = RefreshToken()
             refresh['user_id'] = auth_account.id
             refresh['username'] = auth_account.username
             
             response_data = {
-                'message': 'Rejestracja zakończona sukcesem',
+                'message': 'Registration successful',
                 'user': {
                     'id': auth_account.id,
                     'username': auth_account.username,
@@ -58,108 +59,109 @@ def register(request):
             
             return Response(response_data, status=status.HTTP_201_CREATED)
         
-        logger.error(f"❌ [Register] Błędy: {serializer.errors}")
+        logger.error(f"[Register] Validation errors: {serializer.errors}")
         return Response({
-            'message': 'Błędy walidacji',
+            'message': 'Validation errors',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
     
     except Exception as e:
-        logger.error(f"❌ [Register] Exception: {str(e)}")
+        logger.error(f"[Register] Exception: {str(e)}")
         return Response({
-            'message': 'Błąd serwera podczas rejestracji',
+            'message': 'Server error during registration',
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 # ============================================================================
-# LOGOWANIE
+# LOGIN - FIXED LOGIC
 # ============================================================================
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
     try:
-        logger.info(f"🔑 [Login] Próba: {request.data.get('login')}")
+        login_value = request.data.get('login', '').strip().lower()
+        password = request.data.get('password', '')
         
-        serializer = UserLoginSerializer(data=request.data)
+        logger.info(f"[Login] Login attempt: {login_value}")
         
-        if serializer.is_valid():
-            login_value = serializer.validated_data['login']
-            password = serializer.validated_data['password']
-            
-            # Znajdź użytkownika
-            auth_account = None
-            try:
-                if '@' in login_value:
-                    auth_account = AuthAccount.objects.get(email=login_value)
-                else:
-                    auth_account = AuthAccount.objects.get(username=login_value)
-                logger.info(f"🔍 [Login] Znaleziony: {auth_account.username}")
-            except AuthAccount.DoesNotExist:
-                logger.warning(f"❌ [Login] Nie znaleziono: {login_value}")
-                return Response({
-                    'message': 'Nieprawidłowy login lub hasło'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            
-            # Sprawdź hasło - ✅ UŻYWAMY POPRAWNEGO POLA 'password'
-            if not check_password(password, auth_account.password):
-                logger.warning(f"❌ [Login] Złe hasło: {auth_account.username}")
-                return Response({
-                    'message': 'Nieprawidłowy login lub hasło'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            
-            # Pobierz profil
-            profile_data = None
-            try:
-                user_profile = auth_account.userprofile
-                profile_data = UserProfileSerializer(user_profile).data
-            except UserProfile.DoesNotExist:
-                logger.warning(f"⚠️ [Login] Brak profilu: {auth_account.username}")
-            
-            # Tokeny
-            refresh = RefreshToken()
-            refresh['user_id'] = auth_account.id
-            refresh['username'] = auth_account.username
-            
-            response_data = {
-                'message': 'Logowanie zakończone sukcesem',
-                'user': {
-                    'id': auth_account.id,
-                    'username': auth_account.username,
-                    'email': auth_account.email,
-                    'first_name': auth_account.first_name,
-                    'is_admin': auth_account.is_admin,
-                },
-                'profile': profile_data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }
+        if not login_value or not password:
+            return Response({
+                'detail': 'Login and password are required',
+                'code': 'missing_credentials'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find user account
+        auth_account = None
+        try:
+            if '@' in login_value:
+                auth_account = AuthAccount.objects.get(email=login_value)
+            else:
+                auth_account = AuthAccount.objects.get(username=login_value)
+            logger.info(f"[Login] Found user: {auth_account.username}")
+        except AuthAccount.DoesNotExist:
+            logger.warning(f"[Login] User not found: {login_value}")
+            return Response({
+                'detail': 'User not found',
+                'code': 'user_not_found'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Check password using model method
+        if not auth_account.check_password(password):
+            logger.warning(f"[Login] Invalid password for: {auth_account.username}")
+            return Response({
+                'detail': 'Invalid password',
+                'code': 'invalid_password'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Get profile
+        profile_data = None
+        try:
+            user_profile = auth_account.userprofile
+            profile_data = UserProfileSerializer(user_profile).data
+        except UserProfile.DoesNotExist:
+            logger.warning(f"[Login] No profile for user: {auth_account.username}")
+        
+        # Create JWT tokens
+        refresh = RefreshToken()
+        refresh['user_id'] = auth_account.id
+        refresh['username'] = auth_account.username
+        
+        response_data = {
+            'message': 'Login successful',
+            'user': {
+                'id': auth_account.id,
+                'username': auth_account.username,
+                'email': auth_account.email,
+                'first_name': auth_account.first_name,
+                'is_admin': auth_account.is_admin,
+            },
+            'profile': profile_data,
+            'tokens': {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
             }
-            
-            logger.info(f"✅ [Login] Sukces: {auth_account.username}")
-            return Response(response_data, status=status.HTTP_200_OK)
+        }
         
-        logger.error(f"❌ [Login] Walidacja: {serializer.errors}")
-        return Response({
-            'message': 'Nieprawidłowe dane logowania',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        logger.info(f"[Login] Success: {auth_account.username}")
+        return Response(response_data, status=status.HTTP_200_OK)
     
     except Exception as e:
-        logger.error(f"❌ [Login] Exception: {str(e)}")
+        logger.error(f"[Login] Exception: {str(e)}")
         return Response({
-            'message': 'Błąd serwera podczas logowania',
-            'error': str(e)
+            'detail': 'Server error during login',
+            'code': 'server_error'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 # ============================================================================
-# REFRESH TOKEN - ✅ NAPRAWIONE
+# REFRESH TOKEN
 # ============================================================================
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def refresh_token(request):
     try:
-        logger.info("🔄 [RefreshToken] Próba odświeżenia")
+        logger.info("[RefreshToken] Token refresh attempt")
         
         serializer = TokenRefreshSerializer(data=request.data)
         
@@ -168,54 +170,58 @@ def refresh_token(request):
                 'access': serializer.validated_data['access']
             }
             
-            logger.info("✅ [RefreshToken] Sukces")
+            logger.info("[RefreshToken] Success")
             return Response(response_data, status=status.HTTP_200_OK)
         
-        logger.error(f"❌ [RefreshToken] Błędy: {serializer.errors}")
+        logger.error(f"[RefreshToken] Errors: {serializer.errors}")
         return Response({
-            'message': 'Nieprawidłowy refresh token',
-            'errors': serializer.errors
+            'detail': 'Invalid refresh token',
+            'code': 'invalid_token'
         }, status=status.HTTP_401_UNAUTHORIZED)
     
     except Exception as e:
-        logger.error(f"❌ [RefreshToken] Exception: {str(e)}")
+        logger.error(f"[RefreshToken] Exception: {str(e)}")
         return Response({
-            'message': 'Błąd serwera podczas odświeżania tokenu',
-            'error': str(e)
+            'detail': 'Server error during token refresh',
+            'code': 'server_error'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 # ============================================================================
-# PROFIL UŻYTKOWNIKA
+# USER PROFILE
 # ============================================================================
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def profile(request):
     try:
+        # Get user_id from JWT token
         user_id = request.auth.payload.get('user_id')
         
         if not user_id:
-            logger.error("❌ [Profile] Brak user_id w tokenie")
+            logger.error("[Profile] No user_id in token")
             return Response({
-                'message': 'Nieprawidłowy token - brak user_id'
+                'detail': 'Invalid token - no user_id',
+                'code': 'invalid_token'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        logger.info(f"👤 [Profile] Pobieranie dla user_id: {user_id}")
+        logger.info(f"[Profile] Fetching profile for user_id: {user_id}")
         
         try:
             auth_account = AuthAccount.objects.get(id=user_id)
         except AuthAccount.DoesNotExist:
-            logger.error(f"❌ [Profile] Nie znaleziono user_id: {user_id}")
+            logger.error(f"[Profile] User not found: {user_id}")
             return Response({
-                'message': 'Użytkownik nie istnieje'
+                'detail': 'User does not exist',
+                'code': 'user_not_found'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # Profil
+        # Get profile
         profile_data = None
         try:
             user_profile = auth_account.userprofile
             profile_data = UserProfileSerializer(user_profile).data
         except UserProfile.DoesNotExist:
-            logger.warning(f"⚠️ [Profile] Brak profilu: {auth_account.username}")
+            logger.warning(f"[Profile] No profile for user: {auth_account.username}")
         
         response_data = {
             'user': {
@@ -229,18 +235,19 @@ def profile(request):
             'profile': profile_data
         }
         
-        logger.info(f"✅ [Profile] Pobrano: {auth_account.username}")
+        logger.info(f"[Profile] Success: {auth_account.username}")
         return Response(response_data, status=status.HTTP_200_OK)
     
     except Exception as e:
-        logger.error(f"❌ [Profile] Exception: {str(e)}")
+        logger.error(f"[Profile] Exception: {str(e)}")
         return Response({
-            'message': 'Błąd serwera podczas pobierania profilu',
-            'error': str(e)
+            'detail': 'Server error fetching profile',
+            'code': 'server_error'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 # ============================================================================
-# AKTUALIZACJA PROFILU
+# UPDATE PROFILE
 # ============================================================================
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
@@ -250,41 +257,45 @@ def update_profile(request):
         
         if not user_id:
             return Response({
-                'message': 'Nieprawidłowy token - brak user_id'
+                'detail': 'Invalid token - no user_id',
+                'code': 'invalid_token'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        logger.info(f"🔄 [UpdateProfile] user_id: {user_id}, dane: {request.data}")
+        logger.info(f"[UpdateProfile] user_id: {user_id}, data: {request.data}")
         
         try:
             auth_account = AuthAccount.objects.get(id=user_id)
         except AuthAccount.DoesNotExist:
             return Response({
-                'message': 'Użytkownik nie istnieje'
+                'detail': 'User does not exist',
+                'code': 'user_not_found'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # Aktualizuj first_name jeśli podane
+        # Update first_name if provided
         if 'first_name' in request.data:
             auth_account.first_name = request.data['first_name']
             auth_account.save()
         
-        # Pobierz lub utwórz profil
+        # Get or create profile
         user_profile, created = UserProfile.objects.get_or_create(
             auth_account=auth_account,
             defaults={
                 'goal': 'zdrowie',
-                'level': 'początkujący',
+                'level': 'poczatkujacy',
                 'training_days_per_week': 3,
-                'equipment_preference': 'siłownia'
+                'equipment_preference': 'silownia',
+                'recommendation_method': 'hybrid'
             }
         )
         
         if created:
-            logger.info(f"✅ [UpdateProfile] Utworzono profil: {auth_account.username}")
+            logger.info(f"[UpdateProfile] Created profile: {auth_account.username}")
         
-        # Aktualizuj pola profilu
+        # Update profile fields
         profile_fields = [
             'goal', 'level', 'training_days_per_week', 'equipment_preference',
-            'avoid_exercises', 'focus_areas', 'recommendation_method'
+            'avoid_exercises', 'focus_areas', 'recommendation_method',
+            'preferred_session_duration', 'date_of_birth'
         ]
         
         updated_fields = []
@@ -297,7 +308,7 @@ def update_profile(request):
             user_profile.save()
         
         response_data = {
-            'message': 'Profil zaktualizowany pomyślnie',
+            'message': 'Profile updated successfully',
             'user': {
                 'id': auth_account.id,
                 'username': auth_account.username,
@@ -309,18 +320,19 @@ def update_profile(request):
             'updated_fields': updated_fields
         }
         
-        logger.info(f"✅ [UpdateProfile] Zaktualizowano: {updated_fields}")
+        logger.info(f"[UpdateProfile] Updated fields: {updated_fields}")
         return Response(response_data, status=status.HTTP_200_OK)
     
     except Exception as e:
-        logger.error(f"❌ [UpdateProfile] Exception: {str(e)}")
+        logger.error(f"[UpdateProfile] Exception: {str(e)}")
         return Response({
-            'message': 'Błąd serwera podczas aktualizacji profilu',
-            'error': str(e)
+            'detail': 'Server error updating profile',
+            'code': 'server_error'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 # ============================================================================
-# WYLOGOWANIE
+# LOGOUT
 # ============================================================================
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -331,23 +343,24 @@ def logout(request):
         if user_id:
             try:
                 auth_account = AuthAccount.objects.get(id=user_id)
-                logger.info(f"✅ [Logout] Wylogowany: {auth_account.username}")
+                logger.info(f"[Logout] User logged out: {auth_account.username}")
             except AuthAccount.DoesNotExist:
                 pass
         
         return Response({
-            'message': 'Wylogowano pomyślnie'
+            'message': 'Logout successful'
         }, status=status.HTTP_200_OK)
     
     except Exception as e:
-        logger.error(f"❌ [Logout] Exception: {str(e)}")
+        logger.error(f"[Logout] Exception: {str(e)}")
         return Response({
-            'message': 'Błąd serwera podczas wylogowania',
-            'error': str(e)
+            'detail': 'Server error during logout',
+            'code': 'server_error'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 # ============================================================================
-# METODA REKOMENDACJI
+# RECOMMENDATION METHOD
 # ============================================================================
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -357,14 +370,16 @@ def set_recommendation_method(request):
         
         if not user_id:
             return Response({
-                'message': 'Nieprawidłowy token'
+                'detail': 'Invalid token',
+                'code': 'invalid_token'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
         method = request.data.get('method')
         
         if method not in ['product', 'user', 'hybrid']:
             return Response({
-                'message': 'Nieprawidłowa metoda rekomendacji',
+                'detail': 'Invalid recommendation method',
+                'code': 'invalid_method',
                 'allowed_methods': ['product', 'user', 'hybrid']
             }, status=status.HTTP_400_BAD_REQUEST)
         
@@ -372,16 +387,17 @@ def set_recommendation_method(request):
             auth_account = AuthAccount.objects.get(id=user_id)
         except AuthAccount.DoesNotExist:
             return Response({
-                'message': 'Użytkownik nie istnieje'
+                'detail': 'User does not exist',
+                'code': 'user_not_found'
             }, status=status.HTTP_404_NOT_FOUND)
         
         user_profile, created = UserProfile.objects.get_or_create(
             auth_account=auth_account,
             defaults={
                 'goal': 'zdrowie',
-                'level': 'początkujący',
+                'level': 'poczatkujacy',
                 'training_days_per_week': 3,
-                'equipment_preference': 'siłownia',
+                'equipment_preference': 'silownia',
                 'recommendation_method': method
             }
         )
@@ -389,19 +405,20 @@ def set_recommendation_method(request):
         user_profile.recommendation_method = method
         user_profile.save()
         
-        logger.info(f"✅ [SetRecommendationMethod] {method} dla {auth_account.username}")
+        logger.info(f"[SetRecommendationMethod] {method} for {auth_account.username}")
         
         return Response({
-            'message': 'Metoda rekomendacji ustawiona pomyślnie',
+            'message': 'Recommendation method set successfully',
             'method': method
         }, status=status.HTTP_200_OK)
     
     except Exception as e:
-        logger.error(f"❌ [SetRecommendationMethod] Exception: {str(e)}")
+        logger.error(f"[SetRecommendationMethod] Exception: {str(e)}")
         return Response({
-            'message': 'Błąd serwera podczas ustawiania metody rekomendacji',
-            'error': str(e)
+            'detail': 'Server error setting recommendation method',
+            'code': 'server_error'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # ============================================================================
 # DEBUG ENDPOINT
@@ -414,7 +431,7 @@ def debug_auth(request):
         username = request.auth.payload.get('username')
         
         debug_info = {
-            'message': 'Debug informacje o autoryzacji',
+            'message': 'Debug authorization info',
             'token_payload': {
                 'user_id': user_id,
                 'username': username,
@@ -441,23 +458,17 @@ def debug_auth(request):
                 
                 try:
                     user_profile = auth_account.userprofile
-                    debug_info['profile_info'] = {
-                        'goal': user_profile.goal,
-                        'level': user_profile.level,
-                        'training_days_per_week': user_profile.training_days_per_week,
-                        'equipment_preference': user_profile.equipment_preference,
-                        'recommendation_method': user_profile.recommendation_method
-                    }
+                    debug_info['profile_info'] = UserProfileSerializer(user_profile).data
                 except UserProfile.DoesNotExist:
-                    debug_info['profile_info'] = 'Brak profilu'
+                    debug_info['profile_info'] = 'No profile'
                     
             except AuthAccount.DoesNotExist:
-                debug_info['user_info'] = 'Użytkownik nie istnieje'
+                debug_info['user_info'] = 'User does not exist'
         
         return Response(debug_info, status=status.HTTP_200_OK)
     
     except Exception as e:
         return Response({
-            'message': 'Błąd debug endpoint',
+            'detail': 'Debug endpoint error',
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

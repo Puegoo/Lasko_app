@@ -1,20 +1,22 @@
-# backend/recommendations/engine.py
+# backend/recommendations/engine.py - CLEAN VERSION
 from typing import Dict, List, Tuple
 from django.db import connection
 from math import log
 
 
-# ---------- helpery ----------
+# ---------- helpers ----------
 
 def _norm(s):
+    """Normalize string by removing Polish characters"""
     if not s:
         return None
-    repl = {'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 'ó': 'o', 'ś': 's', 'ż': 'z', 'ź': 'z'}
+    repl = {'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z'}
     out = ''.join(repl.get(ch, ch) for ch in s.lower())
     return out
 
 
 def fetch_user_profile(auth_account_id: int) -> Dict:
+    """Fetch user profile from database"""
     q = """
     SELECT goal, level, training_days_per_week, equipment_preference
     FROM user_profiles WHERE auth_account_id = %s
@@ -33,6 +35,7 @@ def fetch_user_profile(auth_account_id: int) -> Dict:
 
 
 def _content_candidates() -> List[Tuple]:
+    """Get all active training plans with statistics"""
     q = """
     SELECT tp.id, tp.name, tp.description, tp.goal_type, tp.difficulty_level,
            tp.training_days_per_week, tp.equipment_required,
@@ -47,6 +50,7 @@ def _content_candidates() -> List[Tuple]:
 
 
 def _score_days(user_days, plan_days):
+    """Score based on training days difference"""
     if user_days is None or plan_days is None:
         return 0
     diff = abs(int(user_days) - int(plan_days))
@@ -54,12 +58,14 @@ def _score_days(user_days, plan_days):
 
 
 def _popularity_boost(total_users, avg_rating):
+    """Calculate popularity boost score"""
     tu = total_users or 0
     ar = float(avg_rating) if avg_rating is not None else 3.0
     return min(10.0, (log(1 + tu) * 2.0) + (ar - 3.0) * 1.5)
 
 
 def content_based(user: Dict) -> List[Dict]:
+    """Content-based recommendation algorithm"""
     rows = _content_candidates()
     results = []
     for (pid, name, desc, goal, level, days, equip, total_users, avg_rating) in rows:
@@ -67,14 +73,21 @@ def content_based(user: Dict) -> List[Dict]:
         lv = _norm(level)
         eq = _norm(equip)
         score = 0
+        
+        # Goal match
         if user.get('goal') and g == user['goal']:
             score += 10
+        # Level match    
         if user.get('level') and lv == user['level']:
             score += 8
+        # Days match
         score += _score_days(user.get('days'), days)
+        # Equipment match
         if user.get('equipment') and eq == user['equipment']:
             score += 5
+        # Popularity boost
         score += _popularity_boost(total_users, avg_rating)
+        
         if score > 0:
             results.append({
                 'plan_id': pid,
@@ -90,6 +103,7 @@ def content_based(user: Dict) -> List[Dict]:
 
 
 def _similar_user_ids(user_id: int) -> List[int]:
+    """Get similar user IDs"""
     q = "SELECT similar_user_id FROM v_similar_users WHERE user_id = %s"
     with connection.cursor() as cur:
         cur.execute(q, [user_id])
@@ -97,6 +111,7 @@ def _similar_user_ids(user_id: int) -> List[int]:
 
 
 def collaborative(user_id: int) -> List[Dict]:
+    """Collaborative filtering recommendation algorithm"""
     sims = _similar_user_ids(user_id)
     if not sims:
         return []
@@ -130,6 +145,7 @@ def collaborative(user_id: int) -> List[Dict]:
 
 
 def _minmax_norm(items: List[Dict]) -> Dict[int, float]:
+    """Normalize scores using min-max normalization"""
     if not items:
         return {}
     vals = [i['score'] for i in items]
@@ -140,6 +156,7 @@ def _minmax_norm(items: List[Dict]) -> Dict[int, float]:
 
 
 def hybrid(user_id: int, user: Dict) -> List[Dict]:
+    """Hybrid recommendation algorithm combining content-based and collaborative"""
     cb = content_based(user)
     if not cb:
         return []
@@ -158,6 +175,7 @@ def hybrid(user_id: int, user: Dict) -> List[Dict]:
 
 
 def plan_details(ids: List[int]) -> Dict[int, Dict]:
+    """Get detailed information for specific plan IDs"""
     if not ids:
         return {}
     with connection.cursor() as cur:
@@ -177,52 +195,55 @@ def plan_details(ids: List[int]) -> Dict[int, Dict]:
 
 
 def explain_match(user: Dict, plan: Dict, total_users, avg_rating) -> List[str]:
+    """Generate explanation for why a plan matches the user"""
     reasons = []
     if user.get('goal') and _norm(plan['goal_type']) == user['goal']:
-        reasons.append("Cel zgodny")
+        reasons.append("Goal matches")
     if user.get('level') and _norm(plan['difficulty_level']) == user['level']:
-        reasons.append("Poziom zgodny")
+        reasons.append("Level matches")
     if user.get('days') and plan['training_days_per_week'] == user['days']:
-        reasons.append("Tyle samo dni/tydz.")
+        reasons.append("Same training days per week")
     if user.get('equipment') and _norm(plan['equipment_required']) == user['equipment']:
-        reasons.append("Sprzęt zgodny")
+        reasons.append("Equipment matches")
     if (total_users or 0) >= 5:
-        reasons.append("Popularny wśród użytkowników")
+        reasons.append("Popular among users")
     return reasons
 
 
-# ---------- klasa zgodna z oczekiwanym importem ----------
+# ---------- class compatible with expected import ----------
 
 class RecommendationService:
     """
-    Adapter: zapewnia interfejs używany przez widoki:
+    Adapter: provides interface used by views:
       - get_recommendations(user_id, mode)
       - get_plan_details(plan_ids)
       - close_connection()
-    Korzysta z globalnego połączenia Django (django.db.connection).
+    Uses Django's global connection (django.db.connection).
     """
 
-    def __init__(self, db_params: Dict | None = None):
-        # Django samo zarządza pool'em połączeń – trzymamy referencję tylko dla zgodności.
+    def __init__(self, db_params: Dict = None):
+        # Django manages connection pool - keep reference only for compatibility
         self.conn = connection
 
-    def get_recommendations(self, user_id: int, mode: str = "hybrydowo") -> List[Dict]:
+    def get_recommendations(self, user_id: int, mode: str = "hybrid") -> List[Dict]:
+        """Get recommendations for user"""
         user = fetch_user_profile(user_id)
         mode = (mode or "").lower()
-        if mode in ("hybrydowo", "hybrid"):
+        if mode in ("hybrid", "hybrydowo"):
             return hybrid(user_id, user)
-        if mode in ("produkt", "product", "content"):
+        if mode in ("product", "content", "produkt"):
             return content_based(user)
-        if mode in ("klient", "user", "collaborative"):
+        if mode in ("user", "collaborative", "klient"):
             return collaborative(user_id)
-        # domyślnie hybryda
+        # default to hybrid
         return hybrid(user_id, user)
 
     def get_plan_details(self, plan_ids: List[int]) -> Dict[int, Dict]:
+        """Get detailed plan information"""
         return plan_details(plan_ids)
 
     def close_connection(self) -> None:
-        # Opcjonalnie można zamknąć – ale w Django nie jest to konieczne.
+        """Close database connection (optional in Django)"""
         try:
             self.conn.close()
         except Exception:

@@ -1,6 +1,12 @@
 // frontend/lasko-frontend/src/services/authService.js - KOMPLETNIE NAPRAWIONY
 // Centralny serwis do zarządzania tokenami JWT z pełną walidacją i debugowaniem
+// ZSYNCHRONIZOWANY Z ApiService
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+// ============================================================================
+// STAŁE KLUCZY LOCALSTORAGE (zsynchronizowane z ApiService)
+// ============================================================================
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const USER_DATA_KEY = 'user_data';
@@ -101,26 +107,25 @@ export function isTokenValid(token) {
     // Sprawdź format JWT (3 części oddzielone kropkami)
     const parts = token.split('.');
     if (parts.length !== 3) {
-      console.log('🔍 [AuthService] Token nie ma prawidłowego formatu JWT');
+      console.log('❌ [AuthService] Nieprawidłowy format JWT');
       return false;
     }
 
-    // Zdekoduj payload
+    // Spróbuj zdekodować payload
     const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
     
-    // Sprawdź czy token nie wygasł
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      console.log('🔍 [AuthService] Token wygasł:', {
-        exp: new Date(payload.exp * 1000),
-        now: new Date()
-      });
+    // Sprawdź wygaśnięcie
+    const isExpired = payload.exp * 1000 < Date.now();
+    
+    if (isExpired) {
+      console.log('⚠️ [AuthService] Token wygasł:', new Date(payload.exp * 1000));
       return false;
     }
 
     console.log('✅ [AuthService] Token jest prawidłowy');
     return true;
   } catch (error) {
-    console.log('🔍 [AuthService] Błąd walidacji tokenu:', error.message);
+    console.error('❌ [AuthService] Błąd walidacji tokenu:', error);
     return false;
   }
 }
@@ -179,7 +184,7 @@ export async function refreshAccessToken() {
   try {
     console.log('🔄 [AuthService] Odświeżanie access token...');
     
-    const response = await fetch('/api/auth/refresh/', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/refresh/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -188,7 +193,8 @@ export async function refreshAccessToken() {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -211,6 +217,125 @@ export async function refreshAccessToken() {
 }
 
 // ============================================================================
+// FUNKCJE AUTORYZACJI
+// ============================================================================
+
+export async function login(credentials) {
+  try {
+    console.log('🔄 [AuthService] Logowanie użytkownika:', credentials.login || credentials.email);
+
+    const response = await fetch(`${API_BASE_URL}/api/auth/login/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      console.error('❌ [AuthService] Błąd logowania:', responseData);
+      throw new Error(responseData.message || 'Błąd logowania');
+    }
+
+    console.log('✅ [AuthService] Logowanie udane:', responseData);
+
+    // Zapisz tokeny i dane użytkownika
+    if (responseData.tokens && responseData.user) {
+      setTokens({
+        access: responseData.tokens.access,
+        refresh: responseData.tokens.refresh,
+        user: responseData.user
+      });
+    } else {
+      throw new Error('Brak tokenów w odpowiedzi serwera');
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('❌ [AuthService] Błąd logowania:', error);
+    throw error;
+  }
+}
+
+export async function register(userData) {
+  try {
+    console.log('🔄 [AuthService] Rejestracja użytkownika:', userData.username);
+
+    const response = await fetch(`${API_BASE_URL}/api/auth/register/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      console.error('❌ [AuthService] Błąd rejestracji:', responseData);
+      
+      // Obsłuż błędy walidacji
+      if (responseData.errors && typeof responseData.errors === 'object') {
+        const errorMessages = [];
+        Object.entries(responseData.errors).forEach(([field, messages]) => {
+          if (Array.isArray(messages)) {
+            errorMessages.push(`${field}: ${messages.join(', ')}`);
+          } else {
+            errorMessages.push(`${field}: ${messages}`);
+          }
+        });
+        throw new Error(errorMessages.join('\n'));
+      }
+      
+      throw new Error(responseData.message || 'Błąd rejestracji');
+    }
+
+    console.log('✅ [AuthService] Rejestracja udana:', responseData);
+
+    // Zapisz tokeny jeśli są w odpowiedzi
+    if (responseData.tokens) {
+      setTokens({
+        access: responseData.tokens.access,
+        refresh: responseData.tokens.refresh,
+        user: responseData.user
+      });
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('❌ [AuthService] Błąd rejestracji:', error);
+    throw error;
+  }
+}
+
+export async function logout() {
+  console.log('🔓 [AuthService] Wylogowanie użytkownika...');
+  
+  // Opcjonalnie wyślij żądanie wylogowania na serwer
+  try {
+    const token = getAccessToken();
+    if (token) {
+      await fetch(`${API_BASE_URL}/api/auth/logout/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+  } catch (error) {
+    console.warn('⚠️ [AuthService] Błąd podczas wylogowania na serwerze:', error);
+    // Kontynuuj lokalnie
+  }
+
+  // Wyczyść stan lokalny
+  clearTokens();
+  console.log('✅ [AuthService] Użytkownik wylogowany');
+}
+
+// ============================================================================
 // FUNKCJE DEBUGOWANIA
 // ============================================================================
 
@@ -225,30 +350,98 @@ export function debugAuth() {
   
   console.log('Access Token:', accessToken ? 'OBECNY ✅' : 'BRAK ❌');
   console.log('Refresh Token:', refreshToken ? 'OBECNY ✅' : 'BRAK ❌');
-  console.log('User Data:', userData ? `OBECNE ✅ (${userData.username || userData.email})` : 'BRAK ❌');
+  console.log('User Data:', userData ? `OBECNY ✅ (${userData.username})` : 'BRAK ❌');
   console.log('Is Authenticated:', isAuthenticated() ? 'TAK ✅' : 'NIE ❌');
   
   if (tokenInfo) {
-    console.log('Token Info:');
-    console.log(`  User ID: ${tokenInfo.userId}`);
-    console.log(`  Username: ${tokenInfo.username}`);
-    console.log(`  Expires At: ${tokenInfo.expiresAt}`);
-    console.log(`  Is Expired: ${tokenInfo.isExpired ? 'TAK ❌' : 'NIE ✅'}`);
-    console.log(`  Time to Expiry: ${Math.round(tokenInfo.timeToExpiry / 1000 / 60)} minutes`);
+    console.log('Token Info:', {
+      userId: tokenInfo.userId,
+      username: tokenInfo.username,
+      expiresAt: tokenInfo.expiresAt,
+      isExpired: tokenInfo.isExpired,
+      timeToExpiryMinutes: Math.round(tokenInfo.timeToExpiry / 60000)
+    });
+  }
+  
+  if (accessToken) {
+    try {
+      console.log('Token Valid:', isTokenValid(accessToken) ? 'TAK ✅' : 'NIE ❌');
+    } catch (error) {
+      console.log('Token Validation Error:', error.message);
+    }
   }
   
   console.log('='.repeat(50));
 }
 
-// Dodaj funkcje do window dla debugowania w konsoli
-if (typeof window !== 'undefined') {
-  window.AuthDebug = {
-    debugAuth,
-    getTokenInfo,
-    isAuthenticated,
-    clearTokens,
+// Test prostego API call
+export async function testAuthenticatedRequest() {
+  const token = getAccessToken();
+  
+  if (!token) {
+    console.log('❌ [AuthService] Brak tokenu - nie można testować');
+    return false;
+  }
+  
+  try {
+    console.log('🧪 [AuthService] Test autoryzowanego żądania...');
+    
+    const response = await fetch(`${API_BASE_URL}/api/auth/profile/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('📡 [AuthService] Response Status:', response.status);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ [AuthService] Test autoryzacji UDANY:', data.user?.username);
+      return true;
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      console.log('❌ [AuthService] Test autoryzacji NIEUDANY:', errorData);
+      return false;
+    }
+  } catch (error) {
+    console.log('❌ [AuthService] Błąd sieciowy podczas testu:', error);
+    return false;
+  }
+}
+
+// ============================================================================
+// EKSPORT DOMYŚLNY DLA KOMPATYBILNOŚCI
+// ============================================================================
+export default {
+  setTokens,
+  getAccessToken,
+  getRefreshToken,
+  getUserData,
+  clearTokens,
+  isTokenValid,
+  isAuthenticated,
+  getTokenInfo,
+  refreshAccessToken,
+  login,
+  register,
+  logout,
+  debugAuth,
+  testAuthenticatedRequest
+};
+
+// Debug w trybie development
+if (import.meta.env.DEV) {
+  window.AuthService = {
+    setTokens,
     getAccessToken,
     getRefreshToken,
-    getUserData
+    getUserData,
+    clearTokens,
+    isAuthenticated,
+    debugAuth,
+    testAuthenticatedRequest
   };
+  console.log('🔧 [AuthService] Debug functions dostępne przez window.AuthService');
 }
