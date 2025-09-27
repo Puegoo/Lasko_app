@@ -23,7 +23,7 @@ class Command(BaseCommand):
         # 1. Check if we already have data
         if AuthAccount.objects.exists():
             self.stdout.write('Users already exist, skipping seed')
-            call_command('convert_passwords')
+            # call_command('convert_passwords')
             return
         
         # 2. Run seed script if requested
@@ -53,7 +53,7 @@ class Command(BaseCommand):
                     if result.returncode == 0:
                         self.stdout.write('Seed script completed successfully')
                         # Convert passwords after seeding
-                        call_command('convert_passwords')
+                        # call_command('convert_passwords')
                     else:
                         self.stdout.write(f'Seed script failed: {result.stderr}')
                         # Create minimal test data

@@ -1,12 +1,13 @@
-# backend/accounts/views.py - NAPRAWIONA WERSJA
+# backend/accounts/views.py - NAPRAWIONA WERSJA Z REFRESH_TOKEN
 import logging
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer  # DODANE!
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
 from .models import AuthAccount, UserProfile
@@ -99,22 +100,25 @@ def register(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
-    """Logowanie użytkownika - naprawiona obsługa błędów"""
+    """Akceptuje {login,password} albo {email,password} albo {username,password}."""
     try:
-        logger.info(f"[Login] Próba logowania")
-        
-        # Walidacja danych wejściowych
-        serializer = UserLoginSerializer(data=request.data)
+        logger.info("[Login] Próba logowania")
+
+        # 🔧 NORMALIZACJA: jeśli nie ma 'login', użyj 'username' lub 'email'
+        data = request.data.copy()
+        if 'login' not in data:
+            data['login'] = (data.get('username') or data.get('email') or '').strip()
+
+        serializer = UserLoginSerializer(data=data)
         if not serializer.is_valid():
             logger.warning(f"[Login] Błędy walidacji: {serializer.errors}")
-            return Response({
-                'detail': 'Nieprawidłowe dane logowania',
-                'errors': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        validated_data = serializer.validated_data
-        login_value = validated_data['login']
-        password = validated_data['password']
+            return Response(
+                {'detail': 'Nieprawidłowe dane logowania', 'errors': serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        login_value = serializer.validated_data['login']
+        password = serializer.validated_data['password']
         
         logger.info(f"[Login] Login attempt: {login_value}")
         
@@ -177,7 +181,7 @@ def login(request):
             }
             
             # Aktualizuj last_login
-            auth_account.last_login = timezone.now() if 'timezone' in globals() else None
+            auth_account.last_login = timezone.now()
             auth_account.save(update_fields=['last_login'])
             
             logger.info(f"[Login] Logowanie udane: {auth_account.username}")
@@ -226,7 +230,7 @@ def logout(request):
 
 
 # ============================================================================
-# ODŚWIEŻANIE TOKENU
+# ODŚWIEŻANIE TOKENU - BRAKUJĄCA FUNKCJA!
 # ============================================================================
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -249,6 +253,13 @@ def refresh_token(request):
         return Response({
             'detail': 'Nieprawidłowy refresh token',
             'code': 'invalid_token'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+        
+    except TokenError as e:
+        logger.error(f"[RefreshToken] TokenError: {str(e)}")
+        return Response({
+            'detail': 'Token wygasł lub jest nieprawidłowy',
+            'code': 'token_expired'
         }, status=status.HTTP_401_UNAUTHORIZED)
         
     except Exception as e:
@@ -322,7 +333,7 @@ def profile(request):
 # ============================================================================
 # AKTUALIZACJA PROFILU
 # ============================================================================
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_profile(request):
     """Aktualizacja profilu użytkownika"""
@@ -331,72 +342,48 @@ def update_profile(request):
         
         if not user_id:
             return Response({
-                'detail': 'Nieprawidłowy token - brak user_id',
+                'detail': 'Nieprawidłowy token',
                 'code': 'invalid_token'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        logger.info(f"[UpdateProfile] user_id: {user_id}, data keys: {list(request.data.keys())}")
+        logger.info(f"[UpdateProfile] Aktualizacja profilu dla user_id: {user_id}")
         
         try:
             auth_account = AuthAccount.objects.get(id=user_id)
+            user_profile = auth_account.userprofile
         except AuthAccount.DoesNotExist:
             return Response({
                 'detail': 'Użytkownik nie istnieje',
                 'code': 'user_not_found'
             }, status=status.HTTP_404_NOT_FOUND)
+        except UserProfile.DoesNotExist:
+            # Utwórz profil jeśli nie istnieje
+            user_profile = UserProfile.objects.create(auth_account=auth_account)
+            logger.info(f"[UpdateProfile] Utworzono nowy profil dla: {auth_account.username}")
         
-        # Aktualizuj first_name na koncie jeśli podane
-        if 'first_name' in request.data:
-            auth_account.first_name = request.data['first_name']
-            auth_account.save()
-        
-        # Pobierz lub utwórz profil
-        user_profile, created = UserProfile.objects.get_or_create(
-            auth_account=auth_account,
-            defaults={
-                'goal': 'zdrowie',
-                'level': 'poczatkujacy',
-                'training_days_per_week': 3,
-                'equipment_preference': 'silownia',
-                'recommendation_method': 'hybrid'
-            }
-        )
-        
-        if created:
-            logger.info(f"[UpdateProfile] Utworzono profil: {auth_account.username}")
-        
-        # Aktualizuj profil przez serializer
-        profile_serializer = UserProfileUpdateSerializer(
+        serializer = UserProfileUpdateSerializer(
             user_profile, 
             data=request.data, 
-            partial=True
+            partial=(request.method == 'PATCH')
         )
         
-        if profile_serializer.is_valid():
-            profile_serializer.save()
+        if serializer.is_valid():
+            serializer.save()
             
             response_data = {
                 'message': 'Profil zaktualizowany pomyślnie',
-                'user': {
-                    'id': auth_account.id,
-                    'username': auth_account.username,
-                    'email': auth_account.email,
-                    'first_name': auth_account.first_name,
-                    'is_admin': auth_account.is_admin,
-                },
-                'profile': UserProfileSerializer(user_profile).data,
+                'profile': UserProfileSerializer(user_profile).data
             }
             
             logger.info(f"[UpdateProfile] Profil zaktualizowany: {auth_account.username}")
             return Response(response_data, status=status.HTTP_200_OK)
-        
         else:
-            logger.warning(f"[UpdateProfile] Błędy walidacji: {profile_serializer.errors}")
+            logger.warning(f"[UpdateProfile] Błędy walidacji: {serializer.errors}")
             return Response({
-                'message': 'Błędy walidacji profilu',
-                'errors': profile_serializer.errors
+                'detail': 'Błędy walidacji',
+                'errors': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+            
     except Exception as e:
         logger.error(f"[UpdateProfile] Błąd: {str(e)}")
         return Response({
@@ -411,18 +398,18 @@ def update_profile(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def set_recommendation_method(request):
-    """Ustawienie metody rekomendacji"""
+    """Ustawienie metody rekomendacji dla użytkownika"""
     try:
         user_id = getattr(request.auth, 'payload', {}).get('user_id')
-        method = request.data.get('method')
         
         if not user_id:
             return Response({
-                'detail': 'Nieprawidłowy token - brak user_id',
+                'detail': 'Nieprawidłowy token',
                 'code': 'invalid_token'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        if not method or method not in dict(UserProfile.RECO_CHOICES):
+        method = request.data.get('method')
+        if method not in ['ai', 'collaborative', 'content_based', 'hybrid']:
             return Response({
                 'detail': 'Nieprawidłowa metoda rekomendacji',
                 'code': 'invalid_method'
@@ -430,29 +417,28 @@ def set_recommendation_method(request):
         
         try:
             auth_account = AuthAccount.objects.get(id=user_id)
+            user_profile = auth_account.userprofile
+            user_profile.recommendation_method = method
+            user_profile.save()
+            
+            logger.info(f"[SetRecommendationMethod] Ustawiono metodę {method} dla {auth_account.username}")
+            
+            return Response({
+                'message': 'Metoda rekomendacji ustawiona pomyślnie',
+                'method': method
+            }, status=status.HTTP_200_OK)
+            
         except AuthAccount.DoesNotExist:
             return Response({
                 'detail': 'Użytkownik nie istnieje',
                 'code': 'user_not_found'
             }, status=status.HTTP_404_NOT_FOUND)
-        
-        # Aktualizuj metodę rekomendacji
-        user_profile, created = UserProfile.objects.get_or_create(
-            auth_account=auth_account,
-            defaults={'recommendation_method': method}
-        )
-        
-        if not created:
-            user_profile.recommendation_method = method
-            user_profile.save()
-        
-        logger.info(f"[SetRecommendationMethod] Ustawiono {method} dla {auth_account.username}")
-        
-        return Response({
-            'message': 'Metoda rekomendacji ustawiona pomyślnie',
-            'method': method
-        }, status=status.HTTP_200_OK)
-        
+        except UserProfile.DoesNotExist:
+            return Response({
+                'detail': 'Profil użytkownika nie istnieje',
+                'code': 'profile_not_found'
+            }, status=status.HTTP_404_NOT_FOUND)
+            
     except Exception as e:
         logger.error(f"[SetRecommendationMethod] Błąd: {str(e)}")
         return Response({
@@ -514,9 +500,3 @@ def debug_auth(request):
             'detail': 'Błąd debug endpoint',
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# ============================================================================
-# IMPORTY NA KOŃCU (dla uniknięcia circular imports)
-# ============================================================================
-from django.utils import timezone

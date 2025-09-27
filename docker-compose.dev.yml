@@ -1,6 +1,5 @@
-# UWAGA: usunięte "version:" (i tak jest ignorowane przez nowe Compose)
+# UWAGA: pole 'version' pominięte – nowsze Compose je ignorują
 services:
-  # Frontend w trybie dev (hot reload)
   frontend:
     build:
       context: ./frontend/lasko-frontend
@@ -11,7 +10,7 @@ services:
       - ./frontend/lasko-frontend:/app:delegated
       - frontend_node_modules:/app/node_modules
     environment:
-      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_API_BASE_URL=http://backend:8000   # <- KRYTYCZNA ZMIANA
       - CHOKIDAR_USEPOLLING=true
       - CHOKIDAR_INTERVAL=1000
       - WATCHPACK_POLLING=true
@@ -19,14 +18,14 @@ services:
       - WDS_SOCKET_PORT=3000
       - NODE_ENV=development
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - lasko-network
     stdin_open: true
     tty: true
     restart: unless-stopped
 
-  # Backend Django w trybie dev
   backend:
     build: 
       context: ./backend
@@ -46,17 +45,22 @@ services:
       - DB_PORT=5432
       - PYTHONUNBUFFERED=1
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - lasko-network
-    # ⬇️ KLUCZOWA LINIA: najpierw migrate z --fake-initial, potem runserver
     command: >
       sh -c "python manage.py migrate --noinput --fake-initial &&
              python manage.py runserver 0.0.0.0:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     restart: unless-stopped
 
-  # Baza danych PostgreSQL
   db:
     image: postgres:13-alpine
     volumes:
@@ -67,7 +71,6 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
-      # host 5433 -> kontener 5432 (żeby nie kolidować z lokalnym Postgresem)
       - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d LaskoDB"]
@@ -78,7 +81,6 @@ services:
       - lasko-network
     restart: unless-stopped
 
-  # Redis
   redis:
     image: redis:alpine
     ports:

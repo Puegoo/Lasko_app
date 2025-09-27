@@ -7,7 +7,9 @@ from django.db import connection
 from accounts.models import UserProfile, AuthAccount
 import logging
 
+
 logger = logging.getLogger(__name__)
+
 
 # Try to import engine.py if available
 try:
@@ -18,18 +20,19 @@ except ImportError:
     HAS_ENGINE = False
     logger.warning("[Recommendations] Engine not found - using fallback")
 
+
 # ============================================================================
-# MAIN RECOMMENDATIONS ENDPOINT  
+# MAIN RECOMMENDATIONS ENDPOINT
 # ============================================================================
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def generate_recommendations(request):
     """
-    POST /api/recommendations/
+    GET/POST /api/recommendations/
     Headers: Authorization: Bearer <access_token>
-    Body: {
-        "mode": "product|user|hybrid", 
-        "top": 10,
+    Body/Query: {
+        "mode": "product|user|hybrid" (alias: "algorithm"),
+        "top": 10 (alias: "limit"),
         "preferences": {...}
     }
     """
@@ -38,37 +41,34 @@ def generate_recommendations(request):
         user_id = None
         if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
             user_id = request.auth.payload.get('user_id')
-        
+
         if not user_id:
             logger.error("[Recommendations] No user_id in token payload")
             logger.error(f"[Recommendations] Request.auth: {getattr(request, 'auth', 'None')}")
             if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
                 logger.error(f"[Recommendations] Token payload: {request.auth.payload}")
-            
+
             return Response({
                 "error": "Invalid token - no user_id found",
                 "code": "invalid_token"
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         logger.info(f"[Recommendations] Request for user_id: {user_id}")
-        logger.info(f"[Recommendations] Request data: {request.data}")
 
-        # Verify user exists
+        # Get parameters (handle POST body and GET querystring + legacy names)
+        data = request.data if request.method == 'POST' else request.query_params
+
+        mode = (data.get('mode') or data.get('algorithm') or '').lower().strip()
+
+        top_raw = data.get('top') or data.get('limit') or 3
         try:
-            auth_account = AuthAccount.objects.get(id=user_id)
-            logger.info(f"[Recommendations] Found user: {auth_account.username}")
-        except AuthAccount.DoesNotExist:
-            logger.error(f"[Recommendations] User not found: {user_id}")
-            return Response({
-                "error": "User not found",
-                "code": "user_not_found"
-            }, status=status.HTTP_404_NOT_FOUND)
+            top = int(top_raw)
+        except (TypeError, ValueError):
+            top = 3
 
-        # Get parameters
-        mode = (request.data.get('mode') or '').lower().strip()
-        top = int(request.data.get('top', 3))
-        preferences = request.data.get('preferences', {})
+        preferences = data.get('preferences', {})
 
+        logger.info(f"[Recommendations] Request data resolved: {dict(data)}")
         logger.info(f"[Recommendations] mode={mode}, top={top}")
 
         # Validate mode
@@ -92,12 +92,13 @@ def generate_recommendations(request):
         logger.error(f"[Recommendations] Exception: {str(e)}")
         import traceback
         logger.error(f"[Recommendations] Traceback: {traceback.format_exc()}")
-        
+
         return Response({
             "error": "Server error generating recommendations",
             "message": str(e),
             "code": "server_error"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 def _generate_with_engine(user_id, mode, top, preferences):
     """Generate recommendations using engine.py"""
@@ -129,6 +130,10 @@ def _generate_with_engine(user_id, mode, top, preferences):
             raw_recommendations = hybrid(user_id, profile)
 
         logger.info(f"[Recommendations] Algorithm returned {len(raw_recommendations)} results")
+        # Jeśli algorytm nie zwrócił nic – spadnij do prostego fallbacku
+        if not raw_recommendations:
+            logger.info("[Recommendations] Engine returned 0 results – falling back to simple DB-based recommendations")
+            return _generate_fallback(user_id, mode, top, preferences)
 
         # Limit results
         top_recommendations = raw_recommendations[:top]
@@ -136,24 +141,24 @@ def _generate_with_engine(user_id, mode, top, preferences):
 
         # Get plan details
         plan_details_dict = plan_details(plan_ids)
-        
+
         # Enrich recommendations
         enriched_recommendations = []
         for recommendation in top_recommendations:
             plan_id = recommendation['plan_id']
             plan_detail = plan_details_dict.get(plan_id)
-            
+
             if not plan_detail:
                 continue
-            
+
             meta = recommendation.get('meta', {})
             match_reasons = explain_match(
-                profile, 
-                plan_detail, 
-                meta.get('total_users'), 
+                profile,
+                plan_detail,
+                meta.get('total_users'),
                 meta.get('avg_rating')
             )
-            
+
             enriched_recommendation = {
                 "planId": plan_id,
                 "name": plan_detail['name'],
@@ -165,7 +170,7 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 "score": round(float(recommendation['score']), 2),
                 "matchReasons": match_reasons
             }
-            
+
             enriched_recommendations.append(enriched_recommendation)
 
         response_data = {
@@ -187,23 +192,24 @@ def _generate_with_engine(user_id, mode, top, preferences):
         logger.error(f"[Recommendations] Engine error: {str(e)}")
         import traceback
         logger.error(f"[Recommendations] Engine traceback: {traceback.format_exc()}")
-        
+
         return Response({
             "error": "Recommendation algorithm error",
             "message": str(e),
             "code": "engine_error"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 def _generate_fallback(user_id, mode, top, preferences):
     """Fallback - simple recommendations without engine.py"""
     try:
         logger.info(f"[Recommendations] Using fallback for user_id: {user_id}")
-        
+
         # Get user profile from Django ORM
         try:
             auth_account = AuthAccount.objects.get(id=user_id)
             user_profile = auth_account.userprofile
-            
+
             profile_data = {
                 "goal": user_profile.goal,
                 "level": user_profile.level,
@@ -211,7 +217,7 @@ def _generate_fallback(user_id, mode, top, preferences):
                 "equipment_preference": user_profile.equipment_preference,
             }
             logger.info(f"[Recommendations] User profile: {profile_data}")
-            
+
         except (AuthAccount.DoesNotExist, UserProfile.DoesNotExist):
             logger.warning(f"[Recommendations] No profile found for user: {user_id}")
             profile_data = None
@@ -226,11 +232,11 @@ def _generate_fallback(user_id, mode, top, preferences):
                     )
                 """)
                 table_exists = cursor.fetchone()[0]
-                
+
                 if not table_exists:
                     logger.warning("[Recommendations] training_plans table does not exist")
                     return _generate_mock_recommendations(user_id, mode, top, profile_data)
-                
+
                 # Try to get real plans
                 cursor.execute("""
                     SELECT id, name, description, goal_type, difficulty_level, 
@@ -240,13 +246,13 @@ def _generate_fallback(user_id, mode, top, preferences):
                     ORDER BY id
                     LIMIT %s
                 """, [top])
-                
+
                 plans = cursor.fetchall()
-                
+
                 if not plans:
                     logger.warning("[Recommendations] No active training plans found")
                     return _generate_mock_recommendations(user_id, mode, top, profile_data)
-                
+
         except Exception as e:
             logger.error(f"[Recommendations] Database error: {str(e)}")
             return _generate_mock_recommendations(user_id, mode, top, profile_data)
@@ -285,21 +291,22 @@ def _generate_fallback(user_id, mode, top, preferences):
         logger.error(f"[Recommendations] Fallback error: {str(e)}")
         import traceback
         logger.error(f"[Recommendations] Fallback traceback: {traceback.format_exc()}")
-        
+
         # Final fallback - return mock data
         return _generate_mock_recommendations(user_id, mode, top, None)
+
 
 def _generate_mock_recommendations(user_id, mode, top, profile_data):
     """Final fallback - generate mock recommendations for testing"""
     logger.info("[Recommendations] Using mock recommendations")
-    
+
     mock_recommendations = [
         {
             "planId": 1,
             "name": "Beginner Full Body Workout",
             "description": "A comprehensive workout plan for beginners focusing on all major muscle groups",
             "goalType": "health",
-            "difficultyLevel": "beginner", 
+            "difficultyLevel": "beginner",
             "trainingDaysPerWeek": 3,
             "equipmentRequired": "gym",
             "score": 0.95,
@@ -347,10 +354,11 @@ def _generate_mock_recommendations(user_id, mode, top, profile_data):
 
     return Response(response_data, status=status.HTTP_200_OK)
 
+
 # ============================================================================
 # PLAN ACTIVATION
 # ============================================================================
-@api_view(['POST'])
+@api_view(['POST'])  # GET nie ma sensu, zostawmy POST
 @permission_classes([IsAuthenticated])
 def activate_plan(request):
     """
@@ -362,7 +370,7 @@ def activate_plan(request):
         user_id = None
         if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
             user_id = request.auth.payload.get('user_id')
-            
+
         if not user_id:
             return Response({
                 "error": "Invalid token",
@@ -378,47 +386,46 @@ def activate_plan(request):
 
         logger.info(f"[ActivatePlan] Plan {plan_id} for user_id: {user_id}")
 
-        try:
-            with connection.cursor() as cursor:
-                # Check if plan exists
-                cursor.execute("SELECT id, name FROM training_plans WHERE id=%s", [plan_id])
-                plan_row = cursor.fetchone()
-                if not plan_row:
-                    return Response({
-                        "error": "Plan does not exist",
-                        "code": "plan_not_found"
-                    }, status=status.HTTP_404_NOT_FOUND)
+        plan_name = None  # ← zabezpieczenie przed UnboundLocalError
 
-                plan_name = plan_row[1]
+        with connection.cursor() as cursor:
+            # 1) Czy plan istnieje?
+            cursor.execute("SELECT id, name FROM training_plans WHERE id=%s", [plan_id])
+            row = cursor.fetchone()
+            if not row:
+                return Response({
+                    "error": "Plan does not exist",
+                    "code": "plan_not_found"
+                }, status=status.HTTP_404_NOT_FOUND)
 
-                # Check if user_active_plans table exists
+            plan_name = row[1]
+
+            # 2) Czy istnieje tabela user_active_plans?
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = 'user_active_plans'
+                )
+            """)
+            table_exists = cursor.fetchone()[0]
+
+            if table_exists:
+                # 3) UPSERT (rozwiązuje konflikt UNIQUE na auth_account_id)
                 cursor.execute("""
-                    SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
-                        WHERE table_name = 'user_active_plans'
-                    )
-                """)
-                table_exists = cursor.fetchone()[0]
-                
-                if table_exists:
-                    # End active plans
-                    cursor.execute("""
-                        UPDATE user_active_plans
-                        SET is_completed = TRUE, end_date = CURRENT_DATE
-                        WHERE auth_account_id=%s AND is_completed=FALSE
-                    """, [user_id])
-
-                    # Activate new plan
-                    cursor.execute("""
-                        INSERT INTO user_active_plans (auth_account_id, plan_id, start_date)
-                        VALUES (%s, %s, CURRENT_DATE)
-                    """, [user_id, plan_id])
-                else:
-                    logger.warning("[ActivatePlan] user_active_plans table does not exist")
-
-        except Exception as e:
-            logger.error(f"[ActivatePlan] Database error: {str(e)}")
-            # Continue anyway - plan activation is logged
+                    INSERT INTO user_active_plans (auth_account_id, plan_id, start_date, is_completed, end_date, rating, rating_date, feedback_text)
+                    VALUES (%s, %s, CURRENT_DATE, FALSE, NULL, NULL, NULL, NULL)
+                    ON CONFLICT (auth_account_id)
+                    DO UPDATE SET
+                        plan_id = EXCLUDED.plan_id,
+                        start_date = EXCLUDED.start_date,
+                        end_date = NULL,
+                        is_completed = FALSE,
+                        rating = NULL,
+                        rating_date = NULL,
+                        feedback_text = NULL
+                """, [user_id, plan_id])
+            else:
+                logger.warning("[ActivatePlan] user_active_plans table does not exist")
 
         logger.info(f"[ActivatePlan] Plan '{plan_name}' activated")
 

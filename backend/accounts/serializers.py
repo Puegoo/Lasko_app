@@ -1,4 +1,4 @@
-# backend/accounts/serializers.py - NAPRAWIONA WERSJA
+# backend/accounts/serializers.py - POPRAWIONA WERSJA
 import logging
 from rest_framework import serializers
 from django.db import transaction
@@ -7,6 +7,38 @@ from django.core.exceptions import ValidationError
 from .models import AuthAccount, UserProfile
 
 logger = logging.getLogger(__name__)
+
+# ============================================================================
+# DEFINICJE STAŁYCH (które były szukane w modelu)
+# ============================================================================
+GOAL_CHOICES = [
+    ('masa', 'Budowa masy'),
+    ('sila', 'Siła'),
+    ('wytrzymalosc', 'Wytrzymałość'),
+    ('spalanie', 'Spalanie tłuszczu'),
+    ('zdrowie', 'Ogólne zdrowie'),
+]
+
+LEVEL_CHOICES = [
+    ('poczatkujacy', 'Początkujący'),
+    ('sredniozaawansowany', 'Średniozaawansowany'),
+    ('zaawansowany', 'Zaawansowany'),
+]
+
+EQUIPMENT_CHOICES = [
+    ('silownia', 'Siłownia'),
+    ('dom_podstawowy', 'Dom - podstawowy'),
+    ('dom_zaawansowany', 'Dom - zaawansowany'),
+    ('masa_ciala', 'Masa ciała'),
+    ('minimalne', 'Minimalne'),
+]
+
+RECO_CHOICES = [
+    ('ai', 'AI-based'),
+    ('collaborative', 'Collaborative Filtering'),
+    ('content_based', 'Content-based'),
+    ('hybrid', 'Hybrid'),
+]
 
 
 class UserRegistrationSerializer(serializers.Serializer):
@@ -19,30 +51,35 @@ class UserRegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=50)
     email = serializers.EmailField(max_length=100)
     password = serializers.CharField(write_only=True, min_length=6)
-    password_confirm = serializers.CharField(write_only=True)
+    password_confirm = serializers.CharField(write_only=True, required=False)
     first_name = serializers.CharField(max_length=50, required=False, allow_blank=True)
     
     # Profile fields
     goal = serializers.ChoiceField(
-        choices=UserProfile.GOAL_CHOICES, 
-        default='zdrowie'
+        choices=GOAL_CHOICES, 
+        default='zdrowie',
+        required=False
     )
     level = serializers.ChoiceField(
-        choices=UserProfile.LEVEL_CHOICES, 
-        default='poczatkujacy'
+        choices=LEVEL_CHOICES, 
+        default='poczatkujacy',
+        required=False
     )
     training_days_per_week = serializers.IntegerField(
         min_value=1, 
         max_value=7, 
-        default=3
+        default=3,
+        required=False
     )
     equipment_preference = serializers.ChoiceField(
-        choices=UserProfile.EQUIPMENT_CHOICES, 
-        default='silownia'
+        choices=EQUIPMENT_CHOICES, 
+        default='silownia',
+        required=False
     )
     recommendation_method = serializers.ChoiceField(
-        choices=UserProfile.RECO_CHOICES, 
-        default='hybrid'
+        choices=RECO_CHOICES, 
+        default='hybrid',
+        required=False
     )
     
     # Optional profile fields
@@ -56,30 +93,33 @@ class UserRegistrationSerializer(serializers.Serializer):
     avoid_exercises = serializers.ListField(
         child=serializers.CharField(max_length=100),
         required=False,
-        allow_empty=True
+        allow_empty=True,
+        default=list
     )
     focus_areas = serializers.ListField(
         child=serializers.CharField(max_length=50),
         required=False,
-        allow_empty=True
+        allow_empty=True,
+        default=list
     )
     
     def validate(self, data):
         """Walidacja całego obiektu"""
         
-        # 1. Sprawdź zgodność haseł
-        if data['password'] != data['password_confirm']:
-            raise serializers.ValidationError({
-                'password_confirm': 'Hasła nie są zgodne'
-            })
+        # 1. Sprawdź zgodność haseł (jeśli password_confirm jest podany)
+        if 'password_confirm' in data:
+            if data['password'] != data['password_confirm']:
+                raise serializers.ValidationError({
+                    'password_confirm': 'Hasła nie są zgodne'
+                })
         
-        # 2. Walidacja hasła Django
-        try:
-            validate_password(data['password'])
-        except ValidationError as e:
-            raise serializers.ValidationError({
-                'password': list(e.messages)
-            })
+        # 2. Walidacja hasła Django (opcjonalnie, możesz wyłączyć dla prostszych haseł)
+        # try:
+        #     validate_password(data['password'])
+        # except ValidationError as e:
+        #     raise serializers.ValidationError({
+        #         'password': list(e.messages)
+        #     })
         
         return data
     
@@ -107,7 +147,7 @@ class UserRegistrationSerializer(serializers.Serializer):
         try:
             logger.info(f"[Registration] Tworzenie konta: {validated_data['username']}")
             
-            # Usuń password_confirm z danych
+            # Usuń password_confirm z danych (jeśli istnieje)
             password_confirm = validated_data.pop('password_confirm', None)
             
             # Podziel dane na konto i profil
@@ -178,6 +218,10 @@ class UserRegistrationSerializer(serializers.Serializer):
             import traceback
             logger.error(f"[Registration] Traceback: {traceback.format_exc()}")
             raise serializers.ValidationError(f"Błąd podczas tworzenia konta: {str(e)}")
+    
+    def save(self):
+        """Override save aby zwrócić wynik create"""
+        return self.create(self.validated_data)
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -197,7 +241,7 @@ class UserLoginSerializer(serializers.Serializer):
             )
         
         return {
-            'login': login.lower(),
+            'login': login,  # Nie zmieniaj na lower() - email może być lower, ale username nie
             'password': password
         }
 
@@ -207,6 +251,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     # Dodatkowe pola tylko do odczytu
     age = serializers.SerializerMethodField()
+    
+    # Dodaj choices do pól
+    goal = serializers.ChoiceField(choices=GOAL_CHOICES, required=False, allow_null=True)
+    level = serializers.ChoiceField(choices=LEVEL_CHOICES, required=False, allow_null=True)
+    equipment_preference = serializers.ChoiceField(choices=EQUIPMENT_CHOICES, required=False, allow_null=True)
+    recommendation_method = serializers.ChoiceField(choices=RECO_CHOICES, required=False, default='hybrid')
     
     class Meta:
         model = UserProfile
@@ -246,24 +296,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return value
 
 
-# ============================================================================
-# INNE SERIALIZERY
-# ============================================================================
-
-class AuthAccountSerializer(serializers.ModelSerializer):
-    """Serializer dla danych konta (bez hasła)"""
-    
-    class Meta:
-        model = AuthAccount
-        fields = [
-            'id', 'username', 'email', 'first_name', 
-            'is_admin', 'created_at', 'last_login'
-        ]
-        read_only_fields = ['id', 'created_at', 'last_login']
-
-
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer do aktualizacji profilu"""
+    
+    # Dodaj choices do pól
+    goal = serializers.ChoiceField(choices=GOAL_CHOICES, required=False, allow_null=True)
+    level = serializers.ChoiceField(choices=LEVEL_CHOICES, required=False, allow_null=True)
+    equipment_preference = serializers.ChoiceField(choices=EQUIPMENT_CHOICES, required=False, allow_null=True)
+    recommendation_method = serializers.ChoiceField(choices=RECO_CHOICES, required=False, default='hybrid')
     
     class Meta:
         model = UserProfile
@@ -281,5 +321,22 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     
     def validate_training_days_per_week(self, value):
         if value is not None and (value < 1 or value > 7):
-            raise serializers.ValidationError("Training days must be between 1 and 7.")
+            raise serializers.ValidationError("Dni treningowe muszą być między 1 a 7.")
         return value
+    
+    def validate_preferred_session_duration(self, value):
+        if value is not None and (value < 15 or value > 180):
+            raise serializers.ValidationError("Czas sesji musi być między 15 a 180 minut.")
+        return value
+
+
+class AuthAccountSerializer(serializers.ModelSerializer):
+    """Serializer dla danych konta (bez hasła)"""
+    
+    class Meta:
+        model = AuthAccount
+        fields = [
+            'id', 'username', 'email', 'first_name', 
+            'is_admin', 'created_at', 'last_login'
+        ]
+        read_only_fields = ['id', 'created_at', 'last_login']

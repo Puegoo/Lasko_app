@@ -1,21 +1,21 @@
 -- Lasko_app/SQL/01_schema.sql
-
 -- =================================================================
--- KOMPLETNY SCHEMAT BAZY DANYCH LASKO Z ALGORYTMEM REKOMENDACYJNYM
--- Wersja: 2.1 (spójna z Django; password, is_superuser, itp.)
+-- KOMPLETNY SCHEMAT BAZY DANYCH LASKO - WERSJA 3.0
+-- Zaktualizowany o wszystkie kolumny wymagane przez Django
 -- =================================================================
 
 -- ===========================
 -- DROP w odwrotnej kolejności
 -- ===========================
 
-DROP VIEW  IF EXISTS v_plan_statistics;
-DROP VIEW  IF EXISTS v_similar_users;
+DROP VIEW  IF EXISTS v_plan_statistics CASCADE;
+DROP VIEW  IF EXISTS v_similar_users CASCADE;
 
 DROP TRIGGER IF EXISTS trigger_update_rating_date ON user_active_plans;
 DROP FUNCTION IF EXISTS update_rating_date();
 DROP FUNCTION IF EXISTS extract_muscle_groups(TEXT, TEXT);
 
+-- Drop wszystkich indeksów
 DROP INDEX IF EXISTS idx_recommendation_logs_user_plan;
 DROP INDEX IF EXISTS idx_recommendation_logs_created;
 DROP INDEX IF EXISTS idx_user_active_plans_rating;
@@ -30,56 +30,60 @@ DROP INDEX IF EXISTS idx_training_sessions_user;
 DROP INDEX IF EXISTS idx_training_plans_attrs;
 DROP INDEX IF EXISTS idx_auth_accounts_email;
 
-DROP TABLE IF EXISTS recommendation_logs;
-DROP TABLE IF EXISTS exercise_alternatives;
-DROP TABLE IF EXISTS user_progress_tracking;
-DROP TABLE IF EXISTS personal_records;
-DROP TABLE IF EXISTS completed_plan_days;
-DROP TABLE IF EXISTS session_exercises;
-DROP TABLE IF EXISTS logged_sets;
-
-DROP TABLE IF EXISTS training_sessions;
-DROP TABLE IF EXISTS plan_exercises;
-DROP TABLE IF EXISTS plan_days;
-
-DROP TABLE IF EXISTS exercise_tags;
-DROP TABLE IF EXISTS exercise_equipment;
-DROP TABLE IF EXISTS exercise_variants;
-DROP TABLE IF EXISTS exercise_feedback;
-DROP TABLE IF EXISTS plan_history;
-DROP TABLE IF EXISTS user_active_plans;
-
-DROP TABLE IF EXISTS training_plans;
-DROP TABLE IF EXISTS tags;
-DROP TABLE IF EXISTS equipment;
-DROP TABLE IF EXISTS exercises;
-
-DROP TABLE IF EXISTS user_profiles;
-DROP TABLE IF EXISTS user_measurements;
-DROP TABLE IF EXISTS user_goals_history;
-DROP TABLE IF EXISTS user_notes;
-DROP TABLE IF EXISTS notifications;
-
-DROP TABLE IF EXISTS auth_accounts;
+-- Drop wszystkich tabel
+DROP TABLE IF EXISTS recommendation_logs CASCADE;
+DROP TABLE IF EXISTS exercise_alternatives CASCADE;
+DROP TABLE IF EXISTS user_progress_tracking CASCADE;
+DROP TABLE IF EXISTS personal_records CASCADE;
+DROP TABLE IF EXISTS completed_plan_days CASCADE;
+DROP TABLE IF EXISTS session_exercises CASCADE;
+DROP TABLE IF EXISTS logged_sets CASCADE;
+DROP TABLE IF EXISTS training_sessions CASCADE;
+DROP TABLE IF EXISTS plan_exercises CASCADE;
+DROP TABLE IF EXISTS plan_days CASCADE;
+DROP TABLE IF EXISTS exercise_tags CASCADE;
+DROP TABLE IF EXISTS exercise_equipment CASCADE;
+DROP TABLE IF EXISTS exercise_variants CASCADE;
+DROP TABLE IF EXISTS exercise_feedback CASCADE;
+DROP TABLE IF EXISTS plan_history CASCADE;
+DROP TABLE IF EXISTS user_active_plans CASCADE;
+DROP TABLE IF EXISTS training_plans CASCADE;
+DROP TABLE IF EXISTS tags CASCADE;
+DROP TABLE IF EXISTS equipment CASCADE;
+DROP TABLE IF EXISTS exercises CASCADE;
+DROP TABLE IF EXISTS user_profiles CASCADE;
+DROP TABLE IF EXISTS user_measurements CASCADE;
+DROP TABLE IF EXISTS user_goals_history CASCADE;
+DROP TABLE IF EXISTS user_notes CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS auth_accounts CASCADE;
 
 -- ===========================
--- CREATE
+-- CREATE TABLES
 -- ===========================
 
--- Konta logowania (zgodne z oczekiwaniami Django)
+-- Konta logowania (w pełni zgodne z Django)
 CREATE TABLE auth_accounts (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,          -- Django hashed password (pbkdf2_sha256:...)
+    password VARCHAR(255) NOT NULL,          -- Django hashed password
     first_name VARCHAR(50),
+    
+    -- Kolumny wymagane przez Django
     is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
     is_staff BOOLEAN NOT NULL DEFAULT FALSE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     date_joined TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    last_login TIMESTAMPTZ
+    last_login TIMESTAMPTZ,
+    
+    -- Dodatkowe kolumny aplikacji
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Opcjonalne kolumny dla zgodności z Django (jako JSONB)
+    groups JSONB DEFAULT '[]'::jsonb,
+    user_permissions JSONB DEFAULT '[]'::jsonb
 );
 
 -- Profile użytkowników
@@ -95,6 +99,7 @@ CREATE TABLE user_profiles (
     preferred_session_duration INT DEFAULT 60,
     avoid_exercises TEXT[],
     focus_areas TEXT[],
+    recommendation_method VARCHAR(50) DEFAULT 'hybrid',
     last_survey_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE
 );
@@ -147,7 +152,7 @@ CREATE TABLE exercise_equipment (
     FOREIGN KEY (equipment_id) REFERENCES equipment(id) ON DELETE CASCADE
 );
 
--- Plany
+-- Plany treningowe
 CREATE TABLE training_plans (
     id SERIAL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
@@ -211,7 +216,7 @@ CREATE TABLE user_active_plans (
     FOREIGN KEY (plan_id) REFERENCES training_plans(id) ON DELETE CASCADE
 );
 
--- Sesje
+-- Sesje treningowe
 CREATE TABLE training_sessions (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -269,7 +274,7 @@ CREATE TABLE user_measurements (
     UNIQUE (auth_account_id, measurement_date)
 );
 
--- Rekordy
+-- Rekordy osobiste
 CREATE TABLE personal_records (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -294,7 +299,7 @@ CREATE TABLE user_goals_history (
     FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE
 );
 
--- Notatki
+-- Notatki użytkownika
 CREATE TABLE user_notes (
     id SERIAL PRIMARY KEY,
     auth_account_id INT NOT NULL,
@@ -326,7 +331,7 @@ CREATE TABLE notifications (
 );
 
 -- ===========================
--- Rekomendacje
+-- Tabele rekomendacji
 -- ===========================
 
 CREATE TABLE recommendation_logs (
@@ -335,7 +340,7 @@ CREATE TABLE recommendation_logs (
     plan_id INT NOT NULL,
     recommendation_score DECIMAL(5,2),
     survey_data JSONB,
-    algorithm_version VARCHAR(20) DEFAULT '2.1',
+    algorithm_version VARCHAR(20) DEFAULT '3.0',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (plan_id) REFERENCES training_plans(id) ON DELETE CASCADE
@@ -367,28 +372,25 @@ CREATE TABLE user_progress_tracking (
 );
 
 -- ===========================
--- Indeksy
+-- Indeksy dla wydajności
 -- ===========================
 
 CREATE INDEX idx_auth_accounts_email ON auth_accounts(email);
+CREATE INDEX idx_auth_accounts_username ON auth_accounts(username);
 CREATE INDEX idx_training_sessions_user ON training_sessions(auth_account_id, session_date DESC);
 CREATE INDEX idx_logged_sets_session ON logged_sets(session_id);
-
 CREATE INDEX idx_recommendation_logs_user_plan ON recommendation_logs(auth_account_id, plan_id);
 CREATE INDEX idx_recommendation_logs_created ON recommendation_logs(created_at);
-
 CREATE INDEX idx_user_active_plans_rating ON user_active_plans(rating) WHERE rating IS NOT NULL;
 CREATE INDEX idx_user_active_plans_plan_rating ON user_active_plans(plan_id, rating);
-
 CREATE INDEX idx_training_plans_filters ON training_plans(goal_type, difficulty_level, training_days_per_week, equipment_required) WHERE is_active = true;
-
 CREATE INDEX idx_exercises_muscle_type ON exercises(muscle_group, type);
 CREATE INDEX idx_user_profiles_combined ON user_profiles(goal, level, training_days_per_week, equipment_preference);
 CREATE INDEX idx_progress_tracking_user_metric ON user_progress_tracking(auth_account_id, metric_name, measurement_date);
 CREATE INDEX idx_plan_exercises_exercise_plan ON plan_exercises(exercise_id, plan_day_id);
 
 -- ===========================
--- Widoki
+-- Widoki statystyczne
 -- ===========================
 
 CREATE VIEW v_plan_statistics AS
@@ -414,9 +416,10 @@ LEFT JOIN training_sessions ts ON tp.id = ts.plan_id
 LEFT JOIN plan_days pd ON tp.id = pd.plan_id
 LEFT JOIN plan_exercises pe ON pd.id = pe.plan_day_id
 WHERE tp.is_active = true
-GROUP BY tp.id, tp.name, tp.goal_type, tp.difficulty_level, tp.training_days_per_week, tp.equipment_required, tp.is_active, tp.created_at;
+GROUP BY tp.id, tp.name, tp.goal_type, tp.difficulty_level, 
+         tp.training_days_per_week, tp.equipment_required, 
+         tp.is_active, tp.created_at;
 
--- Naprawa: HAVING bez GROUP BY powodował błąd; robimy podzapytanie
 CREATE VIEW v_similar_users AS
 SELECT * FROM (
     SELECT 
@@ -435,7 +438,7 @@ SELECT * FROM (
 WHERE s.similarity_score >= 50;
 
 -- ===========================
--- Funkcje i triggery
+-- Funkcje pomocnicze
 -- ===========================
 
 CREATE OR REPLACE FUNCTION extract_muscle_groups(exercise_name TEXT, muscle_group TEXT)
@@ -463,6 +466,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Trigger dla automatycznej aktualizacji rating_date
 CREATE OR REPLACE FUNCTION update_rating_date()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -477,3 +481,49 @@ CREATE TRIGGER trigger_update_rating_date
     BEFORE UPDATE ON user_active_plans
     FOR EACH ROW
     EXECUTE FUNCTION update_rating_date();
+
+-- ===========================
+-- Dane początkowe (ćwiczenia, tagi, sprzęt)
+-- ===========================
+
+-- Podstawowy sprzęt
+INSERT INTO equipment (name) VALUES 
+    ('barbell'),
+    ('dumbbells'),
+    ('pull-up bar'),
+    ('bench'),
+    ('cables'),
+    ('kettlebell'),
+    ('resistance bands'),
+    ('bodyweight'),
+    ('machine')
+ON CONFLICT (name) DO NOTHING;
+
+-- Podstawowe tagi
+INSERT INTO tags (name) VALUES 
+    ('compound'),
+    ('isolation'),
+    ('beginner-friendly'),
+    ('advanced'),
+    ('cardio'),
+    ('strength'),
+    ('flexibility'),
+    ('power'),
+    ('endurance')
+ON CONFLICT (name) DO NOTHING;
+
+-- Przykładowe ćwiczenia
+INSERT INTO exercises (name, description, muscle_group, type) VALUES
+    ('Barbell Squat', 'Compound leg exercise', 'legs', 'strength'),
+    ('Bench Press', 'Compound chest exercise', 'chest', 'strength'),
+    ('Deadlift', 'Full body compound exercise', 'back', 'strength'),
+    ('Pull-up', 'Compound back exercise', 'back', 'strength'),
+    ('Overhead Press', 'Compound shoulder exercise', 'shoulders', 'strength')
+ON CONFLICT (name) DO NOTHING;
+
+-- ===========================
+-- Komentarz końcowy
+-- ===========================
+-- Schemat gotowy do użycia z Django
+-- Wszystkie kolumny wymagane przez Django są obecne
+-- Dane początkowe zostaną dodane przez skrypt 02_insert_data.py

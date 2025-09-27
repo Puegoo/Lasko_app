@@ -1,129 +1,93 @@
-# backend/accounts/models.py - NAPRAWIONA WERSJA Z password_hash
+# backend/accounts/models.py - POPRAWIONY MODEL
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
+from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField
 
 class AuthAccount(models.Model):
-    """User account model - dopasowany do rzeczywistej struktury bazy (password_hash)"""
-    
+    """Model użytkownika zgodny ze schematem SQL"""
     username = models.CharField(max_length=50, unique=True)
-    email = models.CharField(max_length=100, unique=True)
-    password_hash = models.CharField(max_length=255)  # ← NAPRAWIONE! Używa password_hash jak w bazie
+    email = models.EmailField(max_length=100, unique=True)
+    password = models.CharField(max_length=255)  # ZMIANA: password zamiast password_hash
+    first_name = models.CharField(max_length=50, blank=True, null=True)
     
-    first_name = models.CharField(max_length=50, null=True, blank=True)
-    is_admin = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    # Additional Django User fields (for compatibility)
+    # Pola zgodne z Django
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    date_joined = models.DateTimeField(auto_now_add=True)
-    last_login = models.DateTimeField(null=True, blank=True)
+    date_joined = models.DateTimeField(default=timezone.now)
+    last_login = models.DateTimeField(blank=True, null=True)
+    
+    # Dodatkowe pole aplikacji
+    is_admin = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    # Opcjonalne pola JSON
+    groups = models.JSONField(default=list, blank=True)
+    user_permissions = models.JSONField(default=list, blank=True)
     
     class Meta:
         db_table = 'auth_accounts'
-    
-    def set_password(self, raw_password):
-        """Set hashed password - używa password_hash"""
-        self.password_hash = make_password(raw_password)
-    
-    def check_password(self, raw_password):
-        """Check password - używa password_hash"""
-        return check_password(raw_password, self.password_hash)
+        managed = False  # Nie zarządzaj tabelą przez Django (już istnieje w SQL)
     
     def __str__(self):
         return self.username
+    
+    def set_password(self, raw_password):
+        """Hashuj hasło przed zapisaniem"""
+        self.password = make_password(raw_password)
+    
+    def check_password(self, raw_password):
+        """Sprawdź czy hasło jest poprawne"""
+        return check_password(raw_password, self.password)
+    
+    def save(self, *args, **kwargs):
+        """Override save to ensure password is hashed"""
+        if not self.pk and self.password and not self.password.startswith(('pbkdf2_', 'bcrypt_', 'argon2')):
+            # Nowe konto z niezahashowanym hasłem
+            self.set_password(self.password)
+        super().save(*args, **kwargs)
 
 
 class UserProfile(models.Model):
-    """User profile model - dopasowany do rzeczywistej struktury bazy"""
-    
-    GOAL_CHOICES = [
-        ('masa', 'Muscle Mass'),
-        ('redukcja', 'Fat Loss'),
-        ('sila', 'Strength'),
-        ('wytrzymalosc', 'Endurance'),
-        ('zdrowie', 'General Health'),
-    ]
-    
-    LEVEL_CHOICES = [
-        ('poczatkujacy', 'Beginner'),
-        ('sredniozaawansowany', 'Intermediate'),
-        ('zaawansowany', 'Advanced'),
-    ]
-    
-    EQUIPMENT_CHOICES = [
-        ('silownia', 'Full Gym'),
-        ('dom_hantle', 'Home (Dumbbells + Bench)'),
-        ('dom_masa', 'Home (Bodyweight)'),
-        ('minimalne', 'Minimal Equipment'),
-        ('dom', 'Home Training'),
-        ('wolne_ciezary', 'Free Weights'),
-    ]
-    
-    RECO_CHOICES = [
-        ('product', 'Product (content-based)'),
-        ('user', 'User (collaborative)'),
-        ('hybrid', 'Hybrid')
-    ]
-    
-    # Foreign key to account
+    """Profil użytkownika"""
     auth_account = models.OneToOneField(
         AuthAccount, 
         on_delete=models.CASCADE,
-        db_column='auth_account_id',
-        related_name='userprofile'
+        db_column='auth_account_id'
     )
-    
-    # Basic profile fields - tylko pola które rzeczywiście istnieją w bazie
-    first_name = models.CharField(max_length=50, null=True, blank=True)
-    date_of_birth = models.DateField(null=True, blank=True)
-    goal = models.CharField(max_length=50, choices=GOAL_CHOICES, null=True, blank=True)
-    level = models.CharField(max_length=50, choices=LEVEL_CHOICES, null=True, blank=True)
-    training_days_per_week = models.IntegerField(null=True, blank=True)
-    equipment_preference = models.CharField(max_length=50, choices=EQUIPMENT_CHOICES, null=True, blank=True)
-    
-    # Te pola mogą nie istnieć w rzeczywistej tabeli - sprawdź po migracjach
-    preferred_session_duration = models.IntegerField(default=60, null=True, blank=True)
-    
-    # Array fields - mogą nie istnieć w rzeczywistej tabeli
+    first_name = models.CharField(max_length=50, blank=True, null=True)
+    date_of_birth = models.DateField(blank=True, null=True)
+    goal = models.CharField(max_length=50, blank=True, null=True)
+    level = models.CharField(max_length=50, blank=True, null=True)
+    training_days_per_week = models.IntegerField(blank=True, null=True)
+    equipment_preference = models.CharField(max_length=50, blank=True, null=True)
+    preferred_session_duration = models.IntegerField(default=60)
+
     avoid_exercises = ArrayField(
-        models.CharField(max_length=100),
-        size=20,
-        null=True,
-        blank=True,
-        help_text="List of exercises to avoid"
+        base_field=models.CharField(max_length=100),
+        blank=True, null=True, default=list
     )
     focus_areas = ArrayField(
-        models.CharField(max_length=100), 
-        size=10,
-        null=True,
-        blank=True,
-        help_text="List of focus areas for training"
+        base_field=models.CharField(max_length=50),
+        blank=True, null=True, default=list
     )
-    
-    last_survey_date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
     recommendation_method = models.CharField(
-        max_length=10,
-        choices=RECO_CHOICES,
-        null=True,
-        blank=True,
-        default='hybrid'
+        max_length=50,
+        default='hybrid',
+        choices=[
+            ('ai', 'AI-based'),
+            ('collaborative', 'Collaborative Filtering'),
+            ('content_based', 'Content-based'),
+            ('hybrid', 'Hybrid')
+        ]
     )
+    last_survey_date = models.DateTimeField(default=timezone.now)
     
     class Meta:
         db_table = 'user_profiles'
+        managed = False  # Nie zarządzaj tabelą przez Django
     
     def __str__(self):
-        return f"Profile of {self.auth_account.username}"
-    
-    def get_focus_areas_display(self):
-        if self.focus_areas:
-            return ", ".join(self.focus_areas)
-        return "None"
-    
-    def get_avoid_exercises_display(self):
-        if self.avoid_exercises:
-            return ", ".join(self.avoid_exercises)
-        return "None"
+        return f"Profile: {self.auth_account.username}"

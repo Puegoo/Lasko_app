@@ -1,20 +1,18 @@
-// frontend/lasko-frontend/src/services/apiClient.js
-// Minimalny klient oparty o fetch
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import axios from 'axios'
 
-class APIClient {
-  constructor() {
-    this.baseURL = BASE_URL;
-  }
+const base = import.meta.env.VITE_API_BASE_URL || '/api'
 
-  async healthCheck() {
-    try {
-      const res = await fetch(`${this.baseURL}/`, { method: 'GET' });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  }
-}
+// Zadbaj o brak podwójnych slashes
+const trim = (s) => s.replace(/\/+$/, '')
+export const API_BASE = trim(base)
 
-export default APIClient;
+export const api = axios.create({
+  baseURL: API_BASE,
+  withCredentials: false, // ustaw na true jeżeli używasz cookies
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Opcjonalny helper do budowy pełnego URL (np. dla uploadów)
+export const apiUrl = (path = '') => `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`

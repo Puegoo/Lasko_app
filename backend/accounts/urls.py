@@ -7,12 +7,12 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('login/', views.login, name='login'),
     path('logout/', views.logout, name='logout'),
-    path('refresh/', views.refresh_token, name='refresh_token'),  # ✅ TO JEST KLUCZOWE
+      
     
     # Profil
     path('profile/', views.profile, name='profile'),
     path('profile/update/', views.update_profile, name='update_profile'),
-    
+    path('refresh/', views.refresh_token, name='refresh_token'), # ✅ TO JEST KLUCZOWE
     # Preferencje  
     path('set-recommendation-method/', views.set_recommendation_method, name='set_recommendation_method'),
     

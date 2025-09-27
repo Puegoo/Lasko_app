@@ -1,68 +1,43 @@
 #!/bin/bash
-# startup.sh - Complete Docker startup script
+# startup.sh - Clean Docker startup without redis
 
 set -e
 
 echo "LASKO APP STARTUP"
 echo "=================="
 
-# Check if Docker is running
-if ! docker info > /dev/null 2>&1; then
-    echo "ERROR: Docker is not running"
-    echo "Please start Docker Desktop first"
-    exit 1
-fi
+COMPOSE="docker compose"
 
-# Stop any existing containers
 echo "Stopping existing containers..."
-docker-compose down --remove-orphans
+$COMPOSE down --remove-orphans
 
-# Remove old images if specified
 if [ "$1" = "--rebuild" ]; then
-    echo "Rebuilding images from scratch..."
-    docker-compose build --no-cache
+  echo "Rebuilding images from scratch..."
+  COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 $COMPOSE build --no-cache
 else
-    echo "Building images..."
-    docker-compose build
+  echo "Building images..."
+  COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 $COMPOSE build
 fi
 
-# Start services
-echo "Starting services..."
-docker-compose up -d db
+echo "Starting database..."
+$COMPOSE up -d db
 
 echo "Waiting for database to be ready..."
-sleep 10
+# healthcheck już czuwa; chwila buforu
+sleep 3
 
-# Check database status
-docker-compose exec db pg_isready -U postgres || {
-    echo "Database not ready, waiting more..."
-    sleep 10
-}
+echo "Starting backend..."
+$COMPOSE up -d backend
 
-# Start backend with setup
-echo "Starting backend with database setup..."
-docker-compose run --rm backend python manage.py setup_database --with-seed
-
-# Start all services
-echo "Starting all services..."
-docker-compose up -d
+echo "Starting frontend..."
+$COMPOSE up -d frontend
 
 echo ""
 echo "STARTUP COMPLETE"
 echo "================"
+echo "- Frontend:     http://localhost:3000"
+echo "- Backend API:  http://localhost:8000"
+echo "- Admin Panel:  http://localhost:8000/admin/"
 echo ""
-echo "Services:"
-echo "- Frontend: http://localhost:3000"
-echo "- Backend API: http://localhost:8000"
-echo "- Admin Panel: http://localhost:8000/admin/"
-echo ""
-echo "Test Login Data:"
-echo "- Username: testuser1"
-echo "- Password: test123"
-echo ""
-echo "Admin Login:"
-echo "- Username: admin"
-echo "- Password: admin123"
-echo ""
-echo "To see logs: docker-compose logs -f"
-echo "To stop: docker-compose down"
+echo "Logs: docker compose logs -f"
+echo "Stop: docker compose down"

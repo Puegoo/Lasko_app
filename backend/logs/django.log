@@ -106,3 +106,917 @@ INFO 2025-09-26 19:22:01,619 views 12 281472831352864 [Recommendations] Engine l
 INFO 2025-09-26 19:22:02,240 views 13 281473615048736 [Recommendations] Engine loaded successfully
 INFO 2025-09-26 19:22:03,290 autoreload 15 281473527402528 Watching for file changes with StatReloader
 INFO 2025-09-26 19:22:03,312 views 15 281473527402528 [Recommendations] Engine loaded successfully
+INFO 2025-09-26 20:09:27,264 basehttp 15 281473447948672 "GET / HTTP/1.1" 200 59
+INFO 2025-09-26 22:55:58,330 autoreload 15 281473527402528 /app/accounts/views.py changed, reloading.
+INFO 2025-09-26 22:55:59,044 autoreload 18 281473810923552 Watching for file changes with StatReloader
+INFO 2025-09-26 22:55:59,085 views 18 281473810923552 [Recommendations] Engine loaded successfully
+ERROR 2025-09-26 22:56:35,538 log 18 281473731064192 Internal Server Error: /api/auth/register
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 131, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/middleware/common.py", line 108, in process_response
+    return self.response_redirect_class(self.get_full_path_with_slash(request))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/middleware/common.py", line 87, in get_full_path_with_slash
+    raise RuntimeError(
+RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set. Django can't redirect to the slash URL while maintaining POST data. Change your form to point to localhost:8000/api/auth/register/ (note the trailing slash), or set APPEND_SLASH=False in your Django settings.
+ERROR 2025-09-26 22:56:35,540 basehttp 18 281473731064192 "POST /api/auth/register HTTP/1.1" 500 65800
+ERROR 2025-09-26 22:56:35,557 log 18 281473731064192 Internal Server Error: /api/auth/login
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 131, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/middleware/common.py", line 108, in process_response
+    return self.response_redirect_class(self.get_full_path_with_slash(request))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/middleware/common.py", line 87, in get_full_path_with_slash
+    raise RuntimeError(
+RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set. Django can't redirect to the slash URL while maintaining POST data. Change your form to point to localhost:8000/api/auth/login/ (note the trailing slash), or set APPEND_SLASH=False in your Django settings.
+ERROR 2025-09-26 22:56:35,557 basehttp 18 281473731064192 "POST /api/auth/login HTTP/1.1" 500 65752
+ERROR 2025-09-26 22:56:35,572 log 18 281473731064192 Internal Server Error: /api/auth/refresh
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 131, in __call__
+    response = self.process_response(request, response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/middleware/common.py", line 108, in process_response
+    return self.response_redirect_class(self.get_full_path_with_slash(request))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/middleware/common.py", line 87, in get_full_path_with_slash
+    raise RuntimeError(
+RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set. Django can't redirect to the slash URL while maintaining POST data. Change your form to point to localhost:8000/api/auth/refresh/ (note the trailing slash), or set APPEND_SLASH=False in your Django settings.
+ERROR 2025-09-26 22:56:35,573 basehttp 18 281473731064192 "POST /api/auth/refresh HTTP/1.1" 500 65784
+INFO 2025-09-26 23:00:16,491 views 1422 8513036032 [Login] Próba logowania
+INFO 2025-09-26 23:00:16,492 views 1422 8513036032 [Login] Login attempt: test_user
+ERROR 2025-09-26 23:00:16,496 views 1422 8513036032 [Login] Nieoczekiwany błąd: column auth_accounts.is_superuser does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+ERROR 2025-09-26 23:00:16,499 views 1422 8513036032 [Login] Traceback: Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column auth_accounts.is_superuser does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/piotr/Desktop/GitHub/Praca_inzynierska/Lasko_app/backend/accounts/views.py", line 128, in login
+    auth_account = AuthAccount.objects.get(username=login_value)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/query.py", line 645, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/query.py", line 382, in __len__
+    self._fetch_all()
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column auth_accounts.is_superuser does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+
+INFO 2025-09-26 23:00:28,524 views 1473 8513036032 [Login] Próba logowania
+INFO 2025-09-26 23:00:28,525 views 1473 8513036032 [Login] Login attempt: test_user
+ERROR 2025-09-26 23:00:28,527 views 1473 8513036032 [Login] Nieoczekiwany błąd: column auth_accounts.is_superuser does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+ERROR 2025-09-26 23:00:28,531 views 1473 8513036032 [Login] Traceback: Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column auth_accounts.is_superuser does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/piotr/Desktop/GitHub/Praca_inzynierska/Lasko_app/backend/accounts/views.py", line 128, in login
+    auth_account = AuthAccount.objects.get(username=login_value)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/query.py", line 645, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/query.py", line 382, in __len__
+    self._fetch_all()
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column auth_accounts.is_superuser does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+
+INFO 2025-09-26 23:17:47,196 views 8 281473661026336 [Recommendations] Engine loaded successfully
+INFO 2025-09-26 23:17:48,372 views 1 281472901685280 [Recommendations] Engine loaded successfully
+INFO 2025-09-26 23:17:50,965 views 8 281473176342560 [Recommendations] Engine loaded successfully
+INFO 2025-09-26 23:17:52,191 views 10 281473535512608 [Recommendations] Engine loaded successfully
+INFO 2025-09-26 23:17:52,830 views 11 281473643773984 [Recommendations] Engine loaded successfully
+INFO 2025-09-26 23:17:53,554 views 12 281473511309344 [Recommendations] Engine loaded successfully
+INFO 2025-09-26 23:17:54,523 views 13 281473856057376 [Recommendations] Engine loaded successfully
+INFO 2025-09-26 23:17:55,886 autoreload 15 281473355415584 Watching for file changes with StatReloader
+INFO 2025-09-26 23:17:55,913 views 15 281473355415584 [Recommendations] Engine loaded successfully
+INFO 2025-09-26 23:17:58,256 basehttp 15 281473275982208 "GET / HTTP/1.1" 200 59
+INFO 2025-09-27 08:01:29,627 autoreload 15 281473355415584 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 08:01:30,317 autoreload 18 281473171873824 Watching for file changes with StatReloader
+INFO 2025-09-27 08:01:31,425 autoreload 18 281473171873824 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 08:01:31,981 autoreload 20 281473447694368 Watching for file changes with StatReloader
+INFO 2025-09-27 08:01:32,006 views 20 281473447694368 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 08:01:33,094 autoreload 20 281473447694368 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 08:01:33,693 autoreload 22 281472858128416 Watching for file changes with StatReloader
+INFO 2025-09-27 08:01:50,084 autoreload 22 281472858128416 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 08:01:50,895 autoreload 24 281473175666720 Watching for file changes with StatReloader
+INFO 2025-09-27 08:02:01,155 autoreload 24 281473175666720 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 08:02:01,735 autoreload 26 281472914632736 Watching for file changes with StatReloader
+INFO 2025-09-27 08:03:48,984 autoreload 26 281472914632736 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 08:03:49,616 autoreload 28 281472850575392 Watching for file changes with StatReloader
+INFO 2025-09-27 08:08:12,744 autoreload 28 281472850575392 /app/accounts/serializers.py changed, reloading.
+INFO 2025-09-27 08:08:13,392 autoreload 30 281473694183456 Watching for file changes with StatReloader
+INFO 2025-09-27 08:08:13,423 views 30 281473694183456 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 12:03:28,247 basehttp 30 281473613623680 "GET / HTTP/1.1" 200 59
+INFO 2025-09-27 12:31:05,750 autoreload 30 281473694183456 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 12:31:06,550 autoreload 33 281473379684384 Watching for file changes with StatReloader
+INFO 2025-09-27 12:31:06,580 views 33 281473379684384 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 12:31:14,804 autoreload 33 281473379684384 /app/accounts/serializers.py changed, reloading.
+INFO 2025-09-27 12:31:15,416 autoreload 35 281473253339168 Watching for file changes with StatReloader
+INFO 2025-09-27 12:32:36,132 autoreload 35 281473253339168 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 12:32:36,817 autoreload 37 281473487523872 Watching for file changes with StatReloader
+INFO 2025-09-27 12:32:42,010 autoreload 37 281473487523872 /app/accounts/serializers.py changed, reloading.
+INFO 2025-09-27 12:32:42,617 autoreload 39 281473393651744 Watching for file changes with StatReloader
+INFO 2025-09-27 12:32:42,648 views 39 281473393651744 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 12:35:45,594 basehttp 39 281473313730944 "GET / HTTP/1.1" 200 59
+INFO 2025-09-27 13:03:45,659 views 8 281472905842720 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:03:46,983 views 10 281473799221280 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:03:47,563 views 11 281473813561376 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:03:48,640 autoreload 13 281473194741792 Watching for file changes with StatReloader
+INFO 2025-09-27 13:03:48,667 views 13 281473194741792 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:10:33,203 views 8 281473169031200 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:10:34,826 views 10 281473371861024 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:10:35,454 views 11 281472831774752 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:10:36,073 views 12 281473598496800 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:10:37,425 autoreload 14 281473741017120 Watching for file changes with StatReloader
+INFO 2025-09-27 13:10:37,461 views 14 281473741017120 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:10:37,753 basehttp 14 281473661858176 "GET / HTTP/1.1" 200 59
+INFO 2025-09-27 13:15:30,167 views 8 281473486516256 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:15:31,737 views 10 281473205125152 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:15:32,413 views 11 281473231368224 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:15:33,098 views 12 281473725640736 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:15:34,188 autoreload 14 281473652326432 Watching for file changes with StatReloader
+INFO 2025-09-27 13:15:34,221 views 14 281473652326432 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:17:39,142 views 14 281473498280320 [Login] Próba logowania
+INFO 2025-09-27 13:17:39,146 views 14 281473498280320 [Login] Login attempt: testuser1
+ERROR 2025-09-27 13:17:39,165 views 14 281473498280320 [Login] Nieoczekiwany błąd: column auth_accounts.groups does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+ERROR 2025-09-27 13:17:39,169 views 14 281473498280320 [Login] Traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column auth_accounts.groups does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/accounts/views.py", line 128, in login
+    auth_account = AuthAccount.objects.get(username=login_value)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 645, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 382, in __len__
+    self._fetch_all()
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column auth_accounts.groups does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+
+ERROR 2025-09-27 13:17:39,171 log 14 281473498280320 Internal Server Error: /api/auth/login/
+ERROR 2025-09-27 13:17:39,172 basehttp 14 281473498280320 "POST /api/auth/login/ HTTP/1.1" 500 67
+INFO 2025-09-27 13:17:39,183 views 14 281473498280320 [Login] Próba logowania
+INFO 2025-09-27 13:17:39,183 views 14 281473498280320 [Login] Login attempt: testuser1
+ERROR 2025-09-27 13:17:39,190 views 14 281473498280320 [Login] Nieoczekiwany błąd: column auth_accounts.groups does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+ERROR 2025-09-27 13:17:39,191 views 14 281473498280320 [Login] Traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column auth_accounts.groups does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/accounts/views.py", line 128, in login
+    auth_account = AuthAccount.objects.get(username=login_value)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 645, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 382, in __len__
+    self._fetch_all()
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column auth_accounts.groups does not exist
+LINE 1: ...counts"."is_admin", "auth_accounts"."created_at", "auth_acco...
+                                                             ^
+
+
+ERROR 2025-09-27 13:17:39,192 log 14 281473498280320 Internal Server Error: /api/auth/login/
+ERROR 2025-09-27 13:17:39,192 basehttp 14 281473498280320 "POST /api/auth/login/ HTTP/1.1" 500 67
+INFO 2025-09-27 13:18:21,865 views 14 281473498280320 [Register] Rejestracja użytkownika: sdkjfzhbd
+INFO 2025-09-27 13:18:21,891 views 14 281473498280320 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 13:18:21,891 serializers 14 281473498280320 [Registration] Tworzenie konta: sdkjfzhbd
+INFO 2025-09-27 13:18:21,891 serializers 14 281473498280320 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 13:18:21,892 serializers 14 281473498280320 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+ERROR 2025-09-27 13:18:21,894 serializers 14 281473498280320 [Registration] Error in create(): column "groups" of relation "auth_accounts" does not exist
+LINE 1: ..._joined", "last_login", "is_admin", "created_at", "groups", ...
+                                                             ^
+
+ERROR 2025-09-27 13:18:21,898 serializers 14 281473498280320 [Registration] Traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column "groups" of relation "auth_accounts" does not exist
+LINE 1: ..._joined", "last_login", "is_admin", "created_at", "groups", ...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/accounts/serializers.py", line 175, in create
+    auth_account = AuthAccount.objects.create(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 679, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/app/accounts/models.py", line 49, in save
+    super().save(*args, **kwargs)
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 891, in save
+    self.save_base(
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 997, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 1160, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 1201, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column "groups" of relation "auth_accounts" does not exist
+LINE 1: ..._joined", "last_login", "is_admin", "created_at", "groups", ...
+                                                             ^
+
+
+ERROR 2025-09-27 13:18:21,898 views 14 281473498280320 [Register] Błąd podczas tworzenia użytkownika: [ErrorDetail(string='Błąd podczas tworzenia konta: column "groups" of relation "auth_accounts" does not exist\nLINE 1: ..._joined", "last_login", "is_admin", "created_at", "groups", ...\n                                                             ^\n', code='invalid')]
+ERROR 2025-09-27 13:18:21,899 log 14 281473498280320 Internal Server Error: /api/auth/register/
+ERROR 2025-09-27 13:18:21,899 basehttp 14 281473498280320 "POST /api/auth/register/ HTTP/1.1" 500 347
+INFO 2025-09-27 13:18:21,907 views 14 281473498280320 [Register] Rejestracja użytkownika: sdkjfzhbd
+INFO 2025-09-27 13:18:21,917 views 14 281473498280320 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 13:18:21,917 serializers 14 281473498280320 [Registration] Tworzenie konta: sdkjfzhbd
+INFO 2025-09-27 13:18:21,917 serializers 14 281473498280320 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 13:18:21,918 serializers 14 281473498280320 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+ERROR 2025-09-27 13:18:21,918 serializers 14 281473498280320 [Registration] Error in create(): column "groups" of relation "auth_accounts" does not exist
+LINE 1: ..._joined", "last_login", "is_admin", "created_at", "groups", ...
+                                                             ^
+
+ERROR 2025-09-27 13:18:21,920 serializers 14 281473498280320 [Registration] Traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column "groups" of relation "auth_accounts" does not exist
+LINE 1: ..._joined", "last_login", "is_admin", "created_at", "groups", ...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/accounts/serializers.py", line 175, in create
+    auth_account = AuthAccount.objects.create(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 679, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/app/accounts/models.py", line 49, in save
+    super().save(*args, **kwargs)
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 891, in save
+    self.save_base(
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 997, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 1160, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 1201, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column "groups" of relation "auth_accounts" does not exist
+LINE 1: ..._joined", "last_login", "is_admin", "created_at", "groups", ...
+                                                             ^
+
+
+ERROR 2025-09-27 13:18:21,920 views 14 281473498280320 [Register] Błąd podczas tworzenia użytkownika: [ErrorDetail(string='Błąd podczas tworzenia konta: column "groups" of relation "auth_accounts" does not exist\nLINE 1: ..._joined", "last_login", "is_admin", "created_at", "groups", ...\n                                                             ^\n', code='invalid')]
+ERROR 2025-09-27 13:18:21,920 log 14 281473498280320 Internal Server Error: /api/auth/register/
+ERROR 2025-09-27 13:18:21,921 basehttp 14 281473498280320 "POST /api/auth/register/ HTTP/1.1" 500 347
+INFO 2025-09-27 13:51:02,446 views 8 281473077268512 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:51:04,287 views 10 281473158524960 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:51:05,107 views 11 281473185296416 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:51:05,740 views 12 281473126154272 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:51:07,337 autoreload 21 281473654304800 Watching for file changes with StatReloader
+INFO 2025-09-27 13:51:07,364 views 21 281473654304800 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:51:20,729 views 21 281473498280320 [Register] Rejestracja użytkownika: testuser1
+WARNING 2025-09-27 13:51:20,754 views 21 281473498280320 [Register] Błędy walidacji: {'username': [ErrorDetail(string='Użytkownik o tej nazwie już istnieje', code='invalid')], 'email': [ErrorDetail(string='Konto z tym emailem już istnieje', code='invalid')]}
+WARNING 2025-09-27 13:51:20,755 log 21 281473498280320 Bad Request: /api/auth/register/
+WARNING 2025-09-27 13:51:20,756 basehttp 21 281473498280320 "POST /api/auth/register/ HTTP/1.1" 400 142
+INFO 2025-09-27 13:51:38,636 views 21 281473498280320 [Login] Próba logowania
+WARNING 2025-09-27 13:51:38,640 views 21 281473498280320 [Login] Błędy walidacji: {'login': [ErrorDetail(string='To pole jest wymagane.', code='required')]}
+WARNING 2025-09-27 13:51:38,642 log 21 281473498280320 Bad Request: /api/auth/login/
+WARNING 2025-09-27 13:51:38,643 basehttp 21 281473498280320 "POST /api/auth/login/ HTTP/1.1" 400 88
+INFO 2025-09-27 13:53:27,600 views 21 281473498280320 [Login] Próba logowania
+INFO 2025-09-27 13:53:27,610 views 21 281473498280320 [Login] Login attempt: testuser1
+INFO 2025-09-27 13:53:27,627 views 21 281473498280320 [Login] Znaleziono użytkownika: testuser1
+WARNING 2025-09-27 13:53:27,752 views 21 281473498280320 [Login] Brak profilu dla użytkownika: testuser1
+INFO 2025-09-27 13:53:27,762 views 21 281473498280320 [Login] Logowanie udane: testuser1
+INFO 2025-09-27 13:53:27,763 basehttp 21 281473498280320 "POST /api/auth/login/ HTTP/1.1" 200 712
+WARNING 2025-09-27 13:53:27,794 log 21 281473498280320 Unauthorized: /api/auth/profile/
+WARNING 2025-09-27 13:53:27,794 basehttp 21 281473498280320 "GET /api/auth/profile/ HTTP/1.1" 401 63
+WARNING 2025-09-27 13:53:27,794 log 21 281473487794560 Unauthorized: /api/auth/profile/
+WARNING 2025-09-27 13:53:27,795 basehttp 21 281473487794560 "GET /api/auth/profile/ HTTP/1.1" 401 63
+WARNING 2025-09-27 13:53:27,805 log 21 281473498280320 Not Found: /api/auth/generate-recommendations/
+WARNING 2025-09-27 13:53:27,807 log 21 281473487794560 Not Found: /api/auth/generate-recommendations/
+WARNING 2025-09-27 13:53:27,808 basehttp 21 281473498280320 "GET /api/auth/generate-recommendations/?mode=hybrid&limit=3 HTTP/1.1" 404 5306
+WARNING 2025-09-27 13:53:27,808 basehttp 21 281473487794560 "GET /api/auth/generate-recommendations/?mode=hybrid&limit=3 HTTP/1.1" 404 5306
+WARNING 2025-09-27 13:53:31,496 log 21 281473487794560 Unauthorized: /api/auth/logout/
+WARNING 2025-09-27 13:53:31,497 basehttp 21 281473487794560 "POST /api/auth/logout/ HTTP/1.1" 401 63
+WARNING 2025-09-27 13:53:31,576 log 21 281473487794560 Unauthorized: /api/auth/logout/
+WARNING 2025-09-27 13:53:31,577 basehttp 21 281473487794560 "POST /api/auth/logout/ HTTP/1.1" 401 52
+INFO 2025-09-27 13:53:58,719 views 21 281473487794560 [Register] Rejestracja użytkownika: test1
+INFO 2025-09-27 13:53:58,736 views 21 281473487794560 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 13:53:58,736 serializers 21 281473487794560 [Registration] Tworzenie konta: test1
+INFO 2025-09-27 13:53:58,737 serializers 21 281473487794560 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 13:53:58,737 serializers 21 281473487794560 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-27 13:53:58,876 serializers 21 281473487794560 [Registration] Konto utworzone: ID 5
+ERROR 2025-09-27 13:53:58,878 serializers 21 281473487794560 [Registration] Error in create(): column "avoid_exercises" is of type text[] but expression is of type jsonb
+LINE 1: ...te, 'zdrowie', 'poczatkujacy', 3, 'silownia', 60, '[]'::json...
+                                                             ^
+HINT:  You will need to rewrite or cast the expression.
+
+ERROR 2025-09-27 13:53:58,881 serializers 21 281473487794560 [Registration] Traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.DatatypeMismatch: column "avoid_exercises" is of type text[] but expression is of type jsonb
+LINE 1: ...te, 'zdrowie', 'poczatkujacy', 3, 'silownia', 60, '[]'::json...
+                                                             ^
+HINT:  You will need to rewrite or cast the expression.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/accounts/serializers.py", line 207, in create
+    user_profile = UserProfile.objects.create(**profile_data)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 679, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 891, in save
+    self.save_base(
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 997, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 1160, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 1201, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column "avoid_exercises" is of type text[] but expression is of type jsonb
+LINE 1: ...te, 'zdrowie', 'poczatkujacy', 3, 'silownia', 60, '[]'::json...
+                                                             ^
+HINT:  You will need to rewrite or cast the expression.
+
+
+ERROR 2025-09-27 13:53:58,881 views 21 281473487794560 [Register] Błąd podczas tworzenia użytkownika: [ErrorDetail(string='Błąd podczas tworzenia konta: column "avoid_exercises" is of type text[] but expression is of type jsonb\nLINE 1: ...te, \'zdrowie\', \'poczatkujacy\', 3, \'silownia\', 60, \'[]\'::json...\n                                                             ^\nHINT:  You will need to rewrite or cast the expression.\n', code='invalid')]
+ERROR 2025-09-27 13:53:58,881 log 21 281473487794560 Internal Server Error: /api/auth/register/
+ERROR 2025-09-27 13:53:58,882 basehttp 21 281473487794560 "POST /api/auth/register/ HTTP/1.1" 500 426
+INFO 2025-09-27 13:53:58,890 views 21 281473487794560 [Register] Rejestracja użytkownika: test1
+INFO 2025-09-27 13:53:58,896 views 21 281473487794560 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 13:53:58,896 serializers 21 281473487794560 [Registration] Tworzenie konta: test1
+INFO 2025-09-27 13:53:58,896 serializers 21 281473487794560 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 13:53:58,896 serializers 21 281473487794560 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-27 13:53:59,014 serializers 21 281473487794560 [Registration] Konto utworzone: ID 6
+ERROR 2025-09-27 13:53:59,014 serializers 21 281473487794560 [Registration] Error in create(): column "avoid_exercises" is of type text[] but expression is of type jsonb
+LINE 1: ...te, 'zdrowie', 'poczatkujacy', 3, 'silownia', 60, '[]'::json...
+                                                             ^
+HINT:  You will need to rewrite or cast the expression.
+
+ERROR 2025-09-27 13:53:59,015 serializers 21 281473487794560 [Registration] Traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.DatatypeMismatch: column "avoid_exercises" is of type text[] but expression is of type jsonb
+LINE 1: ...te, 'zdrowie', 'poczatkujacy', 3, 'silownia', 60, '[]'::json...
+                                                             ^
+HINT:  You will need to rewrite or cast the expression.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/accounts/serializers.py", line 207, in create
+    user_profile = UserProfile.objects.create(**profile_data)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 679, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 891, in save
+    self.save_base(
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 997, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 1160, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/base.py", line 1201, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column "avoid_exercises" is of type text[] but expression is of type jsonb
+LINE 1: ...te, 'zdrowie', 'poczatkujacy', 3, 'silownia', 60, '[]'::json...
+                                                             ^
+HINT:  You will need to rewrite or cast the expression.
+
+
+ERROR 2025-09-27 13:53:59,019 views 21 281473487794560 [Register] Błąd podczas tworzenia użytkownika: [ErrorDetail(string='Błąd podczas tworzenia konta: column "avoid_exercises" is of type text[] but expression is of type jsonb\nLINE 1: ...te, \'zdrowie\', \'poczatkujacy\', 3, \'silownia\', 60, \'[]\'::json...\n                                                             ^\nHINT:  You will need to rewrite or cast the expression.\n', code='invalid')]
+ERROR 2025-09-27 13:53:59,024 log 21 281473487794560 Internal Server Error: /api/auth/register/
+ERROR 2025-09-27 13:53:59,026 basehttp 21 281473487794560 "POST /api/auth/register/ HTTP/1.1" 500 426
+INFO 2025-09-27 13:57:18,011 autoreload 21 281473654304800 /app/accounts/views.py changed, reloading.
+INFO 2025-09-27 13:57:18,760 autoreload 615 281473233121312 Watching for file changes with StatReloader
+INFO 2025-09-27 13:57:18,793 views 615 281473233121312 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 13:57:29,917 views 615 281473152250240 [Login] Próba logowania
+INFO 2025-09-27 13:57:29,918 views 615 281473152250240 [Login] Login attempt: test1@example.com
+INFO 2025-09-27 13:57:29,926 views 615 281473152250240 [Login] Znaleziono użytkownika: testuser1
+WARNING 2025-09-27 13:57:30,057 views 615 281473152250240 [Login] Brak profilu dla użytkownika: testuser1
+INFO 2025-09-27 13:57:30,068 views 615 281473152250240 [Login] Logowanie udane: testuser1
+INFO 2025-09-27 13:57:30,069 basehttp 615 281473152250240 "POST /api/auth/login/ HTTP/1.1" 200 712
+INFO 2025-09-27 13:57:30,104 views 615 281473152250240 [Login] Próba logowania
+INFO 2025-09-27 13:57:30,111 views 615 281473152250240 [Login] Login attempt: testuser1
+INFO 2025-09-27 13:57:30,116 views 615 281473152250240 [Login] Znaleziono użytkownika: testuser1
+WARNING 2025-09-27 13:57:30,231 views 615 281473152250240 [Login] Brak profilu dla użytkownika: testuser1
+INFO 2025-09-27 13:57:30,232 views 615 281473152250240 [Login] Logowanie udane: testuser1
+INFO 2025-09-27 13:57:30,233 basehttp 615 281473152250240 "POST /api/auth/login/ HTTP/1.1" 200 712
+INFO 2025-09-27 14:01:20,836 autoreload 615 281473233121312 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 14:01:21,475 autoreload 1000 281473019699232 Watching for file changes with StatReloader
+INFO 2025-09-27 14:01:21,507 views 1000 281473019699232 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:01:43,981 autoreload 1000 281473019699232 /app/accounts/models.py changed, reloading.
+INFO 2025-09-27 14:01:44,547 autoreload 1042 281473700421664 Watching for file changes with StatReloader
+INFO 2025-09-27 14:02:26,064 autoreload 1042 281473700421664 /app/lasko_backend/settings.py changed, reloading.
+INFO 2025-09-27 14:02:26,657 autoreload 1101 281473418129440 Watching for file changes with StatReloader
+INFO 2025-09-27 14:16:03,270 views 8 281473857261600 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:16:04,485 views 10 281473831559200 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:16:05,119 views 11 281473184755744 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:16:05,721 views 12 281473620754464 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:16:06,798 autoreload 14 281472960323616 Watching for file changes with StatReloader
+INFO 2025-09-27 14:16:06,824 views 14 281472960323616 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:16:14,692 views 8 281473705435168 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:16:16,014 views 10 281473269125152 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:16:16,602 views 11 281473706496032 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:16:17,228 views 12 281472993415200 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:16:18,282 autoreload 14 281472975224864 Watching for file changes with StatReloader
+INFO 2025-09-27 14:16:18,311 views 14 281472975224864 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:17:56,724 views 14 281472827191680 [Register] Rejestracja użytkownika: nowyuser1
+INFO 2025-09-27 14:17:56,744 views 14 281472827191680 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 14:17:56,744 serializers 14 281472827191680 [Registration] Tworzenie konta: nowyuser1
+INFO 2025-09-27 14:17:56,745 serializers 14 281472827191680 [Registration] Account data: ['username', 'email', 'password']
+INFO 2025-09-27 14:17:56,745 serializers 14 281472827191680 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'avoid_exercises', 'focus_areas']
+INFO 2025-09-27 14:17:56,881 serializers 14 281472827191680 [Registration] Konto utworzone: ID 7
+INFO 2025-09-27 14:17:56,883 serializers 14 281472827191680 [Registration] Profil utworzony dla: nowyuser1
+INFO 2025-09-27 14:17:56,885 views 14 281472827191680 [Register] Użytkownik utworzony: ID 7
+INFO 2025-09-27 14:17:56,893 views 14 281472827191680 [Register] Rejestracja udana: nowyuser1
+INFO 2025-09-27 14:17:56,893 basehttp 14 281472827191680 "POST /api/auth/register/ HTTP/1.1" 201 1010
+INFO 2025-09-27 14:18:16,518 views 14 281472827191680 [Register] Rejestracja użytkownika: test
+INFO 2025-09-27 14:18:16,527 views 14 281472827191680 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 14:18:16,528 serializers 14 281472827191680 [Registration] Tworzenie konta: test
+INFO 2025-09-27 14:18:16,528 serializers 14 281472827191680 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 14:18:16,528 serializers 14 281472827191680 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-27 14:18:16,648 serializers 14 281472827191680 [Registration] Konto utworzone: ID 8
+INFO 2025-09-27 14:18:16,649 serializers 14 281472827191680 [Registration] Profil utworzony dla: test
+INFO 2025-09-27 14:18:16,649 views 14 281472827191680 [Register] Użytkownik utworzony: ID 8
+INFO 2025-09-27 14:18:16,650 views 14 281472827191680 [Register] Rejestracja udana: test
+INFO 2025-09-27 14:18:16,651 basehttp 14 281472827191680 "POST /api/auth/register/ HTTP/1.1" 201 996
+INFO 2025-09-27 14:18:16,662 views 14 281472827191680 [Login] Próba logowania
+INFO 2025-09-27 14:18:16,663 views 14 281472827191680 [Login] Login attempt: test@wp.pl
+INFO 2025-09-27 14:18:16,667 views 14 281472827191680 [Login] Znaleziono użytkownika: test
+INFO 2025-09-27 14:18:16,783 views 14 281472827191680 [Login] Profil załadowany dla: test
+INFO 2025-09-27 14:18:16,784 views 14 281472827191680 [Login] Logowanie udane: test
+INFO 2025-09-27 14:18:16,784 basehttp 14 281472827191680 "POST /api/auth/login/ HTTP/1.1" 200 994
+INFO 2025-09-27 14:18:16,795 views 14 281472827191680 [Login] Próba logowania
+INFO 2025-09-27 14:18:16,795 views 14 281472827191680 [Login] Login attempt: test@wp.pl
+INFO 2025-09-27 14:18:16,800 views 14 281472827191680 [Login] Znaleziono użytkownika: test
+INFO 2025-09-27 14:18:16,916 views 14 281472827191680 [Login] Profil załadowany dla: test
+INFO 2025-09-27 14:18:16,917 views 14 281472827191680 [Login] Logowanie udane: test
+INFO 2025-09-27 14:18:16,917 basehttp 14 281472827191680 "POST /api/auth/login/ HTTP/1.1" 200 994
+INFO 2025-09-27 14:26:20,127 autoreload 14 281472975224864 /app/recommendations/views.py changed, reloading.
+INFO 2025-09-27 14:26:20,817 autoreload 969 281473457098784 Watching for file changes with StatReloader
+INFO 2025-09-27 14:26:20,847 views 969 281473457098784 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:26:24,997 autoreload 969 281473457098784 /app/recommendations/views.py changed, reloading.
+INFO 2025-09-27 14:26:25,567 autoreload 977 281472850194464 Watching for file changes with StatReloader
+INFO 2025-09-27 14:26:25,594 views 977 281472850194464 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:32:28,817 autoreload 977 281472850194464 /app/recommendations/views.py changed, reloading.
+INFO 2025-09-27 14:32:29,557 autoreload 1552 281473848811552 Watching for file changes with StatReloader
+INFO 2025-09-27 14:32:29,588 views 1552 281473848811552 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:32:48,029 autoreload 1552 281473848811552 /app/lasko_backend/urls.py changed, reloading.
+INFO 2025-09-27 14:32:48,784 autoreload 1585 281473661628448 Watching for file changes with StatReloader
+INFO 2025-09-27 14:32:48,835 views 1585 281473661628448 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:32:59,116 autoreload 1585 281473661628448 /app/lasko_backend/urls.py changed, reloading.
+INFO 2025-09-27 14:33:00,049 autoreload 1603 281473190154272 Watching for file changes with StatReloader
+INFO 2025-09-27 14:33:00,108 views 1603 281473190154272 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:33:15,515 autoreload 1603 281473190154272 /app/lasko_backend/urls.py changed, reloading.
+INFO 2025-09-27 14:33:16,221 autoreload 1635 281473149681696 Watching for file changes with StatReloader
+INFO 2025-09-27 14:33:16,245 views 1635 281473149681696 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:41:28,014 autoreload 1635 281473149681696 /app/recommendations/views.py changed, reloading.
+INFO 2025-09-27 14:41:28,677 autoreload 2411 281473732673568 Watching for file changes with StatReloader
+INFO 2025-09-27 14:41:28,717 views 2411 281473732673568 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:45:27,313 views 8 281473812824096 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:45:29,379 views 10 281473664454688 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:45:30,034 views 11 281473164668960 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:45:30,692 views 12 281473532436512 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:45:32,287 autoreload 21 281473362407456 Watching for file changes with StatReloader
+INFO 2025-09-27 14:45:32,313 views 21 281473362407456 [Recommendations] Engine loaded successfully
+WARNING 2025-09-27 14:45:44,377 log 21 281473282273664 Unauthorized: /api/recommendations/
+WARNING 2025-09-27 14:45:44,379 basehttp 21 281473282273664 "POST /api/recommendations/ HTTP/1.1" 401 201
+WARNING 2025-09-27 14:45:57,133 log 21 281473282273664 Unauthorized: /api/auth/generate-recommendations/
+WARNING 2025-09-27 14:45:57,134 basehttp 21 281473282273664 "GET /api/auth/generate-recommendations/?mode=hybrid&limit=3 HTTP/1.1" 401 201
+WARNING 2025-09-27 14:46:04,603 log 21 281473282273664 Unauthorized: /api/recommendations/activate/
+WARNING 2025-09-27 14:46:04,604 basehttp 21 281473282273664 "POST /api/recommendations/activate/ HTTP/1.1" 401 201
+INFO 2025-09-27 14:47:12,734 views 21 281473282273664 [Login] Próba logowania
+INFO 2025-09-27 14:47:12,737 views 21 281473282273664 [Login] Login attempt: test@wp.pl
+WARNING 2025-09-27 14:47:12,764 views 21 281473282273664 [Login] Użytkownik nie znaleziony: test@wp.pl
+WARNING 2025-09-27 14:47:12,765 log 21 281473282273664 Unauthorized: /api/auth/login/
+WARNING 2025-09-27 14:47:12,765 basehttp 21 281473282273664 "POST /api/auth/login/ HTTP/1.1" 401 71
+WARNING 2025-09-27 14:47:24,051 log 21 281473282273664 Unauthorized: /api/recommendations/
+WARNING 2025-09-27 14:47:24,052 basehttp 21 281473282273664 "GET /api/recommendations/?mode=hybrid&top=3 HTTP/1.1" 401 201
+INFO 2025-09-27 14:49:36,668 basehttp 21 281473282273664 "GET / HTTP/1.1" 200 59
+INFO 2025-09-27 14:50:04,969 views 21 281473271787904 [Login] Próba logowania
+INFO 2025-09-27 14:50:04,971 views 21 281473271787904 [Login] Login attempt: demouser
+INFO 2025-09-27 14:50:04,990 views 21 281473271787904 [Login] Znaleziono użytkownika: demouser
+INFO 2025-09-27 14:50:05,133 views 21 281473271787904 [Login] Profil załadowany dla: demouser
+INFO 2025-09-27 14:50:05,135 views 21 281473271787904 [Login] Logowanie udane: demouser
+INFO 2025-09-27 14:50:05,136 basehttp 21 281473271787904 "POST /api/auth/login/ HTTP/1.1" 200 1015
+WARNING 2025-09-27 14:50:21,658 log 21 281473282273664 Unauthorized: /api/recommendations/
+WARNING 2025-09-27 14:50:21,659 basehttp 21 281473282273664 "GET /api/recommendations/?mode=hybrid&top=3 HTTP/1.1" 401 63
+WARNING 2025-09-27 14:50:21,698 log 21 281473282273664 Unauthorized: /api/recommendations/activate/
+WARNING 2025-09-27 14:50:21,698 basehttp 21 281473282273664 "POST /api/recommendations/activate/ HTTP/1.1" 401 63
+WARNING 2025-09-27 14:50:21,729 log 21 281473282273664 Not Found: /api/auth/token/refresh/
+WARNING 2025-09-27 14:50:21,730 basehttp 21 281473282273664 "POST /api/auth/token/refresh/ HTTP/1.1" 404 5264
+INFO 2025-09-27 14:55:27,751 autoreload 21 281473362407456 /app/lasko_backend/settings.py changed, reloading.
+INFO 2025-09-27 14:55:28,395 autoreload 972 281473641250848 Watching for file changes with StatReloader
+INFO 2025-09-27 14:55:28,423 views 972 281473641250848 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:55:30,505 autoreload 972 281473641250848 /app/lasko_backend/settings.py changed, reloading.
+INFO 2025-09-27 14:55:31,072 autoreload 974 281473537503264 Watching for file changes with StatReloader
+INFO 2025-09-27 14:55:31,095 views 974 281473537503264 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:56:00,687 autoreload 974 281473537503264 /app/accounts/urls.py changed, reloading.
+INFO 2025-09-27 14:56:01,341 autoreload 1024 281473315328032 Watching for file changes with StatReloader
+INFO 2025-09-27 14:56:01,365 views 1024 281473315328032 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:56:02,465 autoreload 1024 281473315328032 /app/accounts/urls.py changed, reloading.
+INFO 2025-09-27 14:56:03,023 autoreload 1026 281473101983776 Watching for file changes with StatReloader
+INFO 2025-09-27 14:56:03,046 views 1026 281473101983776 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:56:05,139 autoreload 1026 281473101983776 /app/accounts/urls.py changed, reloading.
+INFO 2025-09-27 14:56:05,827 autoreload 1035 281473582264352 Watching for file changes with StatReloader
+INFO 2025-09-27 14:56:05,851 views 1035 281473582264352 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:56:06,920 autoreload 1035 281473582264352 /app/accounts/urls.py changed, reloading.
+INFO 2025-09-27 14:56:07,596 autoreload 1037 281473757093920 Watching for file changes with StatReloader
+INFO 2025-09-27 14:56:07,627 views 1037 281473757093920 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:56:41,326 autoreload 1037 281473757093920 /app/recommendations/views.py changed, reloading.
+INFO 2025-09-27 14:56:42,083 autoreload 1094 281473770303520 Watching for file changes with StatReloader
+INFO 2025-09-27 14:56:42,111 views 1094 281473770303520 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:57:05,951 views 8 281472851996704 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:57:07,130 views 10 281473083666464 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:57:07,742 views 11 281473533321248 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:57:08,346 views 12 281473335812128 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:57:09,406 autoreload 14 281473548607520 Watching for file changes with StatReloader
+INFO 2025-09-27 14:57:09,427 views 14 281473548607520 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 14:58:06,425 views 14 281473468920192 [Login] Próba logowania
+INFO 2025-09-27 14:58:06,427 views 14 281473468920192 [Login] Login attempt: demouser
+INFO 2025-09-27 14:58:06,440 views 14 281473468920192 [Login] Znaleziono użytkownika: demouser
+INFO 2025-09-27 14:58:06,585 views 14 281473468920192 [Login] Profil załadowany dla: demouser
+INFO 2025-09-27 14:58:06,593 views 14 281473468920192 [Login] Logowanie udane: demouser
+INFO 2025-09-27 14:58:06,593 basehttp 14 281473468920192 "POST /api/auth/login/ HTTP/1.1" 200 1015
+INFO 2025-09-27 14:58:14,423 views 14 281473468920192 [Recommendations] Request for user_id: 4
+INFO 2025-09-27 14:58:14,425 views 14 281473468920192 [Recommendations] Request data resolved: {'mode': ['hybrid'], 'top': ['3']}
+INFO 2025-09-27 14:58:14,425 views 14 281473468920192 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 14:58:14,432 views 14 281473468920192 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 14:58:14,436 views 14 281473468920192 [Recommendations] Algorithm returned 0 results
+INFO 2025-09-27 14:58:14,436 views 14 281473468920192 [Recommendations] Returning 0 recommendations
+INFO 2025-09-27 14:58:14,437 basehttp 14 281473468920192 "GET /api/recommendations/?mode=hybrid&top=3 HTTP/1.1" 200 133
+WARNING 2025-09-27 14:58:18,990 log 14 281473468920192 Not Found: /api/auth/token/refresh/
+WARNING 2025-09-27 14:58:18,990 basehttp 14 281473468920192 "POST /api/auth/token/refresh/ HTTP/1.1" 404 5264
+INFO 2025-09-27 14:58:32,268 views 14 281473468920192 [ActivatePlan] Plan 1 for user_id: 4
+INFO 2025-09-27 14:58:32,290 views 14 281473468920192 [ActivatePlan] Plan 'Demo Plan' activated
+INFO 2025-09-27 14:58:32,291 basehttp 14 281473468920192 "POST /api/recommendations/activate/ HTTP/1.1" 200 102
+INFO 2025-09-27 15:00:15,248 autoreload 14 281473548607520 /app/lasko_backend/settings.py changed, reloading.
+INFO 2025-09-27 15:00:15,977 autoreload 316 281473816875040 Watching for file changes with StatReloader
+INFO 2025-09-27 15:00:16,011 views 316 281473816875040 [Recommendations] Engine loaded successfully
+WARNING 2025-09-27 15:00:27,808 log 316 281473737355648 Not Found: /api/auth/token/refresh/
+WARNING 2025-09-27 15:00:27,809 basehttp 316 281473737355648 "POST /api/auth/token/refresh/ HTTP/1.1" 404 5264
+INFO 2025-09-27 15:00:46,138 views 367 281473777578016 [Recommendations] Engine loaded successfully
+WARNING 2025-09-27 15:00:51,596 log 316 281473737355648 Not Found: /api/auth/token/refresh/
+WARNING 2025-09-27 15:00:51,597 basehttp 316 281473737355648 "POST /api/auth/token/refresh/ HTTP/1.1" 404 5264
+INFO 2025-09-27 15:01:59,106 autoreload 316 281473816875040 /app/recommendations/views.py changed, reloading.
+INFO 2025-09-27 15:01:59,786 autoreload 493 281473878433824 Watching for file changes with StatReloader
+INFO 2025-09-27 15:02:01,863 autoreload 493 281473878433824 /app/recommendations/views.py changed, reloading.
+INFO 2025-09-27 15:02:02,456 autoreload 495 281473169784864 Watching for file changes with StatReloader
+INFO 2025-09-27 15:02:05,541 autoreload 495 281473169784864 /app/recommendations/views.py changed, reloading.
+INFO 2025-09-27 15:02:06,186 autoreload 504 281473036070944 Watching for file changes with StatReloader
+INFO 2025-09-27 15:02:06,215 views 504 281473036070944 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 15:07:48,000 views 8 281472889602080 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 15:07:49,763 views 10 281473743900704 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 15:07:50,560 views 11 281473562345504 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 15:07:51,245 views 12 281472987492384 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 15:07:52,496 autoreload 14 281472894107680 Watching for file changes with StatReloader
+INFO 2025-09-27 15:07:52,521 views 14 281472894107680 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 15:08:46,455 views 14 281472814608768 [Register] Rejestracja użytkownika: test1
+INFO 2025-09-27 15:08:46,474 views 14 281472814608768 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 15:08:46,475 serializers 14 281472814608768 [Registration] Tworzenie konta: test1
+INFO 2025-09-27 15:08:46,475 serializers 14 281472814608768 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 15:08:46,475 serializers 14 281472814608768 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-27 15:08:46,611 serializers 14 281472814608768 [Registration] Konto utworzone: ID 5
+INFO 2025-09-27 15:08:46,614 serializers 14 281472814608768 [Registration] Profil utworzony dla: test1
+INFO 2025-09-27 15:08:46,615 views 14 281472814608768 [Register] Użytkownik utworzony: ID 5
+INFO 2025-09-27 15:08:46,621 views 14 281472814608768 [Register] Rejestracja udana: test1
+INFO 2025-09-27 15:08:46,622 basehttp 14 281472814608768 "POST /api/auth/register/ HTTP/1.1" 201 1003
+INFO 2025-09-27 15:08:46,629 views 14 281472814608768 [Login] Próba logowania
+INFO 2025-09-27 15:08:46,629 views 14 281472814608768 [Login] Login attempt: test1@wp.pl
+INFO 2025-09-27 15:08:46,634 views 14 281472814608768 [Login] Znaleziono użytkownika: test1
+INFO 2025-09-27 15:08:46,750 views 14 281472814608768 [Login] Profil załadowany dla: test1
+INFO 2025-09-27 15:08:46,751 views 14 281472814608768 [Login] Logowanie udane: test1
+INFO 2025-09-27 15:08:46,752 basehttp 14 281472814608768 "POST /api/auth/login/ HTTP/1.1" 200 1001
+INFO 2025-09-27 15:08:46,759 views 14 281472814608768 [Login] Próba logowania
+INFO 2025-09-27 15:08:46,759 views 14 281472814608768 [Login] Login attempt: test1@wp.pl
+INFO 2025-09-27 15:08:46,763 views 14 281472814608768 [Login] Znaleziono użytkownika: test1
+INFO 2025-09-27 15:08:46,879 views 14 281472814608768 [Login] Profil załadowany dla: test1
+INFO 2025-09-27 15:08:46,881 views 14 281472814608768 [Login] Logowanie udane: test1
+INFO 2025-09-27 15:08:46,882 basehttp 14 281472814608768 "POST /api/auth/login/ HTTP/1.1" 200 1001
+INFO 2025-09-27 15:09:15,312 views 14 281472814608768 [Login] Próba logowania
+INFO 2025-09-27 15:09:15,313 views 14 281472814608768 [Login] Login attempt: test1
+INFO 2025-09-27 15:09:15,323 views 14 281472814608768 [Login] Znaleziono użytkownika: test1
+INFO 2025-09-27 15:09:15,466 views 14 281472814608768 [Login] Profil załadowany dla: test1
+INFO 2025-09-27 15:09:15,468 views 14 281472814608768 [Login] Logowanie udane: test1
+INFO 2025-09-27 15:09:15,468 basehttp 14 281472814608768 "POST /api/auth/login/ HTTP/1.1" 200 1001
+INFO 2025-09-27 15:09:15,482 views 14 281472814608768 [Profile] Pobieranie profilu dla user_id: 5
+INFO 2025-09-27 15:09:15,483 views 14 281472804123008 [Profile] Pobieranie profilu dla user_id: 5
+INFO 2025-09-27 15:09:15,487 views 14 281472814608768 [Profile] Profil zwrócony pomyślnie: test1
+INFO 2025-09-27 15:09:15,488 basehttp 14 281472814608768 "GET /api/auth/profile/ HTTP/1.1" 200 473
+INFO 2025-09-27 15:09:15,488 views 14 281472804123008 [Profile] Profil zwrócony pomyślnie: test1
+INFO 2025-09-27 15:09:15,489 basehttp 14 281472804123008 "GET /api/auth/profile/ HTTP/1.1" 200 473
+INFO 2025-09-27 15:09:15,496 views 14 281472804123008 [Recommendations] Request for user_id: 5
+INFO 2025-09-27 15:09:15,496 views 14 281472804123008 [Recommendations] Request data resolved: {'mode': ['hybrid'], 'limit': ['3']}
+INFO 2025-09-27 15:09:15,497 views 14 281472814608768 [Recommendations] Request for user_id: 5
+INFO 2025-09-27 15:09:15,497 views 14 281472804123008 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 15:09:15,497 views 14 281472814608768 [Recommendations] Request data resolved: {'mode': ['hybrid'], 'limit': ['3']}
+INFO 2025-09-27 15:09:15,497 views 14 281472814608768 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 15:09:15,501 views 14 281472814608768 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 15:09:15,501 views 14 281472804123008 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 15:09:15,507 views 14 281472804123008 [Recommendations] Algorithm returned 1 results
+INFO 2025-09-27 15:09:15,507 views 14 281472814608768 [Recommendations] Algorithm returned 1 results
+INFO 2025-09-27 15:09:15,507 views 14 281472804123008 [Recommendations] Returning 1 recommendations
+INFO 2025-09-27 15:09:15,508 basehttp 14 281472804123008 "GET /api/auth/generate-recommendations/?mode=hybrid&limit=3 HTTP/1.1" 200 350
+INFO 2025-09-27 15:09:15,507 views 14 281472814608768 [Recommendations] Returning 1 recommendations
+INFO 2025-09-27 15:09:15,508 basehttp 14 281472814608768 "GET /api/auth/generate-recommendations/?mode=hybrid&limit=3 HTTP/1.1" 200 350
