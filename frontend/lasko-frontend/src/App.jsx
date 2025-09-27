@@ -10,6 +10,7 @@ import EnhancedPlanCreator from './components/register/EnhancedPlanCreator';
 import DashboardPage from './components/DashboardPage';
 import PlanCreatorPreview from './components/PlanCreatorPreview';
 import LoginPage from './components/auth/LoginPage';
+import PlanSummary from './components/register/PlanSummary.jsx';
 
 // Assets
 import laskoHi from './assets/Lasko_pose/Lasko_Hi.png';
@@ -22,7 +23,8 @@ import facebookIcon from './assets/icons/facebook.svg';
 
 // Pomocniczy komponent do ochrony tras
 const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  // opierajmy się na funkcji isAuthenticated z kontekstu (jest odporna na opóźnienia inicjalizacji) 
+  const { isAuthenticated, loading } = useAuth();
   
   if (loading) {
     return (
@@ -35,7 +37,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
   
-  return user ? children : <Navigate to="/login" replace />;
+  return isAuthenticated() ? children : <Navigate to="/login" replace />;
 };
 
 // Pomocniczy nagłówek sekcji
@@ -273,6 +275,13 @@ const App = () => {
           <DashboardPage />
         </ProtectedRoute>
       } />
+
+     {/* ✅ NOWA TRASA: podsumowanie planu po wygenerowaniu */}
+     <Route path="/plan-summary" element={
+       <ProtectedRoute>
+         <PlanSummary />
+       </ProtectedRoute>
+     } />
       
       <Route path="/plan-preview" element={
         <ProtectedRoute>

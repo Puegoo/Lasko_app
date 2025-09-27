@@ -5,7 +5,8 @@ import {
   clearTokens,
   isTokenValid,
   setTokens,
-  getUserData
+  getUserData,
+  getRefreshToken
 } from './authService';
 
 // ✅ NAPRAWIONE: Używaj proxy zamiast bezpośredniego API URL
@@ -42,6 +43,8 @@ class ApiService {
 
       // Dodaj token autoryzacji jeśli dostępny
       const token = getAccessToken();
+      const refresh = getRefreshToken();
+
       if (token && isTokenValid(token)) {
         config.headers.Authorization = `Bearer ${token}`;
         console.log(`🔐 [ApiService] Dodano Authorization header (próba ${attempt})`);
@@ -62,6 +65,15 @@ class ApiService {
             clearTokens();
           }
         }
+      } else if (!token && attempt === 1 && refresh) {
+          console.warn('ℹ️ [ApiService] Brak access, ale jest refresh – próbuję odświeżyć zanim wyślę żądanie');
+          try {
+            await this.refreshTokenIfNeeded();
+            continue; // spróbuj jeszcze raz z już wstawionym Authorization
+          } catch (e) {
+            console.error('❌ [ApiService] Early refresh nie powiódł się:', e);
+            clearTokens();
+          }
       } else {
         console.log('ℹ️ [ApiService] Brak tokenu - żądanie bez autoryzacji');
       }
@@ -139,17 +151,33 @@ class ApiService {
   
   // Autoryzacja
   async register(userData) {
-    return this.request('/api/auth/register/', {
+      const data = await this.request('/api/auth/register/', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
+    if (data?.tokens || data?.access || data?.refresh || data?.access_token || data?.refresh_token) {
+        setTokens({
+          access:  data.tokens?.access  ?? data.access  ?? data.access_token,
+          refresh: data.tokens?.refresh ?? data.refresh ?? data.refresh_token,
+          user:    data.user
+        });
+      }
+      return data;
   }
 
   async login(credentials) {
-    return this.request('/api/auth/login/', {
+    const data = await this.request('/api/auth/login/', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
+    if (data?.tokens || data?.access || data?.refresh || data?.access_token || data?.refresh_token) {
+        setTokens({
+          access:  data.tokens?.access  ?? data.access  ?? data.access_token,
+          refresh: data.tokens?.refresh ?? data.refresh ?? data.refresh_token,
+          user:    data.user
+        });
+      }
+      return data;
   }
 
   async logout() {

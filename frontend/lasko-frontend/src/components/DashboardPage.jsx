@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import apiService from '../services/api';
 import RegisterBackground from '../assets/Photos/Register_background.png';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, getToken, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   
   // Stan z poprzedniego kroku (po aktywacji planu)
   const activePlan = location.state?.activePlan;
@@ -31,42 +32,17 @@ const DashboardPage = () => {
   const fetchUserData = async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      if (!token) {
-        throw new Error('Brak tokenu autoryzacji');
-      }
-
-      // Pobierz profil użytkownika
-      const profileResponse = await fetch('/api/auth/profile/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
+      // ✅ profil (via apiService → auto-refresh + spójny format)
+      const profileData = await apiService.fetchUserProfile();
+      if (profileData?.profile) {
         setUserProfile(profileData.profile);
         console.log('✅ Profil użytkownika załadowany:', profileData.profile);
       }
 
-      // Pobierz rekomendacje (opcjonalnie)
-      try {
-        const recoResponse = await fetch('/api/auth/generate-recommendations/?mode=hybrid&limit=3', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (recoResponse.ok) {
-          const recoData = await recoResponse.json();
-          setRecommendations(recoData.recommendations || []);
-          console.log('✅ Rekomendacje załadowane:', recoData.recommendations);
-        }
-      } catch (err) {
-        console.warn('⚠️ Nie udało się załadować rekomendacji:', err.message);
-      }
+      // ✅ rekomendacje (ujednolicony endpoint POST /api/recommendations/)
+      const recoData = await apiService.generateRecommendations('hybrid', {});
+      setRecommendations(recoData?.recommendations || []);
+      console.log('✅ Rekomendacje załadowane:', recoData?.recommendations);
 
     } catch (err) {
       console.error('❌ Błąd ładowania danych:', err);

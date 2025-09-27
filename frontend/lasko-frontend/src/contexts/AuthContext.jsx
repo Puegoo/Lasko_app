@@ -6,7 +6,6 @@ import {
   getUserData, 
   clearTokens, 
   isAuthenticated as checkAuth,
-  refreshAccessToken,
   debugAuth 
 } from '../services/authService';
 import apiService from '../services/api';
@@ -29,19 +28,22 @@ export const AuthProvider = ({ children }) => {
   // ============================================================================
   // POMOCNICZA FUNKCJA - ZAPISZ DANE UŻYTKOWNIKA
   // ============================================================================
-  const setUserData = (userData) => {
-    // Użyj setTokens żeby zapisać dane użytkownika
-    if (userData.tokens) {
-      setTokens({
-        ...userData.tokens,
-        user: userData.user || userData
-      });
-    } else {
-      // Jeśli brak tokenów, zapisz tylko user data
-      localStorage.setItem('user_data', JSON.stringify(userData.user || userData));
-    }
-    setUser(userData.user || userData);
-  };
+  const setUserData = (payload) => {
+      // Złap tokeny zarówno z payload.tokens jak i płasko (compat)
+      const tokensObj = payload?.tokens || {
+        access:  payload?.access  ?? payload?.access_token,
+        refresh: payload?.refresh ?? payload?.refresh_token,
+      };
+      if (tokensObj?.access || tokensObj?.refresh) {
+        setTokens({ ...tokensObj, user: payload?.user });
+      }
+      // Zapisz usera, jeśli jest
+      const maybeUser = payload?.user || (payload?.username ? payload : null);
+      if (maybeUser && (maybeUser.username || maybeUser.email || maybeUser.id)) {
+        setUser(maybeUser);
+        localStorage.setItem('user_data', JSON.stringify(maybeUser));
+      }
+    };
 
   // ============================================================================
   // INICJALIZACJA
@@ -86,16 +88,15 @@ export const AuthProvider = ({ children }) => {
       
       console.log('📝 [AuthContext] Rejestracja użytkownika:', userData.username);
       
-      const response = await apiService.register(userData);
-      
-      if (response.tokens && response.user) {
-        setTokens(response.tokens);
-        setUserData(response);
-        console.log('✅ [AuthContext] Rejestracja pomyślna:', response.user.username);
-        return response;
-      } else {
-        throw new Error('Nieprawidłowa odpowiedź serwera');
-      }
+      const res = await apiService.register(userData);
+      setUserData(res); // zapisze tokeny i usera (jeśli są w odpowiedzi)
+      // szybka walidacja sesji
+      if (!checkAuth()) throw new Error('Nie udało się ustawić sesji po rejestracji');
+      // (opcjonalnie) odśwież profil, żeby od razu mieć aktualny stan
+      try { await fetchUserProfile(); } catch {}
+      console.log('✅ [AuthContext] Rejestracja pomyślna:', res?.user?.username);
+      return res;
+
     } catch (error) {
       console.error('❌ [AuthContext] Błąd rejestracji:', error);
       setAuthError(error.message);
@@ -115,16 +116,11 @@ export const AuthProvider = ({ children }) => {
       
       console.log('🔐 [AuthContext] Logowanie użytkownika:', credentials.username || credentials.login);
       
-      const response = await apiService.login(credentials);
-      
-      if (response.tokens && response.user) {
-        setTokens(response.tokens);
-        setUserData(response);
-        console.log('✅ [AuthContext] Logowanie pomyślne:', response.user.username);
-        return response;
-      } else {
-        throw new Error('Nieprawidłowa odpowiedź serwera');
-      }
+      const res = await apiService.login(credentials);
+      setUserData(res);
+      console.log('✅ [AuthContext] Logowanie pomyślne:', res?.user?.username);
+      return res;
+
     } catch (error) {
       console.error('❌ [AuthContext] Błąd logowania:', error);
       setAuthError(error.message);
@@ -165,12 +161,12 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('👤 [AuthContext] Pobieranie profilu użytkownika...');
       
-      const response = await apiService.fetchUserProfile();
-      
-      setUserData(response);
-      console.log('✅ [AuthContext] Profil zaktualizowany:', response.user?.username);
-      
-      return response;
+      const res = await apiService.fetchUserProfile();
+      // backend zwykle zwraca { user, profile }. Zapisujemy user tylko, gdy jest.
+      if (res?.user) setUserData(res);
+      console.log('✅ [AuthContext] Profil załadowany.');
+      return res;
+
     } catch (error) {
       console.error('❌ [AuthContext] Błąd pobierania profilu:', error);
       
@@ -188,10 +184,6 @@ export const AuthProvider = ({ children }) => {
   const generateRecommendations = async (method = 'hybrid', preferences = {}) => {
     try {
       console.log('🤖 [AuthContext] Generowanie rekomendacji:', { method, preferences });
-      
-      if (!isAuthenticated()) {
-        throw new Error('Brak autoryzacji - zaloguj się ponownie');
-      }
 
       const response = await apiService.generateRecommendations(method, preferences);
       

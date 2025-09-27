@@ -36,7 +36,7 @@ export const useAuth = () => {
 
         // Spróbuj odświeżyć dane profilu z serwera
         try {
-          const profileData = await apiService.getProfile();
+          const profileData = await apiService.fetchUserProfile();
           if (profileData && profileData.user) {
             setUser(profileData.user);
             console.log('✅ [useAuth] Profil zaktualizowany z serwera:', profileData.user.username);
@@ -169,7 +169,7 @@ export const useAuth = () => {
     }
 
     try {
-      const profileData = await apiService.getProfile();
+      const profileData = await apiService.fetchUserProfile();
       if (profileData && profileData.user) {
         setUser(profileData.user);
         return profileData.user;
@@ -186,7 +186,7 @@ export const useAuth = () => {
   const updateProfile = async (profileData) => {
     try {
       console.log('🔄 [useAuth] Aktualizacja profilu użytkownika');
-      const response = await apiService.updateProfile(profileData);
+      const response = await apiService.updateUserProfile(profileData);
       
       // Odśwież dane użytkownika po aktualizacji
       if (response) {
@@ -203,10 +203,6 @@ export const useAuth = () => {
 
   const generateRecommendations = async (method = 'hybrid', preferences = {}) => {
     try {
-      if (!isAuthenticated()) {
-        throw new Error('Brak autoryzacji - zaloguj się ponownie');
-      }
-
       console.log('🤖 [useAuth] Generowanie rekomendacji:', { method, preferences });
       return await apiService.generateRecommendations(method, preferences);
     } catch (error) {

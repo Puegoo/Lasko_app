@@ -197,14 +197,9 @@ const EnhancedPlanCreator = () => {
       });
       
       if (!isAuthenticated()) {
-        console.error('❌ [EnhancedPlanCreator] Brak autoryzacji - uruchamiam diagnostykę...');
-        
-        // Uruchom pełną diagnostykę
-        debugAuth();
-        await AuthDebug.fullDiagnostic();
-        
-        throw new Error('Brak autoryzacji - zaloguj się ponownie');
-      }
+          console.warn('⚠️ [EnhancedPlanCreator] Nie widzę ważnego access tokena – spróbuję wysłać żądanie (warstwa API zrobi refresh).');
+          debugAuth();
+        }
 
       // Przygotuj preferencje dla API - ✅ POPRAWIONA STRUKTURA
       const preferences = {
@@ -242,6 +237,8 @@ const EnhancedPlanCreator = () => {
         };
         
         setPlanData(updatedPlanData);
+
+        sessionStorage.setItem('lasko_plan_draft', JSON.stringify(updatedPlanData));
         
         console.log('✅ [EnhancedPlanCreator] Plan zapisany do stanu');
         

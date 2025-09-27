@@ -94,6 +94,8 @@ if (isDevelopment) {
       if (path.includes('/register')) return '5/5';
       if (path.includes('/login')) return '0/5';
       if (path.includes('/dashboard')) return 'Dashboard';
+      if (path.includes('/enhanced-plan-creator')) return '4/5';
+      if (path.includes('/plan-preview')) return '5/5';
       return 'Nieznany';
     };
 
