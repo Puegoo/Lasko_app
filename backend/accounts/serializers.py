@@ -1,4 +1,4 @@
-# backend/accounts/serializers.py - POPRAWIONA WERSJA
+# backend/accounts/serializers.py
 import logging
 from rest_framework import serializers
 from django.db import transaction
@@ -9,7 +9,7 @@ from .models import AuthAccount, UserProfile
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# DEFINICJE STAŁYCH (które były szukane w modelu)
+# DEFINICJE STAŁYCH
 # ============================================================================
 GOAL_CHOICES = [
     ('masa', 'Budowa masy'),
@@ -43,8 +43,7 @@ RECO_CHOICES = [
 
 class UserRegistrationSerializer(serializers.Serializer):
     """
-    Serializer do rejestracji użytkowników - NAPRAWIONA WERSJA
-    Używa tylko Django ORM, bez bezpośrednich zapytań SQL
+    Serializer do rejestracji użytkowników
     """
     
     # Account fields
@@ -113,7 +112,7 @@ class UserRegistrationSerializer(serializers.Serializer):
                     'password_confirm': 'Hasła nie są zgodne'
                 })
         
-        # 2. Walidacja hasła Django (opcjonalnie, możesz wyłączyć dla prostszych haseł)
+        # 2. Walidacja hasła Django (opcjonalnie)
         # try:
         #     validate_password(data['password'])
         # except ValidationError as e:
@@ -141,8 +140,7 @@ class UserRegistrationSerializer(serializers.Serializer):
     
     def create(self, validated_data):
         """
-        Utwórz konto użytkownika i profil
-        NAPRAWIONA WERSJA - tylko Django ORM
+        Utwórz konto użytkownika i profil - POPRAWIONA WERSJA
         """
         try:
             logger.info(f"[Registration] Tworzenie konta: {validated_data['username']}")
@@ -167,6 +165,7 @@ class UserRegistrationSerializer(serializers.Serializer):
             
             logger.info(f"[Registration] Account data: {list(account_data.keys())}")
             logger.info(f"[Registration] Profile data: {list(profile_data.keys())}")
+            logger.info(f"[Registration] Profile values - goal: {profile_data.get('goal')}, level: {profile_data.get('level')}, equipment: {profile_data.get('equipment_preference')}")
             
             # Transakcja atomowa
             with transaction.atomic():
@@ -182,16 +181,16 @@ class UserRegistrationSerializer(serializers.Serializer):
                     is_active=True
                 )
                 
-                # 2. Ustaw hasło używając metody modelu (automatyczne hashowanie)
+                # 2. Ustaw hasło używając metody modelu
                 auth_account.set_password(account_data['password'])
                 auth_account.save()
                 
                 logger.info(f"[Registration] Konto utworzone: ID {auth_account.id}")
                 
-                # 3. Utwórz profil
+                # 3. Utwórz profil z FAKTYCZNYMI danymi użytkownika
                 profile_data['auth_account'] = auth_account
                 
-                # Ustaw domyślne wartości jeśli brakuje
+                # KLUCZOWA POPRAWKA: Ustaw domyślne TYLKO dla pól których NIE MA w profile_data
                 profile_defaults = {
                     'goal': 'zdrowie',
                     'level': 'poczatkujacy',
@@ -200,13 +199,17 @@ class UserRegistrationSerializer(serializers.Serializer):
                     'recommendation_method': 'hybrid'
                 }
                 
+                # Używaj domyślnych tylko dla NIEISTNIEJĄCYCH kluczy
                 for key, default_value in profile_defaults.items():
-                    if key not in profile_data or profile_data[key] is None:
+                    if key not in profile_data:
                         profile_data[key] = default_value
+                
+                logger.info(f"[Registration] Finalne dane profilu: goal={profile_data.get('goal')}, level={profile_data.get('level')}, equipment={profile_data.get('equipment_preference')}")
                 
                 user_profile = UserProfile.objects.create(**profile_data)
                 
                 logger.info(f"[Registration] Profil utworzony dla: {auth_account.username}")
+                logger.info(f"[Registration] Zapisane wartości - goal: {user_profile.goal}, level: {user_profile.level}, equipment: {user_profile.equipment_preference}")
                 
                 return {
                     'auth_account': auth_account,
@@ -241,7 +244,7 @@ class UserLoginSerializer(serializers.Serializer):
             )
         
         return {
-            'login': login,  # Nie zmieniaj na lower() - email może być lower, ale username nie
+            'login': login,
             'password': password
         }
 
@@ -249,10 +252,8 @@ class UserLoginSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer do profilu użytkownika"""
     
-    # Dodatkowe pola tylko do odczytu
     age = serializers.SerializerMethodField()
     
-    # Dodaj choices do pól
     goal = serializers.ChoiceField(choices=GOAL_CHOICES, required=False, allow_null=True)
     level = serializers.ChoiceField(choices=LEVEL_CHOICES, required=False, allow_null=True)
     equipment_preference = serializers.ChoiceField(choices=EQUIPMENT_CHOICES, required=False, allow_null=True)
@@ -299,7 +300,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer do aktualizacji profilu"""
     
-    # Dodaj choices do pól
     goal = serializers.ChoiceField(choices=GOAL_CHOICES, required=False, allow_null=True)
     level = serializers.ChoiceField(choices=LEVEL_CHOICES, required=False, allow_null=True)
     equipment_preference = serializers.ChoiceField(choices=EQUIPMENT_CHOICES, required=False, allow_null=True)

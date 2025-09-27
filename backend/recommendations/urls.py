@@ -1,6 +1,6 @@
-# backend/recommendations/urls.py - ZASTĄP CAŁY PLIK
+# backend/recommendations/urls.py
 from django.urls import path
-from . import views  # ✅ POPRAWNY IMPORT z tego samego modułu
+from . import views
 
 urlpatterns = [
     # Główny endpoint rekomendacji

@@ -7,9 +7,14 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # inicjalizacja struktury przy *pierwszym* starcie wolumenu
       - ./SQL/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      # opcjonalny pełny backup: jeśli plik istnieje, zostanie zaimportowany przy *pierwszym* starcie wolumenu
+      - ./seed/lasko_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+      # dostęp do katalogu seed wewnątrz kontenera (np. do ręcznych dumpów/restore)
+      - ./seed:/seed
     ports:
-      - "5432:5432"
+      - "5433:5432"   # host:container
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d LaskoDB"]
       interval: 5s
@@ -34,6 +39,8 @@ services:
       PYTHONUNBUFFERED: "1"
     volumes:
       - ./backend:/app
+      - ./SQL:/app/SQL     # skrypty seedujące dostępne w kontenerze
+      - ./seed:/app/seed   # backupy dostępne z backendu (opcjonalnie)
     ports:
       - "8000:8000"
     depends_on:
@@ -45,12 +52,9 @@ services:
         python manage.py check_db_ready &&
         echo 'Applying migrations...' &&
         python manage.py migrate --noinput --fake-initial &&
-        echo 'Seeding (custom setup)...' &&
-        python manage.py setup_database --with-seed || true &&
         echo 'Starting server...' &&
         python manage.py runserver 0.0.0.0:8000
       "
-    # Healthcheck: sprawdzamy tylko, czy port 8000 nasłuchuje (szybciej i stabilniej)
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 8000 || exit 1"]
       interval: 5s
@@ -65,7 +69,8 @@ services:
     build:
       context: ./frontend/lasko-frontend
     environment:
-      VITE_API_BASE_URL: http://backend:8000
+      # UWAGA: to jest używane przez kod w PRZEGLĄDARCE – musi być hostowy URL
+      VITE_API_BASE_URL: http://localhost:8000
       NODE_ENV: development
     volumes:
       - ./frontend/lasko-frontend:/app
@@ -74,7 +79,7 @@ services:
       - "3000:3000"
     depends_on:
       backend:
-        condition: service_started   # backend musi wystartować, niekoniecznie od razu być 'healthy' HTTP
+        condition: service_healthy
     networks:
       - lasko-network
     restart: unless-stopped

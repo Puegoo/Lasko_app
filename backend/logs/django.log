@@ -1689,3 +1689,638 @@ INFO 2025-09-27 18:32:18,966 views 14 281472961409408 [Recommendations] Profile 
 INFO 2025-09-27 18:32:18,971 views 14 281472961409408 [Recommendations] Algorithm returned 1 results
 INFO 2025-09-27 18:32:18,973 views 14 281472961409408 [Recommendations] Returning 1 recommendations
 INFO 2025-09-27 18:32:18,973 basehttp 14 281472961409408 "POST /api/recommendations/ HTTP/1.1" 200 345
+INFO 2025-09-27 19:19:55,104 views 8 281473540702240 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:22:09,211 views 8 281473300500512 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:22:10,457 views 10 281473859833888 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:22:11,059 views 11 281473144107040 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:22:11,703 views 12 281473483563040 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:22:13,291 autoreload 14 281472843112480 Watching for file changes with StatReloader
+INFO 2025-09-27 19:22:13,315 views 14 281472843112480 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:47:07,414 views 8 281473315639328 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:47:09,081 views 10 281473846382624 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:47:09,757 views 11 281473004785696 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:47:10,511 views 12 281473744523296 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:47:11,721 autoreload 14 281473540939808 Watching for file changes with StatReloader
+INFO 2025-09-27 19:47:11,743 views 14 281473540939808 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:50:13,606 views 8 281473098756128 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:50:14,831 views 10 281473057452064 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:50:15,452 views 11 281473639055392 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:50:16,071 views 12 281473433276448 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:50:17,157 autoreload 14 281473299943456 Watching for file changes with StatReloader
+INFO 2025-09-27 19:50:17,179 views 14 281473299943456 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:54:35,752 views 8 281473263894560 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:54:37,108 views 10 281473627910176 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:54:37,705 views 11 281472845463584 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 19:54:39,165 autoreload 13 281472958369824 Watching for file changes with StatReloader
+INFO 2025-09-27 19:54:39,202 views 13 281472958369824 [Recommendations] Engine loaded successfully
+WARNING 2025-09-27 20:48:25,802 log 13 281472877523328 Not Found: /api/auth/token/refresh/
+WARNING 2025-09-27 20:48:25,805 basehttp 13 281472877523328 "POST /api/auth/token/refresh/ HTTP/1.1" 404 5262
+INFO 2025-09-27 20:48:25,820 views 13 281472877523328 [Login] Próba logowania
+INFO 2025-09-27 20:48:25,821 views 13 281472877523328 [Login] Login attempt: test@wp.pl
+WARNING 2025-09-27 20:48:25,838 views 13 281472877523328 [Login] Użytkownik nie znaleziony: test@wp.pl
+WARNING 2025-09-27 20:48:25,839 log 13 281472877523328 Unauthorized: /api/auth/login/
+WARNING 2025-09-27 20:48:25,839 basehttp 13 281472877523328 "POST /api/auth/login/ HTTP/1.1" 401 71
+INFO 2025-09-27 20:48:25,848 views 13 281472877523328 [Login] Próba logowania
+INFO 2025-09-27 20:48:25,848 views 13 281472877523328 [Login] Login attempt: test@wp.pl
+WARNING 2025-09-27 20:48:25,854 views 13 281472877523328 [Login] Użytkownik nie znaleziony: test@wp.pl
+WARNING 2025-09-27 20:48:25,855 log 13 281472877523328 Unauthorized: /api/auth/login/
+WARNING 2025-09-27 20:48:25,855 basehttp 13 281472877523328 "POST /api/auth/login/ HTTP/1.1" 401 71
+INFO 2025-09-27 20:48:48,126 views 13 281472877523328 [Register] Rejestracja użytkownika: test
+INFO 2025-09-27 20:48:48,140 views 13 281472877523328 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 20:48:48,141 serializers 13 281472877523328 [Registration] Tworzenie konta: test
+INFO 2025-09-27 20:48:48,141 serializers 13 281472877523328 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 20:48:48,141 serializers 13 281472877523328 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-27 20:48:48,263 serializers 13 281472877523328 [Registration] Konto utworzone: ID 10003
+INFO 2025-09-27 20:48:48,265 serializers 13 281472877523328 [Registration] Profil utworzony dla: test
+INFO 2025-09-27 20:48:48,265 views 13 281472877523328 [Register] Użytkownik utworzony: ID 10003
+INFO 2025-09-27 20:48:48,272 views 13 281472877523328 [Register] Rejestracja udana: test
+INFO 2025-09-27 20:48:48,273 basehttp 13 281472877523328 "POST /api/auth/register/ HTTP/1.1" 201 1011
+INFO 2025-09-27 20:48:48,289 views 13 281472877523328 [UpdateProfile] Aktualizacja profilu dla user_id: 10003
+INFO 2025-09-27 20:48:48,299 views 13 281472877523328 [UpdateProfile] Profil zaktualizowany: test
+INFO 2025-09-27 20:48:48,300 basehttp 13 281472877523328 "PUT /api/auth/profile/update/ HTTP/1.1" 200 374
+INFO 2025-09-27 20:49:05,826 views 13 281472877523328 [Recommendations] Request for user_id: 10003
+INFO 2025-09-27 20:49:05,828 views 13 281472877523328 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {'goal': 'sila', 'level': 'początkujący', 'equipment_preference': 'siłownia', 'training_days_per_week': 3, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 22, 'weightKg': 80, 'heightCm': 182, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-27 20:49:05,828 views 13 281472877523328 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 20:49:05,844 views 13 281472877523328 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 20:49:13,090 views 13 281472877523328 [Recommendations] Algorithm returned 1099 results
+INFO 2025-09-27 20:49:13,091 views 13 281472877523328 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 20:49:13,092 basehttp 13 281472877523328 "POST /api/recommendations/ HTTP/1.1" 200 1437
+INFO 2025-09-27 20:49:38,371 views 13 281472877523328 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-27 20:49:38,372 views 13 281472867037568 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-27 20:49:38,385 views 13 281472867037568 [Profile] Profil zwrócony pomyślnie: test
+INFO 2025-09-27 20:49:38,386 views 13 281472877523328 [Profile] Profil zwrócony pomyślnie: test
+INFO 2025-09-27 20:49:38,387 basehttp 13 281472877523328 "GET /api/auth/profile/ HTTP/1.1" 200 473
+INFO 2025-09-27 20:49:38,387 basehttp 13 281472867037568 "GET /api/auth/profile/ HTTP/1.1" 200 473
+INFO 2025-09-27 20:49:38,396 views 13 281472867037568 [Recommendations] Request for user_id: 10003
+INFO 2025-09-27 20:49:38,397 views 13 281472877523328 [Recommendations] Request for user_id: 10003
+INFO 2025-09-27 20:49:38,397 views 13 281472877523328 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-27 20:49:38,397 views 13 281472867037568 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-27 20:49:38,397 views 13 281472877523328 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 20:49:38,398 views 13 281472867037568 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 20:49:38,403 views 13 281472867037568 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 20:49:38,403 views 13 281472877523328 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 20:49:45,652 views 13 281472867037568 [Recommendations] Algorithm returned 1114 results
+INFO 2025-09-27 20:49:45,653 views 13 281472867037568 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 20:49:45,654 basehttp 13 281472867037568 "POST /api/recommendations/ HTTP/1.1" 200 1477
+INFO 2025-09-27 20:49:45,726 views 13 281472877523328 [Recommendations] Algorithm returned 1114 results
+INFO 2025-09-27 20:49:45,727 views 13 281472877523328 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 20:49:45,728 basehttp 13 281472877523328 "POST /api/recommendations/ HTTP/1.1" 200 1477
+INFO 2025-09-27 20:50:04,959 views 13 281472877523328 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-27 20:50:04,960 views 13 281472867037568 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-27 20:50:04,970 views 13 281472877523328 [Profile] Profil zwrócony pomyślnie: test
+INFO 2025-09-27 20:50:04,970 views 13 281472867037568 [Profile] Profil zwrócony pomyślnie: test
+INFO 2025-09-27 20:50:04,971 basehttp 13 281472877523328 "GET /api/auth/profile/ HTTP/1.1" 200 473
+INFO 2025-09-27 20:50:04,971 basehttp 13 281472867037568 "GET /api/auth/profile/ HTTP/1.1" 200 473
+INFO 2025-09-27 20:50:04,980 views 13 281472867037568 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-27 20:50:04,982 views 13 281472877523328 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-27 20:50:04,987 views 13 281472867037568 [Profile] Profil zwrócony pomyślnie: test
+INFO 2025-09-27 20:50:04,988 views 13 281472877523328 [Profile] Profil zwrócony pomyślnie: test
+INFO 2025-09-27 20:50:04,988 basehttp 13 281472867037568 "GET /api/auth/profile/ HTTP/1.1" 200 473
+INFO 2025-09-27 20:50:04,988 basehttp 13 281472877523328 "GET /api/auth/profile/ HTTP/1.1" 200 473
+INFO 2025-09-27 20:50:04,994 views 13 281472877523328 [Recommendations] Request for user_id: 10003
+INFO 2025-09-27 20:50:04,994 views 13 281472867037568 [Recommendations] Request for user_id: 10003
+INFO 2025-09-27 20:50:04,994 views 13 281472877523328 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-27 20:50:04,995 views 13 281472867037568 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-27 20:50:04,995 views 13 281472877523328 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 20:50:04,995 views 13 281472867037568 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 20:50:05,000 views 13 281472867037568 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 20:50:05,000 views 13 281472877523328 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 20:50:13,069 views 13 281472867037568 [Recommendations] Algorithm returned 1114 results
+INFO 2025-09-27 20:50:13,077 views 13 281472867037568 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 20:50:13,084 basehttp 13 281472867037568 "POST /api/recommendations/ HTTP/1.1" 200 1477
+INFO 2025-09-27 20:50:13,241 views 13 281472877523328 [Recommendations] Algorithm returned 1114 results
+INFO 2025-09-27 20:50:13,242 views 13 281472877523328 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 20:50:13,242 basehttp 13 281472877523328 "POST /api/recommendations/ HTTP/1.1" 200 1477
+INFO 2025-09-27 20:50:27,607 views 13 281472877523328 [Logout] Wylogowywanie użytkownika
+INFO 2025-09-27 20:50:27,609 basehttp 13 281472877523328 "POST /api/auth/logout/ HTTP/1.1" 200 35
+INFO 2025-09-27 20:50:47,650 views 13 281472877523328 [Register] Rejestracja użytkownika: test1
+INFO 2025-09-27 20:50:47,678 views 13 281472877523328 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 20:50:47,679 serializers 13 281472877523328 [Registration] Tworzenie konta: test1
+INFO 2025-09-27 20:50:47,679 serializers 13 281472877523328 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 20:50:47,679 serializers 13 281472877523328 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-27 20:50:47,816 serializers 13 281472877523328 [Registration] Konto utworzone: ID 10004
+INFO 2025-09-27 20:50:47,818 serializers 13 281472877523328 [Registration] Profil utworzony dla: test1
+INFO 2025-09-27 20:50:47,819 views 13 281472877523328 [Register] Użytkownik utworzony: ID 10004
+INFO 2025-09-27 20:50:47,820 views 13 281472877523328 [Register] Rejestracja udana: test1
+INFO 2025-09-27 20:50:47,821 basehttp 13 281472877523328 "POST /api/auth/register/ HTTP/1.1" 201 1018
+INFO 2025-09-27 20:50:47,830 views 13 281472877523328 [UpdateProfile] Aktualizacja profilu dla user_id: 10004
+INFO 2025-09-27 20:50:47,838 views 13 281472877523328 [UpdateProfile] Profil zaktualizowany: test1
+INFO 2025-09-27 20:50:47,838 basehttp 13 281472877523328 "PUT /api/auth/profile/update/ HTTP/1.1" 200 375
+INFO 2025-09-27 20:51:07,020 views 13 281472877523328 [Recommendations] Request for user_id: 10004
+INFO 2025-09-27 20:51:07,021 views 13 281472877523328 [Recommendations] Request data resolved: {'mode': 'user', 'preferences': {'goal': 'spalanie', 'level': 'początkujący', 'equipment_preference': 'siłownia', 'training_days_per_week': 4, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 19, 'weightKg': 76, 'heightCm': 192, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-27 20:51:07,022 views 13 281472877523328 [Recommendations] mode=user, top=3
+INFO 2025-09-27 20:51:07,031 views 13 281472877523328 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 20:51:07,075 views 13 281472877523328 [Recommendations] Algorithm returned 60 results
+INFO 2025-09-27 20:51:07,076 views 13 281472877523328 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 20:51:07,077 basehttp 13 281472877523328 "POST /api/recommendations/ HTTP/1.1" 200 1330
+INFO 2025-09-27 21:10:08,034 autoreload 13 281472958369824 /app/accounts/serializers.py changed, reloading.
+INFO 2025-09-27 21:10:09,641 autoreload 7220 281473444868128 Watching for file changes with StatReloader
+INFO 2025-09-27 21:10:09,716 views 7220 281473444868128 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:14:56,683 autoreload 7220 281473444868128 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 21:14:57,657 autoreload 7245 281473156665376 Watching for file changes with StatReloader
+INFO 2025-09-27 21:14:57,691 views 7245 281473156665376 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:15:07,982 autoreload 7245 281473156665376 /app/recommendations/views.py changed, reloading.
+INFO 2025-09-27 21:15:08,760 autoreload 7263 281472931049504 Watching for file changes with StatReloader
+INFO 2025-09-27 21:15:08,793 views 7263 281472931049504 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:15:21,146 autoreload 7263 281472931049504 /app/recommendations/urls.py changed, reloading.
+INFO 2025-09-27 21:15:21,833 autoreload 7288 281473007620128 Watching for file changes with StatReloader
+INFO 2025-09-27 21:15:21,859 views 7288 281473007620128 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:15:37,230 autoreload 7288 281473007620128 /app/recommendations/urls.py changed, reloading.
+INFO 2025-09-27 21:15:38,241 autoreload 7314 281473700556832 Watching for file changes with StatReloader
+INFO 2025-09-27 21:15:38,297 views 7314 281473700556832 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:20:17,345 autoreload 7314 281473700556832 /app/recommendations/urls.py changed, reloading.
+INFO 2025-09-27 21:20:18,264 autoreload 7762 281473296814112 Watching for file changes with StatReloader
+INFO 2025-09-27 21:20:18,298 views 7762 281473296814112 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:20:24,504 autoreload 7762 281473296814112 /app/lasko_backend/urls.py changed, reloading.
+INFO 2025-09-27 21:20:25,323 autoreload 7772 281473026768928 Watching for file changes with StatReloader
+INFO 2025-09-27 21:20:25,364 views 7772 281473026768928 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:20:58,412 views 8 281473010941984 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:20:59,774 views 10 281473808175136 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:21:00,444 views 11 281472932642848 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:21:01,614 autoreload 13 281473197854752 Watching for file changes with StatReloader
+INFO 2025-09-27 21:21:01,646 views 13 281473197854752 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:25:35,600 views 13 281473108210048 [Profile] Pobieranie profilu dla user_id: 10004
+INFO 2025-09-27 21:25:35,601 views 13 281473118695808 [Profile] Pobieranie profilu dla user_id: 10004
+INFO 2025-09-27 21:25:35,642 views 13 281473118695808 [Profile] Profil zwrócony pomyślnie: test1
+INFO 2025-09-27 21:25:35,643 views 13 281473108210048 [Profile] Profil zwrócony pomyślnie: test1
+INFO 2025-09-27 21:25:35,646 basehttp 13 281473118695808 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:25:35,648 basehttp 13 281473108210048 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:25:36,947 views 13 281473108210048 [Logout] Wylogowywanie użytkownika
+INFO 2025-09-27 21:25:36,948 basehttp 13 281473108210048 "POST /api/auth/logout/ HTTP/1.1" 200 35
+INFO 2025-09-27 21:26:03,605 views 13 281473108210048 [Register] Rejestracja użytkownika: test9
+INFO 2025-09-27 21:26:03,622 views 13 281473108210048 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 21:26:03,622 serializers 13 281473108210048 [Registration] Tworzenie konta: test9
+INFO 2025-09-27 21:26:03,622 serializers 13 281473108210048 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 21:26:03,623 serializers 13 281473108210048 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-27 21:26:03,623 serializers 13 281473108210048 [Registration] Profile values - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-27 21:26:03,756 serializers 13 281473108210048 [Registration] Konto utworzone: ID 10005
+INFO 2025-09-27 21:26:03,756 serializers 13 281473108210048 [Registration] Finalne dane profilu: goal=zdrowie, level=poczatkujacy, equipment=silownia
+INFO 2025-09-27 21:26:03,758 serializers 13 281473108210048 [Registration] Profil utworzony dla: test9
+INFO 2025-09-27 21:26:03,758 serializers 13 281473108210048 [Registration] Zapisane wartości - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-27 21:26:03,760 views 13 281473108210048 [Register] Użytkownik utworzony: ID 10005
+INFO 2025-09-27 21:26:03,760 views 13 281473108210048 [Register] Rejestracja udana: test9
+INFO 2025-09-27 21:26:03,761 basehttp 13 281473108210048 "POST /api/auth/register/ HTTP/1.1" 201 1018
+INFO 2025-09-27 21:26:03,769 views 13 281473108210048 [UpdateProfile] Aktualizacja profilu dla user_id: 10005
+INFO 2025-09-27 21:26:03,777 views 13 281473108210048 [UpdateProfile] Profil zaktualizowany: test9
+INFO 2025-09-27 21:26:03,777 basehttp 13 281473108210048 "PUT /api/auth/profile/update/ HTTP/1.1" 200 375
+INFO 2025-09-27 21:26:24,128 views 13 281473108210048 [Recommendations] Request for user_id: 10005
+INFO 2025-09-27 21:26:24,129 views 13 281473108210048 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {'goal': 'wytrzymalosc', 'level': 'zaawansowany', 'equipment_preference': 'siłownia', 'training_days_per_week': 5, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 32, 'weightKg': 73, 'heightCm': 182, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-27 21:26:24,129 views 13 281473108210048 [Recommendations] mode=hybrid, top=3
+ERROR 2025-09-27 21:26:24,136 views 13 281473108210048 [Recommendations] Engine error: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+ERROR 2025-09-27 21:26:24,139 views 13 281473108210048 [Recommendations] Engine traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/recommendations/views.py", line 112, in _generate_with_engine
+    profile = fetch_user_profile(user_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/recommendations/engine.py", line 57, in fetch_user_profile
+    cur.execute(q, [auth_account_id])
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+
+ERROR 2025-09-27 21:26:24,140 log 13 281473108210048 Internal Server Error: /api/recommendations/
+ERROR 2025-09-27 21:26:24,141 basehttp 13 281473108210048 "POST /api/recommendations/ HTTP/1.1" 500 200
+INFO 2025-09-27 21:26:24,147 views 13 281473108210048 [Recommendations] Request for user_id: 10005
+INFO 2025-09-27 21:26:24,147 views 13 281473108210048 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {'goal': 'wytrzymalosc', 'level': 'zaawansowany', 'equipment_preference': 'siłownia', 'training_days_per_week': 5, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 32, 'weightKg': 73, 'heightCm': 182, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-27 21:26:24,147 views 13 281473108210048 [Recommendations] mode=hybrid, top=3
+ERROR 2025-09-27 21:26:24,152 views 13 281473108210048 [Recommendations] Engine error: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+ERROR 2025-09-27 21:26:24,152 views 13 281473108210048 [Recommendations] Engine traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/recommendations/views.py", line 112, in _generate_with_engine
+    profile = fetch_user_profile(user_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/recommendations/engine.py", line 57, in fetch_user_profile
+    cur.execute(q, [auth_account_id])
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+
+ERROR 2025-09-27 21:26:24,153 log 13 281473108210048 Internal Server Error: /api/recommendations/
+ERROR 2025-09-27 21:26:24,154 basehttp 13 281473108210048 "POST /api/recommendations/ HTTP/1.1" 500 200
+INFO 2025-09-27 21:34:02,979 autoreload 13 281473197854752 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 21:34:03,885 autoreload 1267 281473011032096 Watching for file changes with StatReloader
+INFO 2025-09-27 21:34:03,933 views 1267 281473011032096 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:34:05,047 autoreload 1267 281473011032096 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 21:34:05,750 autoreload 1269 281473652133920 Watching for file changes with StatReloader
+INFO 2025-09-27 21:34:05,780 views 1269 281473652133920 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:34:06,859 autoreload 1269 281473652133920 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 21:34:07,519 autoreload 1279 281473136353312 Watching for file changes with StatReloader
+INFO 2025-09-27 21:34:07,562 views 1279 281473136353312 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:34:19,385 views 1279 281473045295488 [Profile] Pobieranie profilu dla user_id: 10005
+INFO 2025-09-27 21:34:19,386 views 1279 281473055781248 [Profile] Pobieranie profilu dla user_id: 10005
+INFO 2025-09-27 21:34:19,434 views 1279 281473045295488 [Profile] Profil zwrócony pomyślnie: test9
+INFO 2025-09-27 21:34:19,435 views 1279 281473055781248 [Profile] Profil zwrócony pomyślnie: test9
+INFO 2025-09-27 21:34:19,436 basehttp 1279 281473045295488 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:34:19,436 basehttp 1279 281473055781248 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:34:33,529 views 1279 281473055781248 [Recommendations] Request for user_id: 10005
+INFO 2025-09-27 21:34:33,531 views 1279 281473055781248 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {'goal': 'sila', 'level': 'średniozaawansowany', 'equipment_preference': 'siłownia', 'training_days_per_week': 5, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 20, 'weightKg': 90, 'heightCm': 190, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-27 21:34:33,532 views 1279 281473055781248 [Recommendations] mode=hybrid, top=3
+ERROR 2025-09-27 21:34:33,537 views 1279 281473055781248 [Recommendations] Engine error: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+ERROR 2025-09-27 21:34:33,539 views 1279 281473055781248 [Recommendations] Engine traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/recommendations/views.py", line 112, in _generate_with_engine
+    profile = fetch_user_profile(user_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/recommendations/engine.py", line 57, in fetch_user_profile
+    cur.execute(q, [auth_account_id])
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+
+ERROR 2025-09-27 21:34:33,540 log 1279 281473055781248 Internal Server Error: /api/recommendations/
+ERROR 2025-09-27 21:34:33,540 basehttp 1279 281473055781248 "POST /api/recommendations/ HTTP/1.1" 500 200
+INFO 2025-09-27 21:34:33,547 views 1279 281473055781248 [Recommendations] Request for user_id: 10005
+INFO 2025-09-27 21:34:33,547 views 1279 281473055781248 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {'goal': 'sila', 'level': 'średniozaawansowany', 'equipment_preference': 'siłownia', 'training_days_per_week': 5, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 20, 'weightKg': 90, 'heightCm': 190, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-27 21:34:33,547 views 1279 281473055781248 [Recommendations] mode=hybrid, top=3
+ERROR 2025-09-27 21:34:33,552 views 1279 281473055781248 [Recommendations] Engine error: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+ERROR 2025-09-27 21:34:33,552 views 1279 281473055781248 [Recommendations] Engine traceback: Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/recommendations/views.py", line 112, in _generate_with_engine
+    profile = fetch_user_profile(user_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/recommendations/engine.py", line 57, in fetch_user_profile
+    cur.execute(q, [auth_account_id])
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/usr/local/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile" does not exist
+LINE 3:     FROM user_profile WHERE auth_account_id = 10005
+                 ^
+
+
+ERROR 2025-09-27 21:34:33,553 log 1279 281473055781248 Internal Server Error: /api/recommendations/
+ERROR 2025-09-27 21:34:33,553 basehttp 1279 281473055781248 "POST /api/recommendations/ HTTP/1.1" 500 200
+INFO 2025-09-27 21:35:24,144 autoreload 1279 281473136353312 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 21:35:24,942 autoreload 1405 281473080004640 Watching for file changes with StatReloader
+INFO 2025-09-27 21:35:24,974 views 1405 281473080004640 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:35:47,574 views 8 281473324240928 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:35:48,873 views 10 281473661214752 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:35:49,485 views 11 281473140621344 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:35:50,616 autoreload 13 281473752150048 Watching for file changes with StatReloader
+INFO 2025-09-27 21:35:50,648 views 13 281473752150048 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 21:37:01,312 views 13 281473672343936 [Profile] Pobieranie profilu dla user_id: 10005
+INFO 2025-09-27 21:37:01,313 views 13 281473661858176 [Profile] Pobieranie profilu dla user_id: 10005
+INFO 2025-09-27 21:37:01,355 views 13 281473672343936 [Profile] Profil zwrócony pomyślnie: test9
+INFO 2025-09-27 21:37:01,355 views 13 281473661858176 [Profile] Profil zwrócony pomyślnie: test9
+INFO 2025-09-27 21:37:01,357 basehttp 13 281473661858176 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:37:01,357 basehttp 13 281473672343936 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:37:16,129 views 13 281473661858176 [Recommendations] Request for user_id: 10005
+INFO 2025-09-27 21:37:16,130 views 13 281473661858176 [Recommendations] Request data resolved: {'mode': 'user', 'preferences': {'goal': 'spalanie', 'level': 'początkujący', 'equipment_preference': 'siłownia', 'training_days_per_week': 6, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 20, 'weightKg': 90, 'heightCm': 190, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-27 21:37:16,131 views 13 281473661858176 [Recommendations] mode=user, top=3
+INFO 2025-09-27 21:37:16,136 engine 13 281473661858176 [Engine] Fetched profile for user 10005: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 21:37:16,136 views 13 281473661858176 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 21:37:16,136 views 13 281473661858176 [Recommendations] Profile after preferences: {'goal': 'spalanie', 'level': 'początkujący', 'days': 6, 'equipment': 'siłownia'}
+ERROR 2025-09-27 21:37:16,137 engine 13 281473661858176 [Engine] Error finding similar users: syntax error at or near "current_user"
+LINE 2:     WITH current_user AS (
+                 ^
+
+WARNING 2025-09-27 21:37:16,137 engine 13 281473661858176 [Engine] No similar users found for user 10005
+INFO 2025-09-27 21:37:16,137 views 13 281473661858176 [Recommendations] Algorithm returned 0 results
+INFO 2025-09-27 21:37:16,137 views 13 281473661858176 [Recommendations] Engine returned 0 results – falling back
+INFO 2025-09-27 21:37:16,137 views 13 281473661858176 [Recommendations] Using fallback for user_id: 10005
+INFO 2025-09-27 21:37:16,138 views 13 281473661858176 [Recommendations] User profile for fallback: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+ERROR 2025-09-27 21:37:16,138 views 13 281473661858176 [Recommendations] Database error in fallback: column "plan_id" does not exist
+LINE 2:                     SELECT plan_id, name, description, goal_...
+                                   ^
+
+INFO 2025-09-27 21:37:16,138 views 13 281473661858176 [Recommendations] Using mock recommendations
+INFO 2025-09-27 21:37:16,139 basehttp 13 281473661858176 "POST /api/recommendations/ HTTP/1.1" 200 1076
+INFO 2025-09-27 21:37:45,173 views 13 281473661858176 [Profile] Pobieranie profilu dla user_id: 10005
+INFO 2025-09-27 21:37:45,175 views 13 281473672343936 [Profile] Pobieranie profilu dla user_id: 10005
+INFO 2025-09-27 21:37:45,218 views 13 281473661858176 [Profile] Profil zwrócony pomyślnie: test9
+INFO 2025-09-27 21:37:45,219 views 13 281473672343936 [Profile] Profil zwrócony pomyślnie: test9
+INFO 2025-09-27 21:37:45,220 basehttp 13 281473672343936 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:37:45,220 basehttp 13 281473661858176 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:37:48,953 views 13 281473661858176 [Profile] Pobieranie profilu dla user_id: 10005
+INFO 2025-09-27 21:37:48,954 views 13 281473672343936 [Profile] Pobieranie profilu dla user_id: 10005
+INFO 2025-09-27 21:37:48,963 views 13 281473661858176 [Profile] Profil zwrócony pomyślnie: test9
+INFO 2025-09-27 21:37:48,963 basehttp 13 281473661858176 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:37:48,964 views 13 281473672343936 [Profile] Profil zwrócony pomyślnie: test9
+INFO 2025-09-27 21:37:48,965 basehttp 13 281473672343936 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-27 21:37:50,576 views 13 281473672343936 [Logout] Wylogowywanie użytkownika
+INFO 2025-09-27 21:37:50,577 basehttp 13 281473672343936 "POST /api/auth/logout/ HTTP/1.1" 200 35
+INFO 2025-09-27 21:38:16,083 views 13 281473672343936 [Register] Rejestracja użytkownika: test30
+INFO 2025-09-27 21:38:16,110 views 13 281473672343936 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 21:38:16,111 serializers 13 281473672343936 [Registration] Tworzenie konta: test30
+INFO 2025-09-27 21:38:16,111 serializers 13 281473672343936 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 21:38:16,111 serializers 13 281473672343936 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-27 21:38:16,111 serializers 13 281473672343936 [Registration] Profile values - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-27 21:38:16,240 serializers 13 281473672343936 [Registration] Konto utworzone: ID 10006
+INFO 2025-09-27 21:38:16,241 serializers 13 281473672343936 [Registration] Finalne dane profilu: goal=zdrowie, level=poczatkujacy, equipment=silownia
+INFO 2025-09-27 21:38:16,242 serializers 13 281473672343936 [Registration] Profil utworzony dla: test30
+INFO 2025-09-27 21:38:16,242 serializers 13 281473672343936 [Registration] Zapisane wartości - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-27 21:38:16,244 views 13 281473672343936 [Register] Użytkownik utworzony: ID 10006
+INFO 2025-09-27 21:38:16,245 views 13 281473672343936 [Register] Rejestracja udana: test30
+INFO 2025-09-27 21:38:16,246 basehttp 13 281473672343936 "POST /api/auth/register/ HTTP/1.1" 201 1024
+INFO 2025-09-27 21:38:16,256 views 13 281473672343936 [UpdateProfile] Aktualizacja profilu dla user_id: 10006
+INFO 2025-09-27 21:38:16,267 views 13 281473672343936 [UpdateProfile] Profil zaktualizowany: test30
+INFO 2025-09-27 21:38:16,268 basehttp 13 281473672343936 "PUT /api/auth/profile/update/ HTTP/1.1" 200 376
+INFO 2025-09-27 21:38:33,335 views 13 281473672343936 [Recommendations] Request for user_id: 10006
+INFO 2025-09-27 21:38:33,337 views 13 281473672343936 [Recommendations] Request data resolved: {'mode': 'user', 'preferences': {'goal': 'wytrzymalosc', 'level': 'średniozaawansowany', 'equipment_preference': 'siłownia', 'training_days_per_week': 6, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 30, 'weightKg': 85, 'heightCm': 193, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-27 21:38:33,337 views 13 281473672343936 [Recommendations] mode=user, top=3
+INFO 2025-09-27 21:38:33,346 engine 13 281473672343936 [Engine] Fetched profile for user 10006: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 21:38:33,347 views 13 281473672343936 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 21:38:33,347 views 13 281473672343936 [Recommendations] Profile after preferences: {'goal': 'wytrzymalosc', 'level': 'średniozaawansowany', 'days': 6, 'equipment': 'siłownia'}
+ERROR 2025-09-27 21:38:33,348 engine 13 281473672343936 [Engine] Error finding similar users: syntax error at or near "current_user"
+LINE 2:     WITH current_user AS (
+                 ^
+
+WARNING 2025-09-27 21:38:33,348 engine 13 281473672343936 [Engine] No similar users found for user 10006
+INFO 2025-09-27 21:38:33,348 views 13 281473672343936 [Recommendations] Algorithm returned 0 results
+INFO 2025-09-27 21:38:33,348 views 13 281473672343936 [Recommendations] Engine returned 0 results – falling back
+INFO 2025-09-27 21:38:33,349 views 13 281473672343936 [Recommendations] Using fallback for user_id: 10006
+INFO 2025-09-27 21:38:33,350 views 13 281473672343936 [Recommendations] User profile for fallback: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+ERROR 2025-09-27 21:38:33,351 views 13 281473672343936 [Recommendations] Database error in fallback: column "plan_id" does not exist
+LINE 2:                     SELECT plan_id, name, description, goal_...
+                                   ^
+
+INFO 2025-09-27 21:38:33,351 views 13 281473672343936 [Recommendations] Using mock recommendations
+INFO 2025-09-27 21:38:33,352 basehttp 13 281473672343936 "POST /api/recommendations/ HTTP/1.1" 200 1076
+INFO 2025-09-27 21:51:01,726 engine 1456 281473191358496 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 21:51:01,727 engine 1456 281473191358496 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 21:51:06,105 engine 1470 281473751990304 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 21:51:06,113 engine 1470 281473751990304 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:02:20,405 autoreload 13 281473752150048 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:02:21,256 autoreload 2545 281473855090720 Watching for file changes with StatReloader
+INFO 2025-09-27 22:02:21,303 views 2545 281473855090720 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:02:42,751 views 8 281472922996768 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:02:44,537 views 10 281473796755488 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:02:45,221 views 11 281473516666912 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:02:46,485 autoreload 13 281473660129312 Watching for file changes with StatReloader
+INFO 2025-09-27 22:02:46,530 views 13 281473660129312 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:02:47,127 engine 14 281473761648672 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:02:47,127 engine 14 281473761648672 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:02:47,138 engine 14 281473761648672 [Engine] Found 1200 active plans
+INFO 2025-09-27 22:02:47,138 engine 14 281473761648672 [Engine] User profile for matching: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:02:47,162 engine 14 281473761648672 [Engine] Content-based returning 1200 recommendations
+ERROR 2025-09-27 22:02:47,163 engine 14 281473761648672 [Engine] Error finding similar users: syntax error at or near "current_user"
+LINE 2:     WITH current_user AS (
+                 ^
+
+WARNING 2025-09-27 22:02:47,163 engine 14 281473761648672 [Engine] No similar users found for user 501
+INFO 2025-09-27 22:04:22,619 autoreload 13 281473660129312 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:04:23,463 autoreload 173 281473169743904 Watching for file changes with StatReloader
+INFO 2025-09-27 22:04:23,505 views 173 281473169743904 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:04:40,124 views 8 281473357766688 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:04:41,354 views 10 281473379250208 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:04:41,943 views 11 281473107505184 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:04:43,047 autoreload 13 281473228062752 Watching for file changes with StatReloader
+INFO 2025-09-27 22:04:43,077 views 13 281473228062752 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:05:25,907 engine 87 281473467379744 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:05:25,916 engine 87 281473467379744 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:05:25,926 engine 87 281473467379744 [Engine] Found 1200 active plans
+INFO 2025-09-27 22:05:25,926 engine 87 281473467379744 [Engine] User profile for matching: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:05:25,953 engine 87 281473467379744 [Engine] Content-based returning 1200 recommendations
+INFO 2025-09-27 22:05:25,954 engine 87 281473467379744 [Engine] Found 50 similar users for user 501
+INFO 2025-09-27 22:05:25,954 engine 87 281473467379744 [Engine] Collaborative returning 30 recommendations
+INFO 2025-09-27 22:05:25,975 engine 87 281473467379744 [Engine] Hybrid returning 1200 recommendations
+INFO 2025-09-27 22:26:07,693 autoreload 13 281473228062752 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:26:08,454 autoreload 2043 281473234260000 Watching for file changes with StatReloader
+INFO 2025-09-27 22:26:08,494 views 2043 281473234260000 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:26:10,581 autoreload 2043 281473234260000 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:26:11,268 autoreload 2045 281473121873952 Watching for file changes with StatReloader
+INFO 2025-09-27 22:26:11,299 views 2045 281473121873952 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:38:35,913 views 8 281473637400608 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:38:37,170 views 10 281473556840480 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:38:37,763 views 11 281473352957984 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:38:38,522 engine 13 281473020272672 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:38:38,523 engine 13 281473020272672 [Engine] Fetched profile for user 501: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:38:38,537 engine 13 281473020272672 [Engine] Found 1200 active plans
+INFO 2025-09-27 22:38:38,537 engine 13 281473020272672 [Engine] User profile for matching: {'goal': 'sila', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'minimalne'}
+INFO 2025-09-27 22:38:38,544 engine 13 281473020272672 [Engine] Content-based returning 51 recommendations
+INFO 2025-09-27 22:38:38,545 engine 13 281473020272672 [Engine] Found 50 similar users for user 501
+INFO 2025-09-27 22:38:38,545 engine 13 281473020272672 [Engine] Collaborative returning 30 recommendations
+INFO 2025-09-27 22:38:39,023 autoreload 19 281473004838944 Watching for file changes with StatReloader
+INFO 2025-09-27 22:38:39,054 views 19 281473004838944 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:40:16,223 autoreload 19 281473004838944 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:40:16,937 autoreload 180 281473116225568 Watching for file changes with StatReloader
+INFO 2025-09-27 22:40:16,971 views 180 281473116225568 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:40:36,407 autoreload 180 281473116225568 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:40:37,118 autoreload 212 281473318961184 Watching for file changes with StatReloader
+INFO 2025-09-27 22:40:37,149 views 212 281473318961184 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:40:38,251 autoreload 212 281473318961184 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:40:38,814 autoreload 215 281473764999200 Watching for file changes with StatReloader
+INFO 2025-09-27 22:40:38,844 views 215 281473764999200 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:40:52,122 autoreload 215 281473764999200 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:40:52,764 autoreload 241 281473111183392 Watching for file changes with StatReloader
+INFO 2025-09-27 22:40:52,795 views 241 281473111183392 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:40:58,925 autoreload 241 281473111183392 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:40:59,576 autoreload 251 281473734377504 Watching for file changes with StatReloader
+INFO 2025-09-27 22:40:59,610 views 251 281473734377504 [Recommendations] Engine loaded successfully
+INFO 2025-09-27 22:41:16,158 autoreload 251 281473734377504 /app/recommendations/engine.py changed, reloading.
+INFO 2025-09-27 22:41:16,776 autoreload 277 281473509220384 Watching for file changes with StatReloader
+INFO 2025-09-27 22:41:16,807 views 277 281473509220384 [Recommendations] Engine loaded successfully
+WARNING 2025-09-27 22:42:53,121 log 277 281473429074304 Not Found: /api/auth/token/refresh/
+WARNING 2025-09-27 22:42:53,122 basehttp 277 281473429074304 "POST /api/auth/token/refresh/ HTTP/1.1" 404 5085
+INFO 2025-09-27 22:42:53,139 views 277 281473429074304 [Register] Rejestracja użytkownika: test55
+INFO 2025-09-27 22:42:53,166 views 277 281473429074304 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-27 22:42:53,167 serializers 277 281473429074304 [Registration] Tworzenie konta: test55
+INFO 2025-09-27 22:42:53,167 serializers 277 281473429074304 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-27 22:42:53,167 serializers 277 281473429074304 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-27 22:42:53,168 serializers 277 281473429074304 [Registration] Profile values - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-27 22:42:53,292 serializers 277 281473429074304 [Registration] Konto utworzone: ID 10007
+INFO 2025-09-27 22:42:53,292 serializers 277 281473429074304 [Registration] Finalne dane profilu: goal=zdrowie, level=poczatkujacy, equipment=silownia
+INFO 2025-09-27 22:42:53,293 serializers 277 281473429074304 [Registration] Profil utworzony dla: test55
+INFO 2025-09-27 22:42:53,294 serializers 277 281473429074304 [Registration] Zapisane wartości - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-27 22:42:53,295 views 277 281473429074304 [Register] Użytkownik utworzony: ID 10007
+INFO 2025-09-27 22:42:53,302 views 277 281473429074304 [Register] Rejestracja udana: test55
+INFO 2025-09-27 22:42:53,303 basehttp 277 281473429074304 "POST /api/auth/register/ HTTP/1.1" 201 1024
+INFO 2025-09-27 22:42:53,311 views 277 281473429074304 [UpdateProfile] Aktualizacja profilu dla user_id: 10007
+INFO 2025-09-27 22:42:53,319 views 277 281473429074304 [UpdateProfile] Profil zaktualizowany: test55
+INFO 2025-09-27 22:42:53,319 basehttp 277 281473429074304 "PUT /api/auth/profile/update/ HTTP/1.1" 200 376
+INFO 2025-09-27 22:43:14,699 views 277 281473429074304 [Recommendations] Request for user_id: 10007
+INFO 2025-09-27 22:43:14,700 views 277 281473429074304 [Recommendations] Request data resolved: {'mode': 'product', 'preferences': {'goal': 'wytrzymalosc', 'level': 'początkujący', 'equipment_preference': 'siłownia', 'training_days_per_week': 3, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 22, 'weightKg': 90, 'heightCm': 190, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-27 22:43:14,701 views 277 281473429074304 [Recommendations] mode=product, top=3
+INFO 2025-09-27 22:43:14,711 engine 277 281473429074304 [Engine] Fetched profile for user 10007: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 22:43:14,711 views 277 281473429074304 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 22:43:14,712 views 277 281473429074304 [Recommendations] Profile after preferences: {'goal': 'wytrzymalosc', 'level': 'początkujący', 'days': 3, 'equipment': 'siłownia'}
+INFO 2025-09-27 22:43:14,733 engine 277 281473429074304 [Engine] Found 1200 active plans
+INFO 2025-09-27 22:43:14,733 engine 277 281473429074304 [Engine] User profile for matching: {'goal': 'wytrzymalosc', 'level': 'początkujący', 'days': 3, 'equipment': 'siłownia'}
+INFO 2025-09-27 22:43:14,748 engine 277 281473429074304 [Engine] Content-based returning 5 recommendations
+INFO 2025-09-27 22:43:14,748 views 277 281473429074304 [Recommendations] Algorithm returned 5 results
+INFO 2025-09-27 22:43:14,749 views 277 281473429074304 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 22:43:14,750 basehttp 277 281473429074304 "POST /api/recommendations/ HTTP/1.1" 200 1586
+INFO 2025-09-27 22:43:27,114 views 277 281473429074304 [Profile] Pobieranie profilu dla user_id: 10007
+INFO 2025-09-27 22:43:27,116 views 277 281473418588544 [Profile] Pobieranie profilu dla user_id: 10007
+INFO 2025-09-27 22:43:27,123 views 277 281473429074304 [Profile] Profil zwrócony pomyślnie: test55
+INFO 2025-09-27 22:43:27,124 basehttp 277 281473429074304 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-27 22:43:27,123 views 277 281473418588544 [Profile] Profil zwrócony pomyślnie: test55
+INFO 2025-09-27 22:43:27,125 basehttp 277 281473418588544 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-27 22:43:27,132 views 277 281473418588544 [Recommendations] Request for user_id: 10007
+INFO 2025-09-27 22:43:27,132 views 277 281473429074304 [Recommendations] Request for user_id: 10007
+INFO 2025-09-27 22:43:27,132 views 277 281473418588544 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-27 22:43:27,133 views 277 281473429074304 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-27 22:43:27,133 views 277 281473418588544 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 22:43:27,133 views 277 281473429074304 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 22:43:27,137 engine 277 281473429074304 [Engine] Fetched profile for user 10007: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 22:43:27,137 engine 277 281473418588544 [Engine] Fetched profile for user 10007: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 22:43:27,138 views 277 281473429074304 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 22:43:27,138 views 277 281473418588544 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 22:43:27,147 engine 277 281473429074304 [Engine] Found 1200 active plans
+INFO 2025-09-27 22:43:27,148 engine 277 281473429074304 [Engine] User profile for matching: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 22:43:27,148 engine 277 281473418588544 [Engine] Found 1200 active plans
+INFO 2025-09-27 22:43:27,157 engine 277 281473418588544 [Engine] User profile for matching: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 22:43:27,156 engine 277 281473429074304 [Engine] Content-based returning 10 recommendations
+INFO 2025-09-27 22:43:27,166 engine 277 281473418588544 [Engine] Content-based returning 10 recommendations
+INFO 2025-09-27 22:43:27,171 engine 277 281473418588544 [Engine] Found 50 similar users for user 10007
+INFO 2025-09-27 22:43:27,172 engine 277 281473429074304 [Engine] Found 50 similar users for user 10007
+INFO 2025-09-27 22:43:27,173 engine 277 281473418588544 [Engine] Collaborative returning 32 recommendations
+INFO 2025-09-27 22:43:27,174 views 277 281473418588544 [Recommendations] Algorithm returned 10 results
+INFO 2025-09-27 22:43:27,174 engine 277 281473429074304 [Engine] Collaborative returning 32 recommendations
+INFO 2025-09-27 22:43:27,174 views 277 281473429074304 [Recommendations] Algorithm returned 10 results
+INFO 2025-09-27 22:43:27,174 views 277 281473418588544 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 22:43:27,175 views 277 281473429074304 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 22:43:27,175 basehttp 277 281473418588544 "POST /api/recommendations/ HTTP/1.1" 200 1604
+INFO 2025-09-27 22:43:27,176 basehttp 277 281473429074304 "POST /api/recommendations/ HTTP/1.1" 200 1604
+INFO 2025-09-27 23:25:03,170 views 277 281473418588544 [Profile] Pobieranie profilu dla user_id: 10007
+INFO 2025-09-27 23:25:03,172 views 277 281473429074304 [Profile] Pobieranie profilu dla user_id: 10007
+INFO 2025-09-27 23:25:03,194 views 277 281473418588544 [Profile] Profil zwrócony pomyślnie: test55
+INFO 2025-09-27 23:25:03,195 views 277 281473429074304 [Profile] Profil zwrócony pomyślnie: test55
+INFO 2025-09-27 23:25:03,196 basehttp 277 281473429074304 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-27 23:25:03,196 basehttp 277 281473418588544 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-27 23:25:03,205 views 277 281473418588544 [Recommendations] Request for user_id: 10007
+INFO 2025-09-27 23:25:03,206 views 277 281473429074304 [Recommendations] Request for user_id: 10007
+INFO 2025-09-27 23:25:03,206 views 277 281473418588544 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-27 23:25:03,207 views 277 281473429074304 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-27 23:25:03,207 views 277 281473418588544 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 23:25:03,207 views 277 281473429074304 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-27 23:25:03,213 engine 277 281473429074304 [Engine] Fetched profile for user 10007: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 23:25:03,213 engine 277 281473418588544 [Engine] Fetched profile for user 10007: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 23:25:03,213 views 277 281473429074304 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 23:25:03,214 views 277 281473418588544 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 23:25:03,227 engine 277 281473418588544 [Engine] Found 1200 active plans
+INFO 2025-09-27 23:25:03,229 engine 277 281473429074304 [Engine] Found 1200 active plans
+INFO 2025-09-27 23:25:03,229 engine 277 281473418588544 [Engine] User profile for matching: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 23:25:03,230 engine 277 281473429074304 [Engine] User profile for matching: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-27 23:25:03,239 engine 277 281473418588544 [Engine] Content-based returning 10 recommendations
+INFO 2025-09-27 23:25:03,248 engine 277 281473429074304 [Engine] Content-based returning 10 recommendations
+INFO 2025-09-27 23:25:03,249 engine 277 281473418588544 [Engine] Found 50 similar users for user 10007
+INFO 2025-09-27 23:25:03,249 engine 277 281473429074304 [Engine] Found 50 similar users for user 10007
+INFO 2025-09-27 23:25:03,250 engine 277 281473418588544 [Engine] Collaborative returning 32 recommendations
+INFO 2025-09-27 23:25:03,250 views 277 281473418588544 [Recommendations] Algorithm returned 10 results
+INFO 2025-09-27 23:25:03,250 engine 277 281473429074304 [Engine] Collaborative returning 32 recommendations
+INFO 2025-09-27 23:25:03,250 views 277 281473418588544 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 23:25:03,250 views 277 281473429074304 [Recommendations] Algorithm returned 10 results
+INFO 2025-09-27 23:25:03,251 basehttp 277 281473418588544 "POST /api/recommendations/ HTTP/1.1" 200 1604
+INFO 2025-09-27 23:25:03,251 views 277 281473429074304 [Recommendations] Returning 3 recommendations
+INFO 2025-09-27 23:25:03,252 basehttp 277 281473429074304 "POST /api/recommendations/ HTTP/1.1" 200 1604

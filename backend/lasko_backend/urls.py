@@ -3,7 +3,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from recommendations.views import generate_recommendations 
 
 @csrf_exempt
 def health_check(request):
@@ -40,6 +39,6 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('api/recommendations/', include('recommendations.urls')),
     
-    # Fallback views for additional functionality
-    path('api/auth/generate-recommendations/', generate_recommendations),
+    # USUŃ TĘ LINIĘ - powoduje konflikt i nie jest potrzebna:
+    # path('api/auth/generate-recommendations/', generate_recommendations),
 ]
