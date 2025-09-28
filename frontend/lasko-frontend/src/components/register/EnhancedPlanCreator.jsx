@@ -1,14 +1,13 @@
-// frontend/lasko-frontend/src/components/register/EnhancedPlanCreator.jsx
 // Poprawiony wygląd dopasowany do stylu HomePage + alternatywne rekomendacje (2 dodatkowe)
-// LOGIKA API BEZ ZMIAN – tylko opakowanie odpowiedzi o alternate plans
+// Dodatkowo: stabilne przekazanie username do PlanSummary i zapis w sessionStorage
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AuthDebug from '../../utils/authDebug';
 import { RecommendationService } from '../../services/recommendationService';
 
-// ---------- Lokalne UI helpers (dopasowane do App.jsx) ----------
+// ---------- Lokalne UI helpers ----------
 const GradientGridBg = () => (
   <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
     <div className="absolute -top-24 -left-16 w-72 h-72 rounded-full bg-[#1DCD9F]/10 blur-3xl" />
@@ -69,9 +68,28 @@ const SecondaryButton = ({ onClick, children, disabled, className = '', type = '
   </button>
 );
 
-// Navbar komponent
+// Navbar (odporny na opóźnione nawodnienie usera)
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated, getToken, debugAuth } = useAuth();
+  const looksAuthed =
+    (typeof isAuthenticated === 'function' && isAuthenticated()) ||
+    (typeof getToken === 'function' && !!getToken());
+
+  const navbarName =
+    user?.username || sessionStorage.getItem('lasko_username') || 'Użytkowniku';
+
+  useEffect(() => {
+    if (user?.username) {
+      sessionStorage.setItem('lasko_username', user.username);
+    }
+  }, [user?.username]);
+
+  useEffect(() => {
+    if (!user && looksAuthed) {
+      try { debugAuth?.(); } catch {}
+    }
+  }, [user, looksAuthed, debugAuth]);
+
   const [open, setOpen] = useState(false);
 
   return (
@@ -82,10 +100,10 @@ const Navbar = () => {
         </Link>
 
         <div className="hidden items-center gap-3 md:flex">
-          {user ? (
+          {looksAuthed ? (
             <>
               <span className="hidden text-sm text-gray-300 lg:inline">
-                Witaj, <span className="font-semibold text-white">{user.username}</span>!
+                Witaj, <span className="font-semibold text-white">{navbarName}</span>!
               </span>
               <Link
                 to="/dashboard"
@@ -131,7 +149,7 @@ const Navbar = () => {
       {open && (
         <div className="md:hidden border-t border-white/5 bg-black/80 px-6 py-3">
           <div className="flex flex-col gap-2">
-            {user ? (
+            {looksAuthed ? (
               <>
                 <Link to="/dashboard" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
                   Dashboard
@@ -194,6 +212,13 @@ const EnhancedPlanCreator = () => {
   const { user, isAuthenticated, getToken, generateRecommendations, debugAuth } = useAuth();
   const recApi = useMemo(() => new RecommendationService(), []);
 
+  // pamiętaj username w sessionStorage, gdy tylko się pojawi
+  useEffect(() => {
+    if (user?.username) {
+      sessionStorage.setItem('lasko_username', user.username);
+    }
+  }, [user?.username]);
+
   // Normalizacja struktury planu z /detailed do { days: [{ title, exercises: [...] }] }
   const normalizePlanDetails = (base, detailed) => {
     const plan = detailed?.plan || detailed || {};
@@ -241,7 +266,6 @@ const EnhancedPlanCreator = () => {
     },
     name: initialData.name || '',
     recommendedPlan: null,
-    // ⬇️ NOWE: alternatywne rekomendacje (maks. 2)
     altPlans: [],
   });
 
@@ -317,16 +341,17 @@ const EnhancedPlanCreator = () => {
     setApiError(null);
     try {
       console.log('🚀 [EnhancedPlanCreator] === ROZPOCZYNAM GENEROWANIE PLANU ===');
+      const authed = typeof isAuthenticated === 'function' ? isAuthenticated() : !!getToken?.();
       console.log('🔍 Stan autoryzacji:', {
-        isAuthenticated: isAuthenticated(),
+        isAuthenticated: authed,
         hasUser: !!user,
-        hasToken: !!getToken(),
+        hasToken: !!getToken?.(),
         username: user?.username,
       });
 
-      if (!isAuthenticated()) {
-        console.warn('⚠️ [EnhancedPlanCreator] Brak ważnego access tokena – warstwa API spróbuje refresh.');
-        debugAuth();
+      if (!authed) {
+        console.warn('⚠️ Brak ważnego access tokena – warstwa API spróbuje refresh.');
+        try { debugAuth?.(); } catch {}
       }
 
       const preferences = {
@@ -342,32 +367,44 @@ const EnhancedPlanCreator = () => {
 
       const response = await generateRecommendations(planData.recommendationMethod, preferences);
 
-      if (response && response.recommendations && Array.isArray(response.recommendations) && response.recommendations.length > 0) {
-          // Prefetch szczegółów dla TOP 1–3 (żeby „Szczegóły” były od razu gotowe)
-          const topRecs = response.recommendations.slice(0, 3);
-          let detailed = [];
-          try {
-            detailed = await Promise.all(
-              topRecs.map(r => recApi.getPlanDetailed(r.planId).catch(() => null))
-            );
-          } catch (_) {
-            // ignorer — pojedyncze błędy łapiemy per-request powyżej
-          }
-          const merged = topRecs.map((r, i) => (detailed[i] ? normalizePlanDetails(r, detailed[i]) : r));
-          const recommendedPlan = merged[0];
-          const altPlans = merged.slice(1);
+      if (response && Array.isArray(response.recommendations) && response.recommendations.length > 0) {
+        // Prefetch szczegółów dla TOP 1–3
+        const topRecs = response.recommendations.slice(0, 3);
+        let detailed = [];
+        try {
+          detailed = await Promise.all(
+            topRecs.map(r => recApi.getPlanDetailed(r.planId).catch(() => null))
+          );
+        } catch (_) {}
 
-        const updatedPlanData = { 
-          ...planData, 
-          recommendedPlan, 
+        const merged = topRecs.map((r, i) => (detailed[i] ? normalizePlanDetails(r, detailed[i]) : r));
+        const recommendedPlan = merged[0];
+        const altPlans = merged.slice(1);
+
+        const updatedPlanData = {
+          ...planData,
+          recommendedPlan,
           altPlans,
-          name: recommendedPlan.name || planData.name 
+          name: recommendedPlan.name || planData.name,
         };
+
+        // Ustal i zapisz username natychmiast, zanim przejdziemy dalej
+        const usernameCandidate =
+          user?.username ||
+          initialData?.username ||
+          sessionStorage.getItem('lasko_username') ||
+          null;
+
+        if (usernameCandidate) {
+          sessionStorage.setItem('lasko_username', usernameCandidate);
+        }
 
         setPlanData(updatedPlanData);
         sessionStorage.setItem('lasko_plan_draft', JSON.stringify(updatedPlanData));
 
-        navigate('/plan-summary', { state: { planData: updatedPlanData, fromCreator: true } });
+        navigate('/plan-summary', {
+          state: { planData: updatedPlanData, fromCreator: true, username: usernameCandidate },
+        });
       } else {
         if (!response) throw new Error('Brak odpowiedzi z serwera');
         if (!response.recommendations) throw new Error('Serwer nie zwrócił rekomendacji');
@@ -377,8 +414,9 @@ const EnhancedPlanCreator = () => {
       }
     } catch (error) {
       console.error('❌ [EnhancedPlanCreator] Błąd generowania planu:', error);
-      if (error.message.includes('autoryzacji') || error.message.includes('401')) {
-        await AuthDebug.fullDiagnostic();
+      const msg = (error?.message || '').toLowerCase();
+      if (msg.includes('autoryzac') || msg.includes('401')) {
+        try { await AuthDebug.fullDiagnostic(); } catch {}
         setApiError('Sesja wygasła. Zostaniesz przekierowany do logowania.');
         setTimeout(() => {
           navigate('/login', { state: { message: 'Sesja wygasła - zaloguj się ponownie', returnTo: '/plan-creator' } });
@@ -392,7 +430,7 @@ const EnhancedPlanCreator = () => {
   };
 
   // ============================================================================
-  // RENDER KROKÓW - Ulepszone komponenty
+  // RENDER KROKÓW
   // ============================================================================
   const OptionCard = ({ active, onClick, children, disabled = false }) => (
     <div
@@ -412,10 +450,8 @@ const EnhancedPlanCreator = () => {
     </div>
   );
 
-  // Step Progress Indicator
   const StepProgress = () => {
     const steps = ['Metoda', 'Podstawy', 'Preferencje', 'Ciało', 'Nazwa'];
-    
     return (
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -468,7 +504,6 @@ const EnhancedPlanCreator = () => {
     );
   };
 
-  // Krok 0: metoda
   const renderMethodStep = () => (
     <div className="space-y-6">
       <div className="text-center">
@@ -505,7 +540,6 @@ const EnhancedPlanCreator = () => {
     </div>
   );
 
-  // Krok 1: podstawy
   const renderBasicsStep = () => (
     <div className="space-y-8">
       <div className="text-center">
@@ -607,7 +641,6 @@ const EnhancedPlanCreator = () => {
     </div>
   );
 
-  // Krok 2: preferencje
   const renderPreferencesStep = () => (
     <div className="space-y-8">
       <div className="text-center">
@@ -694,17 +727,17 @@ const EnhancedPlanCreator = () => {
     </div>
   );
 
-  // Krok 3: ciało
   const renderBodyStep = () => {
     const bmi = planData.body.weightKg && planData.body.heightCm
       ? (planData.body.weightKg / ((planData.body.heightCm / 100) ** 2)).toFixed(1)
       : null;
-    
-    const getBmiCategory = (bmi) => {
-      if (!bmi) return null;
-      if (bmi < 18.5) return { label: 'Niedowaga', color: 'text-blue-400' };
-      if (bmi < 25) return { label: 'Prawidłowa waga', color: 'text-emerald-400' };
-      if (bmi < 30) return { label: 'Nadwaga', color: 'text-yellow-400' };
+
+    const getBmiCategory = (b) => {
+      if (!b) return null;
+      const val = parseFloat(b);
+      if (val < 18.5) return { label: 'Niedowaga', color: 'text-blue-400' };
+      if (val < 25) return { label: 'Prawidłowa waga', color: 'text-emerald-400' };
+      if (val < 30) return { label: 'Nadwaga', color: 'text-yellow-400' };
       return { label: 'Otyłość', color: 'text-red-400' };
     };
 
@@ -801,7 +834,6 @@ const EnhancedPlanCreator = () => {
     );
   };
 
-  // Krok 4: nazwa
   const renderNameStep = () => (
     <div className="space-y-8">
       <div className="text-center">
@@ -825,8 +857,8 @@ const EnhancedPlanCreator = () => {
           placeholder="Np. Mój plan na masę 2025"
         />
         <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-gray-500">{planData.name.length}/50 znaków</span>
-          {planData.name.length > 40 && (
+          <span className="text-gray-500">{(planData.name || '').length}/50 znaków</span>
+          {planData.name && planData.name.length > 40 && (
             <span className="text-yellow-400">Zbliżasz się do limitu</span>
           )}
         </div>
@@ -835,7 +867,6 @@ const EnhancedPlanCreator = () => {
         )}
       </div>
 
-      {/* Sugestie nazw */}
       <div className="mx-auto max-w-lg">
         <p className="mb-3 text-sm text-gray-400">Przykładowe nazwy:</p>
         <div className="flex flex-wrap gap-2">
@@ -867,7 +898,7 @@ const EnhancedPlanCreator = () => {
         <h3 className="mb-6 text-xl font-bold text-white flex items-center gap-2">
           <span>📊</span> Podsumowanie planu
         </h3>
-        
+
         <div className="space-y-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-gray-500">Metoda</p>
@@ -937,11 +968,11 @@ const EnhancedPlanCreator = () => {
           )}
         </div>
 
-        {/* Progress indicator */}
+        {/* Progress */}
         <div className="mt-6 rounded-xl bg-white/5 p-3">
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-400">Postęp wypełniania</span>
-            <span className="font-semibold text-emerald-300">{((currentStep + 1) / 5 * 100).toFixed(0)}%</span>
+            <span className="font-semibold text-emerald-300">{(((currentStep + 1) / 5) * 100).toFixed(0)}%</span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
             <div
@@ -979,20 +1010,16 @@ const EnhancedPlanCreator = () => {
       <GradientGridBg />
       <GlowOrb className="left-[10%] top-32 h-64 w-64 bg-emerald-400/20" />
       <GlowOrb className="right-[15%] bottom-32 h-52 w-52 bg-teal-400/20" />
-      
+
       <Navbar />
 
       <div className="mx-auto max-w-7xl px-6 pt-28 pb-16">
-        {/* Progress bar na górze */}
         <StepProgress />
 
-        {/* Grid główny */}
         <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
-          {/* Główna zawartość */}
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-sm p-8 md:p-10">
             {steps[currentStep].component()}
 
-            {/* Nawigacja */}
             <div className="mt-10 flex items-center justify-between">
               <SecondaryButton
                 onClick={handlePrev}
@@ -1007,8 +1034,8 @@ const EnhancedPlanCreator = () => {
                   Dalej →
                 </PrimaryButton>
               ) : (
-                <PrimaryButton 
-                  onClick={generateRecommendedPlan} 
+                <PrimaryButton
+                  onClick={generateRecommendedPlan}
                   disabled={loading || !isStepValid(currentStep)}
                   className="min-w-[200px]"
                 >
@@ -1027,7 +1054,6 @@ const EnhancedPlanCreator = () => {
             </div>
           </div>
 
-          {/* Podsumowanie */}
           <aside className="hidden lg:block">
             <SummaryCard />
           </aside>

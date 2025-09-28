@@ -3383,3 +3383,49 @@ INFO 2025-09-28 14:44:40,460 views 23288 281473527640448 [Profile] Profil zwróc
 INFO 2025-09-28 14:44:40,461 basehttp 23288 281473527640448 "GET /api/auth/profile/ HTTP/1.1" 200 477
 INFO 2025-09-28 14:44:40,486 basehttp 23288 281473527640448 "GET /api/plans/370/detailed HTTP/1.1" 200 273
 INFO 2025-09-28 14:44:40,489 basehttp 23288 281473517154688 "GET /api/plans/370/detailed HTTP/1.1" 200 273
+INFO 2025-09-28 15:22:43,831 views 23288 281473517154688 [Profile] Pobieranie profilu dla user_id: 10010
+INFO 2025-09-28 15:22:43,835 views 23288 281473527640448 [Profile] Pobieranie profilu dla user_id: 10010
+INFO 2025-09-28 15:22:43,864 views 23288 281473517154688 [Profile] Profil zwrócony pomyślnie: test8
+INFO 2025-09-28 15:22:43,865 views 23288 281473527640448 [Profile] Profil zwrócony pomyślnie: test8
+INFO 2025-09-28 15:22:43,867 basehttp 23288 281473527640448 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 15:22:43,866 basehttp 23288 281473517154688 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 15:22:43,903 basehttp 23288 281473517154688 "GET /api/plans/370/detailed HTTP/1.1" 200 273
+INFO 2025-09-28 15:22:43,904 basehttp 23288 281473527640448 "GET /api/plans/370/detailed HTTP/1.1" 200 273
+INFO 2025-09-28 15:22:48,268 views 23288 281473527640448 [Logout] Wylogowywanie użytkownika
+INFO 2025-09-28 15:22:48,269 basehttp 23288 281473527640448 "POST /api/auth/logout/ HTTP/1.1" 200 35
+INFO 2025-09-28 15:22:53,429 basehttp 23288 281473527640448 "GET /api/auth/check-email/?email=test0%40wp.pl HTTP/1.1" 200 18
+INFO 2025-09-28 15:23:03,259 basehttp 23288 281473527640448 "GET /api/auth/check-username/?username=test HTTP/1.1" 200 19
+INFO 2025-09-28 15:23:03,710 basehttp 23288 281473527640448 "GET /api/auth/check-username/?username=test0 HTTP/1.1" 200 18
+INFO 2025-09-28 15:23:05,535 views 23288 281473527640448 [Register] Rejestracja użytkownika: test0
+INFO 2025-09-28 15:23:05,546 views 23288 281473527640448 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-28 15:23:05,547 serializers 23288 281473527640448 [Registration] Tworzenie konta: test0
+INFO 2025-09-28 15:23:05,547 serializers 23288 281473527640448 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-28 15:23:05,548 serializers 23288 281473527640448 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-28 15:23:05,548 serializers 23288 281473527640448 [Registration] Profile values - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-28 15:23:05,675 serializers 23288 281473527640448 [Registration] Konto utworzone: ID 10011
+INFO 2025-09-28 15:23:05,675 serializers 23288 281473527640448 [Registration] Finalne dane profilu: goal=zdrowie, level=poczatkujacy, equipment=silownia
+INFO 2025-09-28 15:23:05,677 serializers 23288 281473527640448 [Registration] Profil utworzony dla: test0
+INFO 2025-09-28 15:23:05,677 serializers 23288 281473527640448 [Registration] Zapisane wartości - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-28 15:23:05,678 views 23288 281473527640448 [Register] Użytkownik utworzony: ID 10011
+INFO 2025-09-28 15:23:05,679 views 23288 281473527640448 [Register] Rejestracja udana: test0
+INFO 2025-09-28 15:23:05,679 basehttp 23288 281473527640448 "POST /api/auth/register/ HTTP/1.1" 201 1018
+INFO 2025-09-28 15:23:05,685 views 23288 281473527640448 [UpdateProfile] Aktualizacja profilu dla user_id: 10011
+INFO 2025-09-28 15:23:05,692 views 23288 281473527640448 [UpdateProfile] Profil zaktualizowany: test0
+INFO 2025-09-28 15:23:05,692 basehttp 23288 281473527640448 "PUT /api/auth/profile/update/ HTTP/1.1" 200 375
+INFO 2025-09-28 15:23:33,218 views 23288 281473527640448 [Recommendations] Request for user_id: 10011
+INFO 2025-09-28 15:23:33,220 views 23288 281473527640448 [Recommendations] Request data resolved: {'mode': 'product', 'preferences': {'goal': 'sila', 'level': 'początkujący', 'equipment_preference': 'siłownia', 'training_days_per_week': 2, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 35, 'weightKg': 88, 'heightCm': 191, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-28 15:23:33,220 views 23288 281473527640448 [Recommendations] mode=product, top=3
+INFO 2025-09-28 15:23:33,241 engine 23288 281473527640448 [Engine] Fetched profile for user 10011: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 15:23:33,241 views 23288 281473527640448 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 15:23:33,242 views 23288 281473527640448 [Recommendations] Profile after preferences: {'goal': 'sila', 'level': 'początkujący', 'days': 2, 'equipment': 'siłownia'}
+INFO 2025-09-28 15:23:33,258 engine 23288 281473527640448 [Engine] Found 1200 active plans
+INFO 2025-09-28 15:23:33,259 engine 23288 281473527640448 [Engine] User profile for matching: {'goal': 'sila', 'level': 'początkujący', 'days': 2, 'equipment': 'siłownia'}
+INFO 2025-09-28 15:23:33,270 engine 23288 281473527640448 [Engine] Content-based returning 5 recommendations
+INFO 2025-09-28 15:23:33,270 views 23288 281473527640448 [Recommendations] Algorithm returned 5 results
+INFO 2025-09-28 15:23:33,272 views 23288 281473527640448 [Recommendations] Returning 3 recommendations
+INFO 2025-09-28 15:23:33,273 basehttp 23288 281473527640448 "POST /api/recommendations/ HTTP/1.1" 200 1385
+INFO 2025-09-28 15:23:33,290 basehttp 23288 281473527640448 "GET /api/plans/536/detailed HTTP/1.1" 200 273
+INFO 2025-09-28 15:23:33,290 basehttp 23288 281473517154688 "GET /api/plans/115/detailed HTTP/1.1" 200 273
+INFO 2025-09-28 15:23:33,294 basehttp 23288 281473431171456 "GET /api/plans/1138/detailed HTTP/1.1" 200 274
+INFO 2025-09-28 15:23:33,347 basehttp 23288 281473431171456 "GET /api/plans/536/detailed HTTP/1.1" 200 273
+INFO 2025-09-28 15:23:33,350 basehttp 23288 281473517154688 "GET /api/plans/536/detailed HTTP/1.1" 200 273

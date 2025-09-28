@@ -1,10 +1,9 @@
-// frontend/lasko-frontend/src/components/register/PlanSummary.jsx
 import React, { useEffect, useState, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { RecommendationService } from '../../services/recommendationService';
 
-// ---------- UI helpers (dopasowane do App.jsx i EnhancedPlanCreator) ----------
+// ---------- UI helpers ----------
 const GradientGridBg = () => (
   <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
     <div className="absolute -top-24 -left-16 w-72 h-72 rounded-full bg-[#1DCD9F]/10 blur-3xl" />
@@ -34,7 +33,6 @@ const Kicker = ({ children }) => (
 const PrimaryButton = ({ onClick, to, children, className = '' }) => {
   const Comp = to ? Link : 'button';
   const props = to ? { to } : { onClick };
-  
   return (
     <Comp
       {...props}
@@ -54,7 +52,6 @@ const PrimaryButton = ({ onClick, to, children, className = '' }) => {
 const SecondaryButton = ({ onClick, to, children, className = '' }) => {
   const Comp = to ? Link : 'button';
   const props = to ? { to } : { onClick };
-  
   return (
     <Comp
       {...props}
@@ -69,14 +66,21 @@ const SecondaryButton = ({ onClick, to, children, className = '' }) => {
   );
 };
 
-// Navbar komponent
+// Navbar
 const Navbar = () => {
- const { user, logout, isAuthenticated, getToken } = useAuth();
- const looksAuthed =
-   (typeof isAuthenticated === 'function' && isAuthenticated()) ||
-   (typeof getToken === 'function' && !!getToken());
- const navbarName =
-   user?.username || sessionStorage.getItem('lasko_username') || 'Użytkowniku';
+  const { user, logout, isAuthenticated, getToken, debugAuth } = useAuth();
+  const looksAuthed =
+    (typeof isAuthenticated === 'function' && isAuthenticated()) ||
+    (typeof getToken === 'function' && !!getToken());
+  const navbarName =
+    user?.username || sessionStorage.getItem('lasko_username') || 'Użytkowniku';
+
+  // Jeżeli mamy token, ale brak usera – delikatny „poke” do warstwy auth
+  useEffect(() => {
+    if (!user && looksAuthed) {
+      try { debugAuth?.(); } catch {}
+    }
+  }, [user, looksAuthed, debugAuth]);
 
   const [open, setOpen] = useState(false);
 
@@ -120,7 +124,7 @@ const Navbar = () => {
       {open && (
         <div className="md:hidden border-t border-white/5 bg-black/80 px-6 py-3">
           <div className="flex flex-col gap-2">
-            {user ? (
+            {looksAuthed ? (
               <>
                 <Link to="/dashboard" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
                   Dashboard
@@ -146,7 +150,7 @@ const Navbar = () => {
   );
 };
 
-// Stats card component
+// Cards
 const StatCard = ({ label, value, icon }) => (
   <div className="group relative rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition-all hover:border-emerald-400/40">
     <div className="flex items-start justify-between">
@@ -160,7 +164,6 @@ const StatCard = ({ label, value, icon }) => (
   </div>
 );
 
-// Exercise card component
 const ExerciseCard = ({ exercise, index }) => (
   <div className="group relative rounded-xl border border-white/10 bg-white/[0.04] p-4 transition-all hover:border-emerald-400/40">
     <div className="flex items-center gap-4">
@@ -181,7 +184,6 @@ const ExerciseCard = ({ exercise, index }) => (
   </div>
 );
 
-// Day card component
 const DayCard = ({ day, index }) => (
   <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
     <div className="mb-4 flex items-center justify-between">
@@ -206,7 +208,7 @@ const DayCard = ({ day, index }) => (
   </div>
 );
 
-// ===== helpery do agregacji danych planu =====
+// ===== helpers =====
 const extractAllExercises = (plan) => {
   if (!plan?.days) return [];
   const arr = [];
@@ -234,18 +236,18 @@ export default function PlanSummary() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, getToken, debugAuth } = useAuth();
+
   const username =
     state?.username ||
     user?.username ||
     sessionStorage.getItem('lasko_username') ||
     null;
 
-  // If we seem authenticated but user isn't hydrated yet, poke the auth layer
+  // Jeżeli jesteśmy „authed”, ale user nie dohydratowany – spróbuj go pobrać
   useEffect(() => {
     const hasToken = typeof getToken === 'function' ? !!getToken() : false;
     const authed = typeof isAuthenticated === 'function' ? isAuthenticated() : hasToken;
     if (!user && authed) {
-      // optional: triggers a /me or similar in your AuthContext (safe no-op otherwise)
       try { debugAuth?.(); } catch {}
     }
   }, [user, isAuthenticated, getToken, debugAuth]);
@@ -254,29 +256,28 @@ export default function PlanSummary() {
   const [activeTab, setActiveTab] = useState('overview'); // overview | details | schedule
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
-  const recApi = useMemo(() => new RecommendationService(), [])
+  const recApi = useMemo(() => new RecommendationService(), []);
 
   const normalizePlanDetails = (base, detailed) => {
-      // base: obiekt z rekomendacji (planId, name,...), detailed: odpowiedź z /detailed
-      const plan = detailed?.plan || detailed || {};
-      const daysRaw = plan.days ?? plan.workouts ?? plan.sessions ?? [];
-      const days = Array.isArray(daysRaw) ? daysRaw.map((d, idx) => ({
-        title: d.title || d.name || d.dayName || `Dzień ${idx + 1}`,
-        exercises: Array.isArray(d.exercises) ? d.exercises
-                  : Array.isArray(d.items) ? d.items
-                  : Array.isArray(d.movements) ? d.movements
-                  : [],
-      })) : [];
-  
-      return {
-        ...base,
-        // uzupełnij brakujące meta jeśli backend zwraca pełniejszy opis
-        name: base?.name ?? plan?.name,
-        description: base?.description ?? plan?.description,
-        days,
-      };
-    };
+    const plan = detailed?.plan || detailed || {};
+    const daysRaw = plan.days ?? plan.workouts ?? plan.sessions ?? [];
+    const days = Array.isArray(daysRaw) ? daysRaw.map((d, idx) => ({
+      title: d.title || d.name || d.dayName || `Dzień ${idx + 1}`,
+      exercises: Array.isArray(d.exercises) ? d.exercises
+                : Array.isArray(d.items) ? d.items
+                : Array.isArray(d.movements) ? d.movements
+                : [],
+    })) : [];
 
+    return {
+      ...base,
+      name: base?.name ?? plan?.name,
+      description: base?.description ?? plan?.description,
+      days,
+    };
+  };
+
+  // odczyt z sessionStorage, jeśli przyszliśmy „na pusto”
   useEffect(() => {
     if (!state?.planData) {
       const raw = sessionStorage.getItem('lasko_plan_draft');
@@ -290,7 +291,7 @@ export default function PlanSummary() {
     }
   }, [state]);
 
-  // Dociągnij szczegóły planu, jeśli mamy planId, ale brak 'days'
+  // dociągnij szczegóły planu, jeśli mamy ID ale brak days
   useEffect(() => {
     const pid = planData?.recommendedPlan?.planId;
     const hasDays = Array.isArray(planData?.recommendedPlan?.days) && planData.recommendedPlan.days.length > 0;
@@ -300,7 +301,7 @@ export default function PlanSummary() {
       try {
         setDetailsError(null);
         setDetailsLoading(true);
-        const detailed = await recApi.getPlanDetailed(pid); // { success, plan: {...} } lub {...}
+        const detailed = await recApi.getPlanDetailed(pid);
         if (isCancelled) return;
         const merged = {
           ...planData,
@@ -315,7 +316,7 @@ export default function PlanSummary() {
       }
     })();
     return () => { isCancelled = true; };
-  }, [planData?.recommendedPlan?.planId]); // zależność po ID planu
+  }, [planData?.recommendedPlan?.planId]); // tylko po ID
 
   // bezpieczne odczyty
   const { recommendedPlan, name, goal, level, trainingDaysPerWeek, timePerSession, equipment, altPlans = [] } = {
@@ -323,14 +324,14 @@ export default function PlanSummary() {
     equipment: planData?.equipment ?? planData?.equipment_preference,
   };
 
-  // szybkie agregaty
+  // agregaty
   const allExercises = useMemo(() => extractAllExercises(recommendedPlan), [recommendedPlan]);
   const topExercises = useMemo(() => countBy(allExercises, ex => ex.name).slice(0, 8), [allExercises]);
   const totalSets = useMemo(() => sumSets(allExercises), [allExercises]);
   const totalExercises = allExercises.length;
   const totalDays = recommendedPlan?.days?.length || 0;
 
-  // zamień plan na alternatywny (bez kolejnego requestu)
+  // zamiana na plan alternatywny
   const useAlternativePlan = (idx) => {
     const alt = altPlans[idx];
     if (!alt) return;
@@ -345,7 +346,6 @@ export default function PlanSummary() {
       <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
         <GradientGridBg />
         <Navbar />
-        
         <div className="grid min-h-screen place-items-center px-6 pt-20">
           <div className="w-full max-w-md">
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center">
@@ -373,35 +373,36 @@ export default function PlanSummary() {
     );
   }
 
-  // Mapowanie danych do ładniejszych etykiet
+  // Mapowanie etykiet
   const goalLabels = {
-    'masa': 'Masa mięśniowa',
-    'sila': 'Siła',
-    'spalanie': 'Redukcja tkanki tłuszczowej',
-    'wytrzymalosc': 'Wytrzymałość',
-    'zdrowie': 'Zdrowie ogólne'
+    masa: 'Masa mięśniowa',
+    sila: 'Siła',
+    spalanie: 'Redukcja tkanki tłuszczowej',
+    wytrzymalosc: 'Wytrzymałość',
+    zdrowie: 'Zdrowie ogólne',
   };
 
   const equipmentLabels = {
     'siłownia': 'Pełna siłownia',
-    'dom_hantle': 'Dom (hantle + ławka)',
-    'dom_masa': 'Dom (masa własna)',
-    'minimalne': 'Minimalne wyposażenie'
+    dom_hantle: 'Dom (hantle + ławka)',
+    dom_masa: 'Dom (masa własna)',
+    minimalne: 'Minimalne wyposażenie',
   };
+
   const levelLabels = {
-     'początkujący': 'Początkujący',
-     'poczatkujacy': 'Początkujący',
-     'średniozaawansowany': 'Średnio-zaawansowany',
-     'sredniozaawansowany': 'Średnio-zaawansowany',
-     'zaawansowany': 'Zaawansowany'
-  }
+    'początkujący': 'Początkujący',
+    'poczatkujacy': 'Początkujący',
+    'średniozaawansowany': 'Średnio-zaawansowany',
+    'sredniozaawansowany': 'Średnio-zaawansowany',
+    'zaawansowany': 'Zaawansowany',
+  };
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
       <GradientGridBg />
       <GlowOrb className="left-[20%] top-40 h-64 w-64 bg-emerald-400/20" />
       <GlowOrb className="right-[10%] bottom-32 h-52 w-52 bg-teal-400/20" />
-      
+
       <Navbar />
 
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-16">
@@ -430,7 +431,7 @@ export default function PlanSummary() {
           {[
             { id: 'overview', label: 'Przegląd', icon: '📋' },
             { id: 'details', label: 'Szczegóły', icon: '📝' },
-            { id: 'schedule', label: 'Harmonogram', icon: '📅' }
+            { id: 'schedule', label: 'Harmonogram', icon: '📅' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -439,7 +440,7 @@ export default function PlanSummary() {
                 'flex items-center gap-2 px-6 py-3 text-sm font-semibold transition-colors',
                 activeTab === tab.id
                   ? 'border-b-2 border-emerald-400 text-emerald-300'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-gray-400 hover:text-white',
               ].join(' ')}
             >
               <span>{tab.icon}</span>
@@ -518,7 +519,7 @@ export default function PlanSummary() {
                 </div>
               </div>
 
-              {/* Inne propozycje (alternatywne plany) */}
+              {/* Alternatywy */}
               {Array.isArray(altPlans) && altPlans.length > 0 && (
                 <div className="mt-2">
                   <h3 className="mb-3 text-lg font-bold text-white">Inne propozycje</h3>
@@ -545,7 +546,6 @@ export default function PlanSummary() {
                           <button
                             onClick={() => {
                               setActiveTab('details');
-                              // przewiń niżej po wybraniu zakładki
                               setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
                             }}
                             className="rounded-full border-2 border-emerald-400/60 px-5 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-400/10 transition-colors"
@@ -559,7 +559,7 @@ export default function PlanSummary() {
                 </div>
               )}
 
-              {/* Call to action */}
+              {/* CTA */}
               <div className="rounded-2xl bg-gradient-to-r from-emerald-400/10 to-teal-400/10 border border-emerald-400/20 p-6">
                 <h3 className="mb-2 text-lg font-bold text-white">Gotowy do działania?</h3>
                 <p className="mb-4 text-gray-300">
