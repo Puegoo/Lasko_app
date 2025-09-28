@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { RecommendationService } from '../../services/recommendationService';
 
 // ---------- UI helpers (dopasowane do App.jsx i EnhancedPlanCreator) ----------
 const GradientGridBg = () => (
@@ -70,7 +71,13 @@ const SecondaryButton = ({ onClick, to, children, className = '' }) => {
 
 // Navbar komponent
 const Navbar = () => {
-  const { user, logout } = useAuth();
+ const { user, logout, isAuthenticated, getToken } = useAuth();
+ const looksAuthed =
+   (typeof isAuthenticated === 'function' && isAuthenticated()) ||
+   (typeof getToken === 'function' && !!getToken());
+ const navbarName =
+   user?.username || sessionStorage.getItem('lasko_username') || 'Użytkowniku';
+
   const [open, setOpen] = useState(false);
 
   return (
@@ -81,10 +88,10 @@ const Navbar = () => {
         </Link>
 
         <div className="hidden items-center gap-3 md:flex">
-          {user ? (
+          {looksAuthed ? (
             <>
               <span className="hidden text-sm text-gray-300 lg:inline">
-                Witaj, <span className="font-semibold text-white">{user.username}</span>!
+                Witaj, <span className="font-semibold text-white">{navbarName}</span>!
               </span>
               <PrimaryButton to="/dashboard">Dashboard</PrimaryButton>
               <button onClick={logout} className="text-sm text-gray-300 hover:text-white">
@@ -226,10 +233,49 @@ const sumSets = (items) => items.reduce((acc, ex) => acc + (Number(ex.sets) || 0
 export default function PlanSummary() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated, getToken, debugAuth } = useAuth();
+  const username =
+    state?.username ||
+    user?.username ||
+    sessionStorage.getItem('lasko_username') ||
+    null;
+
+  // If we seem authenticated but user isn't hydrated yet, poke the auth layer
+  useEffect(() => {
+    const hasToken = typeof getToken === 'function' ? !!getToken() : false;
+    const authed = typeof isAuthenticated === 'function' ? isAuthenticated() : hasToken;
+    if (!user && authed) {
+      // optional: triggers a /me or similar in your AuthContext (safe no-op otherwise)
+      try { debugAuth?.(); } catch {}
+    }
+  }, [user, isAuthenticated, getToken, debugAuth]);
 
   const [planData, setPlanData] = useState(state?.planData || null);
   const [activeTab, setActiveTab] = useState('overview'); // overview | details | schedule
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState(null);
+  const recApi = useMemo(() => new RecommendationService(), [])
+
+  const normalizePlanDetails = (base, detailed) => {
+      // base: obiekt z rekomendacji (planId, name,...), detailed: odpowiedź z /detailed
+      const plan = detailed?.plan || detailed || {};
+      const daysRaw = plan.days ?? plan.workouts ?? plan.sessions ?? [];
+      const days = Array.isArray(daysRaw) ? daysRaw.map((d, idx) => ({
+        title: d.title || d.name || d.dayName || `Dzień ${idx + 1}`,
+        exercises: Array.isArray(d.exercises) ? d.exercises
+                  : Array.isArray(d.items) ? d.items
+                  : Array.isArray(d.movements) ? d.movements
+                  : [],
+      })) : [];
+  
+      return {
+        ...base,
+        // uzupełnij brakujące meta jeśli backend zwraca pełniejszy opis
+        name: base?.name ?? plan?.name,
+        description: base?.description ?? plan?.description,
+        days,
+      };
+    };
 
   useEffect(() => {
     if (!state?.planData) {
@@ -243,6 +289,33 @@ export default function PlanSummary() {
       }
     }
   }, [state]);
+
+  // Dociągnij szczegóły planu, jeśli mamy planId, ale brak 'days'
+  useEffect(() => {
+    const pid = planData?.recommendedPlan?.planId;
+    const hasDays = Array.isArray(planData?.recommendedPlan?.days) && planData.recommendedPlan.days.length > 0;
+    if (!pid || hasDays) return;
+    let isCancelled = false;
+    (async () => {
+      try {
+        setDetailsError(null);
+        setDetailsLoading(true);
+        const detailed = await recApi.getPlanDetailed(pid); // { success, plan: {...} } lub {...}
+        if (isCancelled) return;
+        const merged = {
+          ...planData,
+          recommendedPlan: normalizePlanDetails(planData.recommendedPlan, detailed),
+        };
+        setPlanData(merged);
+        sessionStorage.setItem('lasko_plan_draft', JSON.stringify(merged));
+      } catch (e) {
+        if (!isCancelled) setDetailsError(e?.message || 'Nie udało się pobrać szczegółów planu.');
+      } finally {
+        if (!isCancelled) setDetailsLoading(false);
+      }
+    })();
+    return () => { isCancelled = true; };
+  }, [planData?.recommendedPlan?.planId]); // zależność po ID planu
 
   // bezpieczne odczyty
   const { recommendedPlan, name, goal, level, trainingDaysPerWeek, timePerSession, equipment, altPlans = [] } = {
@@ -315,6 +388,13 @@ export default function PlanSummary() {
     'dom_masa': 'Dom (masa własna)',
     'minimalne': 'Minimalne wyposażenie'
   };
+  const levelLabels = {
+     'początkujący': 'Początkujący',
+     'poczatkujacy': 'Początkujący',
+     'średniozaawansowany': 'Średnio-zaawansowany',
+     'sredniozaawansowany': 'Średnio-zaawansowany',
+     'zaawansowany': 'Zaawansowany'
+  }
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
@@ -332,14 +412,14 @@ export default function PlanSummary() {
             {name || 'Twój spersonalizowany plan'}
           </h1>
           <p className="mt-3 text-lg text-gray-300">
-            Przygotowany specjalnie dla {user?.username}
+            Przygotowany specjalnie dla {username || 'Ciebie'}
           </p>
         </header>
 
         {/* Stats Grid */}
         <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard label="Cel" value={goalLabels[goal] || goal} icon="🎯" />
-          <StatCard label="Poziom" value={level} icon="📊" />
+          <StatCard label="Poziom" value={levelLabels[level] || level} icon="📊" />
           <StatCard label="Dni/tydzień" value={trainingDaysPerWeek} icon="📅" />
           <StatCard label="Czas/sesja" value={`${timePerSession} min`} icon="⏱️" />
           <StatCard label="Sprzęt" value={equipmentLabels[equipment] || equipment} icon="🏋️" />
@@ -492,6 +572,17 @@ export default function PlanSummary() {
 
           {activeTab === 'details' && recommendedPlan && (
             <div className="space-y-6">
+              {detailsLoading && (
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-6 text-center text-gray-300">
+                  <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent mr-2" />
+                  Wczytuję szczegóły planu…
+                </div>
+              )}
+              {detailsError && (
+                <div className="rounded-xl border border-red-500/40 bg-red-900/20 p-4 text-red-200">
+                  ⚠️ {detailsError}
+                </div>
+              )}
               {Array.isArray(recommendedPlan.days) && recommendedPlan.days.length > 0 ? (
                 <>
                   <div className="mb-6">

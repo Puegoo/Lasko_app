@@ -118,22 +118,19 @@ const NameCard = ({
               </div>
             )}
 
-            {!validationErrors.first_name &&
-              !validationErrors.username &&
-              formData?.name &&
-              !isFormValid && (
-                <p id={`${nameId}-help`} className="text-red-400">
-                  Imię powinno mieć co najmniej 2 znaki.
-                </p>
-              )}
+            {!validationErrors.first_name && !validationErrors.username && formData?.name && !isFormValid && (
+              <p id={`${nameId}-help`} className="text-red-400">
+                Imię powinno mieć co najmniej 2 znaki.
+              </p>
+            )}
 
-            {!validationErrors.first_name &&
-              !validationErrors.username &&
-              isFormValid
-              }
+            {!validationErrors.first_name && !validationErrors.username && isFormValid && suggestedUsername && (
+              <p id={`${nameId}-help`} className="text-emerald-300">
+                Proponowana nazwa użytkownika: <strong>@{suggestedUsername}</strong>
+              </p>
+            )}
           </div>
         </div>
-
         {/* CTA */}
         <div className="grid grid-cols-2 gap-4 pt-2">
           <button

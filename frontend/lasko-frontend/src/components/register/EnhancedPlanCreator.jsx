@@ -6,6 +6,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AuthDebug from '../../utils/authDebug';
+import { RecommendationService } from '../../services/recommendationService';
 
 // ---------- Lokalne UI helpers (dopasowane do App.jsx) ----------
 const GradientGridBg = () => (
@@ -191,6 +192,26 @@ const EnhancedPlanCreator = () => {
   const location = useLocation();
 
   const { user, isAuthenticated, getToken, generateRecommendations, debugAuth } = useAuth();
+  const recApi = useMemo(() => new RecommendationService(), []);
+
+  // Normalizacja struktury planu z /detailed do { days: [{ title, exercises: [...] }] }
+  const normalizePlanDetails = (base, detailed) => {
+    const plan = detailed?.plan || detailed || {};
+    const daysRaw = plan.days ?? plan.workouts ?? plan.sessions ?? [];
+    const days = Array.isArray(daysRaw)
+      ? daysRaw.map((d, idx) => ({
+          title: d.title || d.name || d.dayName || `Dzień ${idx + 1}`,
+          exercises: Array.isArray(d.exercises)
+            ? d.exercises
+            : Array.isArray(d.items)
+            ? d.items
+            : Array.isArray(d.movements)
+            ? d.movements
+            : [],
+        }))
+      : [];
+    return { ...base, days };
+  };
 
   // ============================================================================
   // STAN KOMPONENTU
@@ -322,9 +343,19 @@ const EnhancedPlanCreator = () => {
       const response = await generateRecommendations(planData.recommendationMethod, preferences);
 
       if (response && response.recommendations && Array.isArray(response.recommendations) && response.recommendations.length > 0) {
-        const recommendedPlan = response.recommendations[0];
-        // ⬇️ Zbierz do 2 alternatyw (np. inne warianty splitu/objętości)
-        const altPlans = response.recommendations.slice(1, 3) || [];
+          // Prefetch szczegółów dla TOP 1–3 (żeby „Szczegóły” były od razu gotowe)
+          const topRecs = response.recommendations.slice(0, 3);
+          let detailed = [];
+          try {
+            detailed = await Promise.all(
+              topRecs.map(r => recApi.getPlanDetailed(r.planId).catch(() => null))
+            );
+          } catch (_) {
+            // ignorer — pojedyncze błędy łapiemy per-request powyżej
+          }
+          const merged = topRecs.map((r, i) => (detailed[i] ? normalizePlanDetails(r, detailed[i]) : r));
+          const recommendedPlan = merged[0];
+          const altPlans = merged.slice(1);
 
         const updatedPlanData = { 
           ...planData, 

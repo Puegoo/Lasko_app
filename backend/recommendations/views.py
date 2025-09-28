@@ -469,3 +469,131 @@ def activate_plan(request):
             "message": str(e),
             "code": "server_error"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def plan_detailed(request, plan_id: int):
+    """
+    GET /api/plans/<plan_id>/detailed
+    Zwraca { success, plan: {..., days: [...] } }
+    """
+    try:
+        data = None
+
+        # 1) Spróbuj przez engine (jeśli dostępny)
+        if HAS_ENGINE:
+            try:
+                details = plan_details([plan_id]) or {}
+                # engine może zwrócić klucze int lub str
+                data = details.get(plan_id) or details.get(str(plan_id))
+            except Exception as e:
+                logger.warning(f"[PlanDetailed] engine.plan_details error: {e}")
+
+        # 2) Fallback – podstawowe meta z bazy (bez dni)
+        if not data:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT plan_id, name, description, goal_type, difficulty_level,
+                           training_days_per_week, equipment_required
+                    FROM training_plans
+                    WHERE plan_id = %s
+                """, [plan_id])
+                row = cursor.fetchone()
+                if row:
+                    data = {
+                        "plan_id": row[0],
+                        "name": row[1],
+                        "description": row[2],
+                        "goal_type": row[3],
+                        "difficulty_level": row[4],
+                        "training_days_per_week": row[5],
+                        "equipment_required": row[6],
+                        "days": [],   # brak szczegółowych dni — UI to obsłuży
+                    }
+
+        if not data:
+            return Response({"error": "Plan not found", "code": "plan_not_found"},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        # Upewnij się, że zawsze jest tablica 'days'
+        if 'days' not in data or data['days'] is None:
+            data['days'] = []
+
+        return Response({"success": True, "plan": data}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[PlanDetailed] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error fetching plan details",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def activate_plan_by_path(request, plan_id: int):
+    """
+    POST /api/plans/<plan_id>/activate
+    Alias do istniejącego endpointu aktywacji – przyjmuje plan_id w ścieżce.
+    """
+    try:
+        # Pobierz user_id z JWT
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        logger.info(f"[ActivatePlanAlias] Activate plan {plan_id} for user_id: {user_id}")
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT plan_id, name FROM training_plans WHERE plan_id=%s", [plan_id])
+            row = cursor.fetchone()
+            if not row:
+                return Response({"error": "Plan does not exist", "code": "plan_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+
+            plan_name = row[1]
+
+            # Sprawdź istnienie tabeli user_active_plans
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = 'user_active_plans'
+                )
+            """)
+            table_exists = cursor.fetchone()[0]
+
+            if table_exists:
+                cursor.execute("""
+                    INSERT INTO user_active_plans (auth_account_id, plan_id, start_date, is_completed)
+                    VALUES (%s, %s, CURRENT_DATE, FALSE)
+                    ON CONFLICT (auth_account_id)
+                    DO UPDATE SET
+                        plan_id = EXCLUDED.plan_id,
+                        start_date = EXCLUDED.start_date,
+                        is_completed = FALSE
+                """, [user_id, plan_id])
+                logger.info(f"[ActivatePlanAlias] Plan '{plan_name}' activated for user {user_id}")
+            else:
+                logger.warning("[ActivatePlanAlias] user_active_plans table does not exist")
+
+        return Response({
+            "success": True,
+            "message": f"Plan '{plan_name}' activated successfully",
+            "planId": plan_id,
+            "planName": plan_name
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[ActivatePlanAlias] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error during plan activation",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

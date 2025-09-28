@@ -28,7 +28,7 @@ export class RecommendationService {
 
   // BACKEND: POST /api/recommendations/
   // { userId, mode: 'hybrydowo'|'produktowo'|'klientowo', preferences: {...}, top }
-  async getRecommendations({ mode = 'hybrydowo', top = 3, preferences = {}, userId } = {}) {
+  async getRecommendations({ mode = 'hybrid', top = 3, preferences = {}, userId } = {}) {
     const body = {
       userId: userId ?? getCurrentUserIdFromToken(),
       mode,
@@ -47,15 +47,20 @@ export class RecommendationService {
     return await res.json(); // { recommendations: [...] }
   }
 
-  async getPlanDetailed(planId) {
-    const res = await fetch(`${this.baseURL}/api/plans/${encodeURIComponent(planId)}/detailed`, {
-      method: 'GET',
-      headers: this._headers(),
-    });
-    if (res.status === 401) throw new Error('Brak tokenu autoryzacji - zaloguj się ponownie');
-    if (!res.ok) throw new Error('Nie udało się pobrać szczegółów planu.');
-    return await res.json(); // { success: true, plan: {...} }
-  }
+  async getPlanDetailed(planId, { signal } = {}) {
+      const tryFetch = async (url) => {
+        const r = await fetch(url, { method: 'GET', headers: this._headers(), signal });
+        return r.ok ? r.json() : null;
+      };
+      const id = encodeURIComponent(planId);
+      const base = this.baseURL || '';
+      const out =
+        (await tryFetch(`${base}/api/plans/${id}/detailed`)) ||
+        (await tryFetch(`${base}/api/recommendations/plan/${id}/detailed`)) ||
+        null;
+      if (!out) throw new Error('Nie udało się pobrać szczegółów planu.');
+      return out;
+    }
 
   async activatePlan(planId) {
     const res = await fetch(`${this.baseURL}/api/plans/${encodeURIComponent(planId)}/activate`, {
