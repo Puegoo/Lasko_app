@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer  # DODANE!
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from django.db.models import Q
 
 from .models import AuthAccount, UserProfile
 from .serializers import (
@@ -500,3 +501,33 @@ def debug_auth(request):
             'detail': 'Błąd debug endpoint',
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def check_email(request):
+    """
+    Zwraca {"available": true/false}
+    Sprawdza istnienie e-maila case-insensitive.
+    """
+    email = (request.GET.get('email') or '').strip()
+    if not email:
+        return Response({'available': False}, status=status.HTTP_400_BAD_REQUEST)
+
+    exists = AuthAccount.objects.filter(email__iexact=email).exists()
+    return Response({'available': not exists}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def check_username(request):
+    """
+    Zwraca {"available": true/false}
+    Sprawdza istnienie nazwy użytkownika case-insensitive.
+    """
+    username = (request.GET.get('username') or '').strip()
+    if not username:
+        return Response({'available': False}, status=status.HTTP_400_BAD_REQUEST)
+
+    exists = AuthAccount.objects.filter(username__iexact=username).exists()
+    return Response({'available': not exists}, status=status.HTTP_200_OK)
