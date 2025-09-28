@@ -3429,3 +3429,13 @@ INFO 2025-09-28 15:23:33,290 basehttp 23288 281473517154688 "GET /api/plans/115/
 INFO 2025-09-28 15:23:33,294 basehttp 23288 281473431171456 "GET /api/plans/1138/detailed HTTP/1.1" 200 274
 INFO 2025-09-28 15:23:33,347 basehttp 23288 281473431171456 "GET /api/plans/536/detailed HTTP/1.1" 200 273
 INFO 2025-09-28 15:23:33,350 basehttp 23288 281473517154688 "GET /api/plans/536/detailed HTTP/1.1" 200 273
+INFO 2025-09-28 18:34:08,173 autoreload 2150 281473066831904 Watching for file changes with StatReloader
+INFO 2025-09-28 18:34:08,225 views 2150 281473066831904 [Recommendations] Engine loaded successfully
+INFO 2025-09-28 18:38:47,331 views 2150 281472986575232 [Profile] Pobieranie profilu dla user_id: 10013
+INFO 2025-09-28 18:38:47,332 views 2150 281472976089472 [Profile] Pobieranie profilu dla user_id: 10013
+INFO 2025-09-28 18:38:47,359 views 2150 281472976089472 [Profile] Profil zwrócony pomyślnie: test3
+INFO 2025-09-28 18:38:47,360 views 2150 281472986575232 [Profile] Profil zwrócony pomyślnie: test3
+INFO 2025-09-28 18:38:47,362 basehttp 2150 281472986575232 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 18:38:47,361 basehttp 2150 281472976089472 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 18:38:47,427 basehttp 2150 281472976089472 "GET /api/plans/339/detailed HTTP/1.1" 200 285
+INFO 2025-09-28 18:38:47,434 basehttp 2150 281472986575232 "GET /api/plans/339/detailed HTTP/1.1" 200 285
