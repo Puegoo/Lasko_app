@@ -2324,3 +2324,109 @@ INFO 2025-09-27 23:25:03,250 views 277 281473429074304 [Recommendations] Algorit
 INFO 2025-09-27 23:25:03,251 basehttp 277 281473418588544 "POST /api/recommendations/ HTTP/1.1" 200 1604
 INFO 2025-09-27 23:25:03,251 views 277 281473429074304 [Recommendations] Returning 3 recommendations
 INFO 2025-09-27 23:25:03,252 basehttp 277 281473429074304 "POST /api/recommendations/ HTTP/1.1" 200 1604
+WARNING 2025-09-28 09:20:53,088 log 277 281473429074304 Not Found: /api/auth/token/refresh/
+WARNING 2025-09-28 09:20:53,105 basehttp 277 281473429074304 "POST /api/auth/token/refresh/ HTTP/1.1" 404 5085
+WARNING 2025-09-28 09:20:53,396 log 277 281473429074304 Unauthorized: /api/auth/logout/
+WARNING 2025-09-28 09:20:53,398 basehttp 277 281473429074304 "POST /api/auth/logout/ HTTP/1.1" 401 52
+WARNING 2025-09-28 09:20:53,406 log 277 281473429074304 Unauthorized: /api/auth/logout/
+WARNING 2025-09-28 09:20:53,407 basehttp 277 281473429074304 "POST /api/auth/logout/ HTTP/1.1" 401 52
+INFO 2025-09-28 09:53:13,836 views 277 281473429074304 [Register] Rejestracja użytkownika: test100
+INFO 2025-09-28 09:53:13,862 views 277 281473429074304 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-28 09:53:13,863 serializers 277 281473429074304 [Registration] Tworzenie konta: test100
+INFO 2025-09-28 09:53:13,863 serializers 277 281473429074304 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-28 09:53:13,863 serializers 277 281473429074304 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-28 09:53:13,864 serializers 277 281473429074304 [Registration] Profile values - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-28 09:53:14,002 serializers 277 281473429074304 [Registration] Konto utworzone: ID 10008
+INFO 2025-09-28 09:53:14,002 serializers 277 281473429074304 [Registration] Finalne dane profilu: goal=zdrowie, level=poczatkujacy, equipment=silownia
+INFO 2025-09-28 09:53:14,004 serializers 277 281473429074304 [Registration] Profil utworzony dla: test100
+INFO 2025-09-28 09:53:14,004 serializers 277 281473429074304 [Registration] Zapisane wartości - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-28 09:53:14,006 views 277 281473429074304 [Register] Użytkownik utworzony: ID 10008
+INFO 2025-09-28 09:53:14,008 views 277 281473429074304 [Register] Rejestracja udana: test100
+INFO 2025-09-28 09:53:14,008 basehttp 277 281473429074304 "POST /api/auth/register/ HTTP/1.1" 201 1031
+INFO 2025-09-28 09:53:14,017 views 277 281473429074304 [UpdateProfile] Aktualizacja profilu dla user_id: 10008
+INFO 2025-09-28 09:53:14,027 views 277 281473429074304 [UpdateProfile] Profil zaktualizowany: test100
+INFO 2025-09-28 09:53:14,028 basehttp 277 281473429074304 "PUT /api/auth/profile/update/ HTTP/1.1" 200 377
+INFO 2025-09-28 09:53:27,966 views 277 281473429074304 [Recommendations] Request for user_id: 10008
+INFO 2025-09-28 09:53:27,967 views 277 281473429074304 [Recommendations] Request data resolved: {'mode': 'user', 'preferences': {'goal': 'wytrzymalosc', 'level': 'początkujący', 'equipment_preference': 'dom_hantle', 'training_days_per_week': 3, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 20, 'weightKg': 90, 'heightCm': 190, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-28 09:53:27,968 views 277 281473429074304 [Recommendations] mode=user, top=3
+INFO 2025-09-28 09:53:27,978 engine 277 281473429074304 [Engine] Fetched profile for user 10008: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 09:53:27,978 views 277 281473429074304 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 09:53:27,979 views 277 281473429074304 [Recommendations] Profile after preferences: {'goal': 'wytrzymalosc', 'level': 'początkujący', 'days': 3, 'equipment': 'dom_hantle'}
+INFO 2025-09-28 09:53:27,981 engine 277 281473429074304 [Engine] Found 50 similar users for user 10008
+INFO 2025-09-28 09:53:27,985 engine 277 281473429074304 [Engine] Collaborative returning 32 recommendations
+INFO 2025-09-28 09:53:27,986 views 277 281473429074304 [Recommendations] Algorithm returned 32 results
+INFO 2025-09-28 09:53:27,987 views 277 281473429074304 [Recommendations] Returning 3 recommendations
+INFO 2025-09-28 09:53:27,989 basehttp 277 281473429074304 "POST /api/recommendations/ HTTP/1.1" 200 1318
+INFO 2025-09-28 09:53:57,381 views 277 281473429074304 [Profile] Pobieranie profilu dla user_id: 10008
+INFO 2025-09-28 09:53:57,384 views 277 281473418588544 [Profile] Pobieranie profilu dla user_id: 10008
+INFO 2025-09-28 09:53:57,392 views 277 281473429074304 [Profile] Profil zwrócony pomyślnie: test100
+INFO 2025-09-28 09:53:57,392 basehttp 277 281473429074304 "GET /api/auth/profile/ HTTP/1.1" 200 485
+INFO 2025-09-28 09:53:57,393 views 277 281473418588544 [Profile] Profil zwrócony pomyślnie: test100
+INFO 2025-09-28 09:53:57,395 basehttp 277 281473418588544 "GET /api/auth/profile/ HTTP/1.1" 200 485
+INFO 2025-09-28 10:01:15,152 views 8 281473869119520 [Recommendations] Engine loaded successfully
+INFO 2025-09-28 10:01:16,923 views 10 281473861550112 [Recommendations] Engine loaded successfully
+INFO 2025-09-28 10:01:17,539 views 11 281473013633056 [Recommendations] Engine loaded successfully
+INFO 2025-09-28 10:01:18,662 autoreload 13 281473367752736 Watching for file changes with StatReloader
+INFO 2025-09-28 10:01:18,694 views 13 281473367752736 [Recommendations] Engine loaded successfully
+INFO 2025-09-28 10:04:46,303 views 8 281473523695648 [Recommendations] Engine loaded successfully
+INFO 2025-09-28 10:04:48,168 views 10 281473315000352 [Recommendations] Engine loaded successfully
+INFO 2025-09-28 10:04:48,766 views 11 281473034346528 [Recommendations] Engine loaded successfully
+INFO 2025-09-28 10:04:49,930 autoreload 13 281473266159648 Watching for file changes with StatReloader
+INFO 2025-09-28 10:04:49,965 views 13 281473266159648 [Recommendations] Engine loaded successfully
+INFO 2025-09-28 10:07:05,845 views 13 281473185804672 [Profile] Pobieranie profilu dla user_id: 10008
+INFO 2025-09-28 10:07:05,846 views 13 281473175318912 [Profile] Pobieranie profilu dla user_id: 10008
+ERROR 2025-09-28 10:07:05,886 views 13 281473185804672 [Profile] Użytkownik nie istnieje: 10008
+ERROR 2025-09-28 10:07:05,886 views 13 281473175318912 [Profile] Użytkownik nie istnieje: 10008
+WARNING 2025-09-28 10:07:05,888 log 13 281473175318912 Not Found: /api/auth/profile/
+WARNING 2025-09-28 10:07:05,889 basehttp 13 281473175318912 "GET /api/auth/profile/ HTTP/1.1" 404 61
+WARNING 2025-09-28 10:07:05,888 log 13 281473185804672 Not Found: /api/auth/profile/
+WARNING 2025-09-28 10:07:05,890 basehttp 13 281473185804672 "GET /api/auth/profile/ HTTP/1.1" 404 61
+INFO 2025-09-28 10:07:05,899 views 13 281473185804672 [Profile] Pobieranie profilu dla user_id: 10008
+INFO 2025-09-28 10:07:05,899 views 13 281473175318912 [Profile] Pobieranie profilu dla user_id: 10008
+ERROR 2025-09-28 10:07:05,904 views 13 281473175318912 [Profile] Użytkownik nie istnieje: 10008
+ERROR 2025-09-28 10:07:05,904 views 13 281473185804672 [Profile] Użytkownik nie istnieje: 10008
+WARNING 2025-09-28 10:07:05,904 log 13 281473175318912 Not Found: /api/auth/profile/
+WARNING 2025-09-28 10:07:05,905 log 13 281473185804672 Not Found: /api/auth/profile/
+WARNING 2025-09-28 10:07:05,905 basehttp 13 281473175318912 "GET /api/auth/profile/ HTTP/1.1" 404 61
+WARNING 2025-09-28 10:07:05,905 basehttp 13 281473185804672 "GET /api/auth/profile/ HTTP/1.1" 404 61
+INFO 2025-09-28 10:07:09,019 views 13 281473185804672 [Logout] Wylogowywanie użytkownika
+INFO 2025-09-28 10:07:09,020 basehttp 13 281473185804672 "POST /api/auth/logout/ HTTP/1.1" 200 35
+INFO 2025-09-28 10:07:30,830 views 13 281473185804672 [Register] Rejestracja użytkownika: test1
+INFO 2025-09-28 10:07:30,851 views 13 281473185804672 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-28 10:07:30,852 serializers 13 281473185804672 [Registration] Tworzenie konta: test1
+INFO 2025-09-28 10:07:30,852 serializers 13 281473185804672 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-28 10:07:30,853 serializers 13 281473185804672 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-28 10:07:30,853 serializers 13 281473185804672 [Registration] Profile values - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-28 10:07:30,997 serializers 13 281473185804672 [Registration] Konto utworzone: ID 10003
+INFO 2025-09-28 10:07:30,997 serializers 13 281473185804672 [Registration] Finalne dane profilu: goal=zdrowie, level=poczatkujacy, equipment=silownia
+INFO 2025-09-28 10:07:31,002 serializers 13 281473185804672 [Registration] Profil utworzony dla: test1
+INFO 2025-09-28 10:07:31,003 serializers 13 281473185804672 [Registration] Zapisane wartości - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-28 10:07:31,003 views 13 281473185804672 [Register] Użytkownik utworzony: ID 10003
+INFO 2025-09-28 10:07:31,005 views 13 281473185804672 [Register] Rejestracja udana: test1
+INFO 2025-09-28 10:07:31,005 basehttp 13 281473185804672 "POST /api/auth/register/ HTTP/1.1" 201 1018
+INFO 2025-09-28 10:07:31,012 views 13 281473185804672 [UpdateProfile] Aktualizacja profilu dla user_id: 10003
+INFO 2025-09-28 10:07:31,019 views 13 281473185804672 [UpdateProfile] Profil zaktualizowany: test1
+INFO 2025-09-28 10:07:31,019 basehttp 13 281473185804672 "PUT /api/auth/profile/update/ HTTP/1.1" 200 375
+INFO 2025-09-28 10:07:47,402 views 13 281473185804672 [Recommendations] Request for user_id: 10003
+INFO 2025-09-28 10:07:47,404 views 13 281473185804672 [Recommendations] Request data resolved: {'mode': 'user', 'preferences': {'goal': 'spalanie', 'level': 'początkujący', 'equipment_preference': 'siłownia', 'training_days_per_week': 4, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 19, 'weightKg': 73, 'heightCm': 182, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-28 10:07:47,404 views 13 281473185804672 [Recommendations] mode=user, top=3
+INFO 2025-09-28 10:07:47,410 engine 13 281473185804672 [Engine] Fetched profile for user 10003: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 10:07:47,410 views 13 281473185804672 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 10:07:47,410 views 13 281473185804672 [Recommendations] Profile after preferences: {'goal': 'spalanie', 'level': 'początkujący', 'days': 4, 'equipment': 'siłownia'}
+INFO 2025-09-28 10:07:47,413 engine 13 281473185804672 [Engine] Found 50 similar users for user 10003
+INFO 2025-09-28 10:07:47,419 engine 13 281473185804672 [Engine] Collaborative returning 25 recommendations
+INFO 2025-09-28 10:07:47,420 views 13 281473185804672 [Recommendations] Algorithm returned 25 results
+INFO 2025-09-28 10:07:47,423 views 13 281473185804672 [Recommendations] Returning 3 recommendations
+INFO 2025-09-28 10:07:47,423 basehttp 13 281473185804672 "POST /api/recommendations/ HTTP/1.1" 200 1175
+INFO 2025-09-28 10:08:27,135 views 13 281473185804672 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-28 10:08:27,142 views 13 281473175318912 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-28 10:08:27,155 views 13 281473185804672 [Profile] Profil zwrócony pomyślnie: test1
+INFO 2025-09-28 10:08:27,155 views 13 281473175318912 [Profile] Profil zwrócony pomyślnie: test1
+INFO 2025-09-28 10:08:27,157 basehttp 13 281473175318912 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 10:08:27,158 basehttp 13 281473185804672 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 10:08:30,113 views 13 281473175318912 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-28 10:08:30,114 views 13 281473185804672 [Profile] Pobieranie profilu dla user_id: 10003
+INFO 2025-09-28 10:08:30,122 views 13 281473175318912 [Profile] Profil zwrócony pomyślnie: test1
+INFO 2025-09-28 10:08:30,122 views 13 281473185804672 [Profile] Profil zwrócony pomyślnie: test1
+INFO 2025-09-28 10:08:30,123 basehttp 13 281473185804672 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 10:08:30,123 basehttp 13 281473175318912 "GET /api/auth/profile/ HTTP/1.1" 200 477
