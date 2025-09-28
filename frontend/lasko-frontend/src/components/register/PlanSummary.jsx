@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { RecommendationService } from '../../services/recommendationService';
+import apiService from '../../services/api'; // katalog ćwiczeń + aktywacja
 
 // ---------- UI helpers ----------
 const GradientGridBg = () => (
@@ -75,7 +76,6 @@ const Navbar = () => {
   const navbarName =
     user?.username || sessionStorage.getItem('lasko_username') || 'Użytkowniku';
 
-  // Jeżeli mamy token, ale brak usera – delikatny „poke” do warstwy auth
   useEffect(() => {
     if (!user && looksAuthed) {
       try { debugAuth?.(); } catch {}
@@ -90,7 +90,6 @@ const Navbar = () => {
         <Link to="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
           Lasko
         </Link>
-
         <div className="hidden items-center gap-3 md:flex">
           {looksAuthed ? (
             <>
@@ -109,7 +108,6 @@ const Navbar = () => {
             </>
           )}
         </div>
-
         <button
           onClick={() => setOpen(v => !v)}
           className="md:hidden rounded-full p-2 text-gray-300 hover:bg-white/5 hover:text-white"
@@ -164,7 +162,7 @@ const StatCard = ({ label, value, icon }) => (
   </div>
 );
 
-const ExerciseCard = ({ exercise, index }) => (
+const ExerciseCard = ({ exercise, index, onRemove, onSwap }) => (
   <div className="group relative rounded-xl border border-white/10 bg-white/[0.04] p-4 transition-all hover:border-emerald-400/40">
     <div className="flex items-center gap-4">
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300 font-bold">
@@ -180,11 +178,25 @@ const ExerciseCard = ({ exercise, index }) => (
           </p>
         )}
       </div>
+      <div className="flex gap-2">
+        <button
+          onClick={onSwap}
+          className="text-xs rounded-full px-3 py-1 bg-white/[0.04] border border-white/10 hover:bg-white/[0.08]"
+        >
+          Zamień
+        </button>
+        <button
+          onClick={onRemove}
+          className="text-xs rounded-full px-3 py-1 border border-red-500/40 text-red-300 hover:bg-red-900/20"
+        >
+          Usuń
+        </button>
+      </div>
     </div>
   </div>
 );
 
-const DayCard = ({ day, index }) => (
+const DayCard = ({ day, index, onRemoveExercise, onSwapExercise }) => (
   <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
     <div className="mb-4 flex items-center justify-between">
       <h3 className="text-lg font-bold text-white">
@@ -197,7 +209,13 @@ const DayCard = ({ day, index }) => (
     {Array.isArray(day.exercises) && day.exercises.length > 0 ? (
       <div className="space-y-3">
         {day.exercises.map((ex, i) => (
-          <ExerciseCard key={i} exercise={ex} index={i} />
+          <ExerciseCard
+            key={`${ex.id || ex.name}-${i}`}
+            exercise={ex}
+            index={i}
+            onRemove={() => onRemoveExercise(index, i, ex)}
+            onSwap={() => onSwapExercise(index, ex)}
+          />
         ))}
       </div>
     ) : (
@@ -243,7 +261,7 @@ export default function PlanSummary() {
     sessionStorage.getItem('lasko_username') ||
     null;
 
-  // Jeżeli jesteśmy „authed”, ale user nie dohydratowany – spróbuj go pobrać
+  // jeżeli authed, ale user nie dohydratowany – dohydratacja
   useEffect(() => {
     const hasToken = typeof getToken === 'function' ? !!getToken() : false;
     const authed = typeof isAuthenticated === 'function' ? isAuthenticated() : hasToken;
@@ -253,6 +271,9 @@ export default function PlanSummary() {
   }, [user, isAuthenticated, getToken, debugAuth]);
 
   const [planData, setPlanData] = useState(state?.planData || null);
+  const [exerciseCatalog, setExerciseCatalog] = useState([]);
+  const [overrides, setOverrides] = useState({ replaced_exercises: [], removed_exercises: [] });
+  const [swapModal, setSwapModal] = useState({ open: false, dayIdx: null, oldExercise: null, q: '' });
   const [activeTab, setActiveTab] = useState('overview'); // overview | details | schedule
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
@@ -277,23 +298,25 @@ export default function PlanSummary() {
     };
   };
 
-  // odczyt z sessionStorage, jeśli przyszliśmy „na pusto”
+  // odczyt z sessionStorage, jeśli przyszliśmy „na pusto” + pobranie katalogu ćwiczeń
   useEffect(() => {
     if (!state?.planData) {
       const raw = sessionStorage.getItem('lasko_plan_draft');
       if (raw) {
-        try {
-          setPlanData(JSON.parse(raw));
-        } catch {
-          setPlanData(null);
-        }
+        try { setPlanData(JSON.parse(raw)); } catch { setPlanData(null); }
       }
     }
+    (async () => {
+      try {
+        const res = await apiService.get?.('/api/exercises');
+        setExerciseCatalog(res?.results || res || []);
+      } catch {/* cicho */}
+    })();
   }, [state]);
 
   // dociągnij szczegóły planu, jeśli mamy ID ale brak days
   useEffect(() => {
-    const pid = planData?.recommendedPlan?.planId;
+    const pid = planData?.recommendedPlan?.planId || planData?.recommendedPlan?.id;
     const hasDays = Array.isArray(planData?.recommendedPlan?.days) && planData.recommendedPlan.days.length > 0;
     if (!pid || hasDays) return;
     let isCancelled = false;
@@ -316,7 +339,7 @@ export default function PlanSummary() {
       }
     })();
     return () => { isCancelled = true; };
-  }, [planData?.recommendedPlan?.planId]); // tylko po ID
+  }, [planData?.recommendedPlan?.planId, planData?.recommendedPlan?.id]); // tylko po ID
 
   // bezpieczne odczyty
   const { recommendedPlan, name, goal, level, trainingDaysPerWeek, timePerSession, equipment, altPlans = [] } = {
@@ -339,6 +362,60 @@ export default function PlanSummary() {
     setPlanData(updated);
     sessionStorage.setItem('lasko_plan_draft', JSON.stringify(updated));
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // akcje personalizacji
+  const removeExercise = (dayIdx, exIdx, exercise) => {
+    setOverrides(o => ({
+      ...o,
+      removed_exercises: [...o.removed_exercises, {
+        dayIndex: dayIdx,
+        exerciseId: exercise.id,
+        exerciseName: exercise.name
+      }]
+    }));
+    setPlanData(p => {
+      const next = structuredClone(p);
+      next.recommendedPlan.days[dayIdx].exercises.splice(exIdx, 1);
+      sessionStorage.setItem('lasko_plan_draft', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const openSwap = (dayIdx, exercise) => setSwapModal({ open: true, dayIdx, oldExercise: exercise, q: '' });
+  const closeSwap = () => setSwapModal({ open: false, dayIdx: null, oldExercise: null, q: '' });
+
+  const confirmSwap = (newExercise) => {
+    const { dayIdx, oldExercise } = swapModal;
+    setOverrides(o => ({
+      ...o,
+      replaced_exercises: [...o.replaced_exercises, {
+        dayIndex: dayIdx,
+        oldExerciseId: oldExercise?.id,
+        oldExerciseName: oldExercise?.name,
+        newExerciseId: newExercise?.id,
+        newExerciseName: newExercise?.name
+      }]
+    }));
+    setPlanData(p => {
+      const next = structuredClone(p);
+      const day = next.recommendedPlan?.days?.[dayIdx];
+      if (day) {
+        const idx = day.exercises.findIndex(e => (e.id && oldExercise?.id ? e.id === oldExercise.id : e.name === oldExercise?.name));
+        if (idx >= 0) {
+          const preserved = day.exercises[idx] || {};
+          day.exercises[idx] = {
+            ...newExercise,
+            sets: newExercise.sets ?? preserved.sets,
+            reps: newExercise.reps ?? preserved.reps,
+            rest: newExercise.rest ?? preserved.rest,
+          };
+        }
+      }
+      sessionStorage.setItem('lasko_plan_draft', JSON.stringify(next));
+      return next;
+    });
+    closeSwap();
   };
 
   if (!planData) {
@@ -563,9 +640,9 @@ export default function PlanSummary() {
               <div className="rounded-2xl bg-gradient-to-r from-emerald-400/10 to-teal-400/10 border border-emerald-400/20 p-6">
                 <h3 className="mb-2 text-lg font-bold text-white">Gotowy do działania?</h3>
                 <p className="mb-4 text-gray-300">
-                  Twój plan jest gotowy! Przejdź do dashboardu, aby rozpocząć treningi i śledzić postępy.
+                  Twój plan jest gotowy! Możesz go jeszcze doszlifować w zakładce „Szczegóły”, a potem aktywować.
                 </p>
-                <PrimaryButton to="/dashboard">Rozpocznij treningi →</PrimaryButton>
+                <PrimaryButton onClick={() => setActiveTab('details')}>Przejdź do szczegółów →</PrimaryButton>
               </div>
             </div>
           )}
@@ -588,12 +665,18 @@ export default function PlanSummary() {
                   <div className="mb-6">
                     <h2 className="text-2xl font-bold text-white">Szczegółowy plan treningowy</h2>
                     <p className="mt-1 text-gray-400">
-                      Pełny rozkład ćwiczeń na każdy dzień
+                      Pełny rozkład ćwiczeń na każdy dzień. Możesz usuwać i zamieniać ćwiczenia.
                     </p>
                   </div>
                   <div className="grid gap-6">
                     {recommendedPlan.days.map((day, idx) => (
-                      <DayCard key={idx} day={day} index={idx} />
+                      <DayCard
+                        key={idx}
+                        day={day}
+                        index={idx}
+                        onRemoveExercise={removeExercise}
+                        onSwapExercise={openSwap}
+                      />
                     ))}
                   </div>
                 </>
@@ -666,11 +749,81 @@ export default function PlanSummary() {
           <SecondaryButton onClick={() => navigate('/enhanced-plan-creator')}>
             ← Wróć do kreatora
           </SecondaryButton>
-          <PrimaryButton to="/dashboard">
-            Przejdź do Dashboard →
+          <PrimaryButton
+            onClick={async () => {
+              try {
+                const planId = planData?.recommendedPlan?.planId || planData?.recommendedPlan?.id;
+                if (!planId) return alert('Brak ID planu do aktywacji.');
+                await apiService.post?.('/api/user/active-plan', { plan_id: planId, overrides });
+                navigate('/dashboard', {
+                  state: {
+                    activePlan: {
+                      name: planData?.name || planData?.recommendedPlan?.name,
+                      trainingDaysPerWeek,
+                      sessionDuration: timePerSession,
+                      description: planData?.recommendedPlan?.description,
+                    }
+                  }
+                });
+              } catch (e) {
+                alert('Nie udało się aktywować planu. Spróbuj ponownie.');
+              }
+            }}
+          >
+            Aktywuj z moimi zmianami →
           </PrimaryButton>
         </div>
       </div>
+
+      {/* Modal zamiany ćwiczenia */}
+      {swapModal.open && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0f0f0f] p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-lg font-semibold text-white">
+                Zamień: <span className="text-emerald-300">{swapModal.oldExercise?.name}</span>
+              </h4>
+              <button onClick={closeSwap} className="text-sm text-gray-400 hover:text-white">Zamknij</button>
+            </div>
+
+            <div className="mb-3 grid gap-2 sm:grid-cols-2">
+              <input
+                placeholder="Szukaj ćwiczenia…"
+                className="w-full rounded-xl bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-gray-500"
+                value={swapModal.q}
+                onChange={(e) => setSwapModal(s => ({ ...s, q: e.target.value }))}
+              />
+              <div className="text-xs text-gray-400 self-center">
+                Podpowiedź: zacznij od tej samej partii mięśni co oryginał ({swapModal.oldExercise?.muscle_group || '—'})
+              </div>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+              {(exerciseCatalog || [])
+                .filter(x => x?.name)
+                .filter(x => {
+                  const q = (swapModal.q || '').toLowerCase().trim();
+                  if (!q) return true;
+                  return x.name?.toLowerCase().includes(q) || x.muscle_group?.toLowerCase().includes(q);
+                })
+                .sort((a, b) => (a.muscle_group === swapModal.oldExercise?.muscle_group ? -1 : 1))
+                .slice(0, 120)
+                .map((x) => (
+                  <button
+                    key={x.id || x.name}
+                    onClick={() => confirmSwap(x)}
+                    className="w-full text-left rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 hover:bg-white/[0.06]"
+                  >
+                    <div className="font-medium text-white">{x.name}</div>
+                    <div className="text-xs text-gray-400">
+                      {x.muscle_group || '—'} • {x.type || '—'}
+                    </div>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

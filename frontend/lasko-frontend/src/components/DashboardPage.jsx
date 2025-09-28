@@ -1,10 +1,9 @@
-// frontend/lasko-frontend/src/components/DashboardPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 
-// ---------- UI helpers (dopasowane do reszty aplikacji) ----------
+// ---------- UI helpers ----------
 const GradientGridBg = () => (
   <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
     <div className="absolute -top-24 -left-16 w-72 h-72 rounded-full bg-[#1DCD9F]/10 blur-3xl" />
@@ -34,13 +33,13 @@ const Kicker = ({ children }) => (
 const PrimaryButton = ({ onClick, to, children, className = '', size = 'normal' }) => {
   const Comp = to ? Link : 'button';
   const props = to ? { to } : { onClick };
-  
+
   const sizeClasses = {
     normal: 'px-7 py-3 text-sm',
     large: 'px-8 py-4 text-base',
     small: 'px-5 py-2 text-xs'
   };
-  
+
   return (
     <Comp
       {...props}
@@ -61,7 +60,7 @@ const PrimaryButton = ({ onClick, to, children, className = '', size = 'normal' 
 const SecondaryButton = ({ onClick, to, children, className = '' }) => {
   const Comp = to ? Link : 'button';
   const props = to ? { to } : { onClick };
-  
+
   return (
     <Comp
       {...props}
@@ -89,7 +88,7 @@ const GhostButton = ({ onClick, children, className = '' }) => (
   </button>
 );
 
-// Navbar komponent
+// Navbar
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -281,35 +280,35 @@ const PlanCard = ({ plan, isActive = false }) => (
 const DashboardPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, isAuthenticated } = useAuth();
-  
+  const { user, isAuthenticated } = useAuth();
+
+  // plany przekazane przez nawigację (po aktywacji)
   const activePlan = location.state?.activePlan;
   const createdPlan = location.state?.createdPlan;
   const displayPlan = activePlan || createdPlan;
-  
+
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
-  const [userPlans, setUserPlans] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated()) {
       fetchUserData();
+    } else {
+      setLoading(false);
     }
   }, []);
 
   const fetchUserData = async () => {
     setLoading(true);
     try {
-      const profileData = await apiService.fetchUserProfile();
+      const profileData = await apiService.fetchUserProfile?.();
       if (profileData?.profile) {
         setUserProfile(profileData.profile);
       }
-
-      const recoData = await apiService.generateRecommendations('hybrid', {});
+      const recoData = await apiService.generateRecommendations?.('hybrid', {});
       setRecommendations(recoData?.recommendations || []);
-
     } catch (err) {
       console.error('Błąd ładowania danych:', err);
       setError(err.message);
@@ -318,13 +317,8 @@ const DashboardPage = () => {
     }
   };
 
-  const handleCreateNewPlan = () => {
-    navigate('/enhanced-plan-creator');
-  };
-
-  const handleEditProfile = () => {
-    navigate('/profile/edit');
-  };
+  const handleCreateNewPlan = () => navigate('/enhanced-plan-creator');
+  const handleEditProfile = () => navigate('/profile/edit');
 
   if (loading) {
     return (
@@ -337,31 +331,34 @@ const DashboardPage = () => {
     );
   }
 
-  // Obliczanie statystyk
+  // Statystyki
   const stats = {
     totalWorkouts: userProfile?.total_workouts || 0,
     currentStreak: userProfile?.current_streak || 0,
     weeklyGoal: userProfile?.weekly_goal || 3,
     weeklyProgress: userProfile?.weekly_progress || 0,
   };
-
   const progressPercentage = (stats.weeklyProgress / stats.weeklyGoal) * 100;
+
+  // Stany do sterowania widokiem planów
+  const hasActivePlan = Boolean(displayPlan);
+  const hasReco = (recommendations?.length || 0) > 0;
+  const recoPrimary = hasReco ? recommendations[0] : null;
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
       <GradientGridBg />
       <GlowOrb className="left-[15%] top-32 h-64 w-64 bg-emerald-400/20" />
       <GlowOrb className="right-[20%] bottom-40 h-52 w-52 bg-teal-400/20" />
-      
+
       <Navbar />
 
       <div className="mx-auto max-w-7xl px-6 pt-28 pb-16">
-        
         {/* Header */}
         <header className="mb-10">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
-              {displayPlan ? (
+              {hasActivePlan ? (
                 <>
                   <Kicker>Plan aktywowany!</Kicker>
                   <h1 className="mt-4 text-4xl font-black text-white md:text-5xl">
@@ -369,6 +366,16 @@ const DashboardPage = () => {
                   </h1>
                   <p className="mt-3 text-lg text-gray-300">
                     Możesz teraz rozpocząć treningi i śledzić swoje postępy
+                  </p>
+                </>
+              ) : hasReco ? (
+                <>
+                  <Kicker>Rekomendacja gotowa</Kicker>
+                  <h1 className="mt-4 text-4xl font-black text-white md:text-5xl">
+                    Mamy plan dopasowany do Ciebie
+                  </h1>
+                  <p className="mt-3 text-lg text-gray-300">
+                    Aktywuj lub dostosuj rekomendowany plan i zacznij działać
                   </p>
                 </>
               ) : (
@@ -383,7 +390,7 @@ const DashboardPage = () => {
                 </>
               )}
             </div>
-            
+
             {/* Quick stats */}
             <div className="flex gap-6">
               <div className="text-center">
@@ -431,13 +438,13 @@ const DashboardPage = () => {
 
         {/* Main grid */}
         <div className="grid gap-8 lg:grid-cols-3">
-          
           {/* Left column - Plans and Actions */}
           <div className="lg:col-span-2 space-y-8">
-            
-            {/* Active/Featured Plan */}
-            {displayPlan ? (
+            {/* Featured */}
+            {hasActivePlan ? (
               <PlanCard plan={displayPlan} isActive={true} />
+            ) : hasReco ? (
+              <PlanCard plan={recoPrimary} />
             ) : (
               <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-12 text-center">
                 <div className="mx-auto mb-6 h-24 w-24 rounded-full bg-gradient-to-br from-emerald-400/20 to-teal-400/20 flex items-center justify-center">
@@ -494,18 +501,18 @@ const DashboardPage = () => {
                   icon="⚙️"
                   title="Ustawienia"
                   description="Edytuj preferencje"
-                  onClick={handleEditProfile}
+                  onClick={() => navigate('/profile/edit')}
                 />
               </div>
             </div>
 
-            {/* Recommended Plans */}
-            {recommendations.length > 0 && (
+            {/* Recommended Plans (pozostałe) */}
+            {hasReco && (
               <div>
                 <h2 className="mb-4 text-xl font-bold text-white">Polecane plany</h2>
                 <div className="grid gap-4">
-                  {recommendations.slice(0, 2).map((plan, index) => (
-                    <PlanCard key={index} plan={plan} />
+                  {recommendations.slice(hasActivePlan ? 0 : 1, 3).map((plan, index) => (
+                    <PlanCard key={`${plan.id || plan.name}-${index}`} plan={plan} />
                   ))}
                 </div>
                 <div className="mt-4 text-center">
@@ -519,7 +526,6 @@ const DashboardPage = () => {
 
           {/* Right column - Profile and Stats */}
           <div className="space-y-8">
-            
             {/* User Profile Card */}
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
               <div className="mb-6 text-center">
@@ -534,7 +540,6 @@ const DashboardPage = () => {
 
               {userProfile && (
                 <div className="space-y-4">
-                  {/* Biometric data */}
                   {(userProfile.age || userProfile.weight_kg || userProfile.height_cm) && (
                     <div>
                       <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-400">
@@ -575,8 +580,7 @@ const DashboardPage = () => {
                     </div>
                   )}
 
-                  {/* Training preferences */}
-                  {(userProfile.goal || userProfile.level) && (
+                  {(userProfile.goal || userProfile.level || userProfile.equipment_preference) && (
                     <div>
                       <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-400">
                         Preferencje treningowe

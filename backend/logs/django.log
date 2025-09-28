@@ -3439,3 +3439,133 @@ INFO 2025-09-28 18:38:47,362 basehttp 2150 281472986575232 "GET /api/auth/profil
 INFO 2025-09-28 18:38:47,361 basehttp 2150 281472976089472 "GET /api/auth/profile/ HTTP/1.1" 200 477
 INFO 2025-09-28 18:38:47,427 basehttp 2150 281472976089472 "GET /api/plans/339/detailed HTTP/1.1" 200 285
 INFO 2025-09-28 18:38:47,434 basehttp 2150 281472986575232 "GET /api/plans/339/detailed HTTP/1.1" 200 285
+INFO 2025-09-28 18:45:41,518 views 2150 281472986575232 [Profile] Pobieranie profilu dla user_id: 10013
+INFO 2025-09-28 18:45:41,526 views 2150 281472976089472 [Profile] Pobieranie profilu dla user_id: 10013
+INFO 2025-09-28 18:45:41,539 views 2150 281472976089472 [Profile] Profil zwrócony pomyślnie: test3
+INFO 2025-09-28 18:45:41,539 views 2150 281472986575232 [Profile] Profil zwrócony pomyślnie: test3
+INFO 2025-09-28 18:45:41,541 basehttp 2150 281472986575232 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 18:45:41,540 basehttp 2150 281472976089472 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 18:45:41,572 basehttp 2150 281472976089472 "GET /api/plans/339/detailed HTTP/1.1" 200 285
+INFO 2025-09-28 18:45:41,576 basehttp 2150 281472986575232 "GET /api/plans/339/detailed HTTP/1.1" 200 285
+INFO 2025-09-28 19:03:30,280 basehttp 2150 281472986575232 "GET /api/plans/339/detailed HTTP/1.1" 200 285
+INFO 2025-09-28 19:12:28,053 views 2150 281472986575232 [Profile] Pobieranie profilu dla user_id: 10013
+INFO 2025-09-28 19:12:28,056 views 2150 281472976089472 [Profile] Pobieranie profilu dla user_id: 10013
+INFO 2025-09-28 19:12:28,080 views 2150 281472986575232 [Profile] Profil zwrócony pomyślnie: test3
+INFO 2025-09-28 19:12:28,081 views 2150 281472976089472 [Profile] Profil zwrócony pomyślnie: test3
+INFO 2025-09-28 19:12:28,082 basehttp 2150 281472976089472 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 19:12:28,082 basehttp 2150 281472986575232 "GET /api/auth/profile/ HTTP/1.1" 200 477
+INFO 2025-09-28 19:12:28,130 basehttp 2150 281472976089472 "GET /api/plans/339/detailed HTTP/1.1" 200 285
+INFO 2025-09-28 19:12:28,131 basehttp 2150 281472986575232 "GET /api/plans/339/detailed HTTP/1.1" 200 285
+WARNING 2025-09-28 20:49:08,497 log 2150 281472986575232 Unauthorized: /api/plans/339/detailed
+WARNING 2025-09-28 20:49:08,501 basehttp 2150 281472986575232 "GET /api/plans/339/detailed HTTP/1.1" 401 201
+WARNING 2025-09-28 20:49:08,791 log 2150 281472986575232 Not Found: /api/recommendations/plan/339/detailed
+WARNING 2025-09-28 20:49:08,792 basehttp 2150 281472986575232 "GET /api/recommendations/plan/339/detailed HTTP/1.1" 404 3918
+INFO 2025-09-28 20:49:18,320 basehttp 2150 281472986575232 "GET /api/auth/check-email/?email=test1%40wp.pl HTTP/1.1" 200 19
+INFO 2025-09-28 20:49:21,947 basehttp 2150 281472986575232 "GET /api/auth/check-email/?email=test12%40wp.pl HTTP/1.1" 200 18
+INFO 2025-09-28 20:49:30,911 basehttp 2150 281472986575232 "GET /api/auth/check-username/?username=test12 HTTP/1.1" 200 18
+INFO 2025-09-28 20:49:32,367 views 2150 281472986575232 [RefreshToken] Odświeżanie tokenu
+INFO 2025-09-28 20:49:32,384 views 2150 281472986575232 [RefreshToken] Token odświeżony pomyślnie
+INFO 2025-09-28 20:49:32,384 basehttp 2150 281472986575232 "POST /api/auth/token/refresh/ HTTP/1.1" 200 272
+INFO 2025-09-28 20:49:32,393 views 2150 281472986575232 [Register] Rejestracja użytkownika: test12
+INFO 2025-09-28 20:49:32,402 views 2150 281472986575232 [Register] Walidacja przeszła pomyślnie
+INFO 2025-09-28 20:49:32,402 serializers 2150 281472986575232 [Registration] Tworzenie konta: test12
+INFO 2025-09-28 20:49:32,402 serializers 2150 281472986575232 [Registration] Account data: ['username', 'email', 'password', 'first_name']
+INFO 2025-09-28 20:49:32,403 serializers 2150 281472986575232 [Registration] Profile data: ['goal', 'level', 'training_days_per_week', 'equipment_preference', 'recommendation_method', 'date_of_birth', 'avoid_exercises', 'focus_areas', 'first_name']
+INFO 2025-09-28 20:49:32,403 serializers 2150 281472986575232 [Registration] Profile values - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-28 20:49:32,525 serializers 2150 281472986575232 [Registration] Konto utworzone: ID 10014
+INFO 2025-09-28 20:49:32,526 serializers 2150 281472986575232 [Registration] Finalne dane profilu: goal=zdrowie, level=poczatkujacy, equipment=silownia
+INFO 2025-09-28 20:49:32,527 serializers 2150 281472986575232 [Registration] Profil utworzony dla: test12
+INFO 2025-09-28 20:49:32,527 serializers 2150 281472986575232 [Registration] Zapisane wartości - goal: zdrowie, level: poczatkujacy, equipment: silownia
+INFO 2025-09-28 20:49:32,528 views 2150 281472986575232 [Register] Użytkownik utworzony: ID 10014
+INFO 2025-09-28 20:49:32,529 views 2150 281472986575232 [Register] Rejestracja udana: test12
+INFO 2025-09-28 20:49:32,530 basehttp 2150 281472986575232 "POST /api/auth/register/ HTTP/1.1" 201 1024
+INFO 2025-09-28 20:49:32,536 views 2150 281472986575232 [UpdateProfile] Aktualizacja profilu dla user_id: 10014
+INFO 2025-09-28 20:49:32,543 views 2150 281472986575232 [UpdateProfile] Profil zaktualizowany: test12
+INFO 2025-09-28 20:49:32,543 basehttp 2150 281472986575232 "PUT /api/auth/profile/update/ HTTP/1.1" 200 376
+INFO 2025-09-28 20:49:47,234 views 2150 281472986575232 [Recommendations] Request for user_id: 10014
+INFO 2025-09-28 20:49:47,235 views 2150 281472986575232 [Recommendations] Request data resolved: {'mode': 'product', 'preferences': {'goal': 'zdrowie', 'level': 'średniozaawansowany', 'equipment_preference': 'siłownia', 'training_days_per_week': 6, 'time_per_session': 60, 'focus_areas': [], 'avoidances': [], 'body': {'age': 22, 'weightKg': 83, 'heightCm': 192, 'activityLevel': 'średnia'}}, 'top': 3}
+INFO 2025-09-28 20:49:47,236 views 2150 281472986575232 [Recommendations] mode=product, top=3
+INFO 2025-09-28 20:49:47,242 engine 2150 281472986575232 [Engine] Fetched profile for user 10014: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:49:47,242 views 2150 281472986575232 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:49:47,243 views 2150 281472986575232 [Recommendations] Profile after preferences: {'goal': 'zdrowie', 'level': 'średniozaawansowany', 'days': 6, 'equipment': 'siłownia'}
+INFO 2025-09-28 20:49:47,253 engine 2150 281472986575232 [Engine] Found 1200 active plans
+INFO 2025-09-28 20:49:47,253 engine 2150 281472986575232 [Engine] User profile for matching: {'goal': 'zdrowie', 'level': 'średniozaawansowany', 'days': 6, 'equipment': 'siłownia'}
+INFO 2025-09-28 20:49:47,266 engine 2150 281472986575232 [Engine] Content-based returning 3 recommendations
+INFO 2025-09-28 20:49:47,267 views 2150 281472986575232 [Recommendations] Algorithm returned 3 results
+INFO 2025-09-28 20:49:47,268 views 2150 281472986575232 [Recommendations] Returning 3 recommendations
+INFO 2025-09-28 20:49:47,268 basehttp 2150 281472986575232 "POST /api/recommendations/ HTTP/1.1" 200 1475
+INFO 2025-09-28 20:49:47,287 basehttp 2150 281472986575232 "GET /api/plans/4/detailed HTTP/1.1" 200 292
+INFO 2025-09-28 20:49:47,290 basehttp 2150 281472976089472 "GET /api/plans/973/detailed HTTP/1.1" 200 294
+INFO 2025-09-28 20:49:47,290 basehttp 2150 281472894300544 "GET /api/plans/255/detailed HTTP/1.1" 200 294
+INFO 2025-09-28 20:49:47,331 basehttp 2150 281472894300544 "GET /api/plans/4/detailed HTTP/1.1" 200 292
+INFO 2025-09-28 20:49:47,332 basehttp 2150 281472976089472 "GET /api/plans/4/detailed HTTP/1.1" 200 292
+INFO 2025-09-28 20:50:15,529 views 2150 281472976089472 [Profile] Pobieranie profilu dla user_id: 10014
+INFO 2025-09-28 20:50:15,531 views 2150 281472894300544 [Profile] Pobieranie profilu dla user_id: 10014
+INFO 2025-09-28 20:50:15,541 views 2150 281472894300544 [Profile] Profil zwrócony pomyślnie: test12
+INFO 2025-09-28 20:50:15,542 basehttp 2150 281472894300544 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-28 20:50:15,541 views 2150 281472976089472 [Profile] Profil zwrócony pomyślnie: test12
+INFO 2025-09-28 20:50:15,542 basehttp 2150 281472976089472 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-28 20:50:15,548 views 2150 281472976089472 [Recommendations] Request for user_id: 10014
+INFO 2025-09-28 20:50:15,549 views 2150 281472894300544 [Recommendations] Request for user_id: 10014
+INFO 2025-09-28 20:50:15,549 views 2150 281472976089472 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-28 20:50:15,549 views 2150 281472894300544 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-28 20:50:15,549 views 2150 281472976089472 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-28 20:50:15,549 views 2150 281472894300544 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-28 20:50:15,554 engine 2150 281472976089472 [Engine] Fetched profile for user 10014: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:15,554 engine 2150 281472894300544 [Engine] Fetched profile for user 10014: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:15,554 views 2150 281472976089472 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:15,554 views 2150 281472894300544 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:15,562 engine 2150 281472976089472 [Engine] Found 1200 active plans
+INFO 2025-09-28 20:50:15,565 engine 2150 281472894300544 [Engine] Found 1200 active plans
+INFO 2025-09-28 20:50:15,565 engine 2150 281472976089472 [Engine] User profile for matching: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:15,565 engine 2150 281472894300544 [Engine] User profile for matching: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:15,577 engine 2150 281472976089472 [Engine] Content-based returning 12 recommendations
+INFO 2025-09-28 20:50:15,590 engine 2150 281472894300544 [Engine] Content-based returning 12 recommendations
+INFO 2025-09-28 20:50:15,591 engine 2150 281472976089472 [Engine] Found 50 similar users for user 10014
+INFO 2025-09-28 20:50:15,591 engine 2150 281472894300544 [Engine] Found 50 similar users for user 10014
+INFO 2025-09-28 20:50:15,592 engine 2150 281472976089472 [Engine] Collaborative returning 25 recommendations
+INFO 2025-09-28 20:50:15,592 views 2150 281472976089472 [Recommendations] Algorithm returned 12 results
+INFO 2025-09-28 20:50:15,592 engine 2150 281472894300544 [Engine] Collaborative returning 25 recommendations
+INFO 2025-09-28 20:50:15,593 views 2150 281472894300544 [Recommendations] Algorithm returned 12 results
+INFO 2025-09-28 20:50:15,593 views 2150 281472976089472 [Recommendations] Returning 3 recommendations
+INFO 2025-09-28 20:50:15,593 views 2150 281472894300544 [Recommendations] Returning 3 recommendations
+INFO 2025-09-28 20:50:15,594 basehttp 2150 281472976089472 "POST /api/recommendations/ HTTP/1.1" 200 1453
+INFO 2025-09-28 20:50:15,594 basehttp 2150 281472894300544 "POST /api/recommendations/ HTTP/1.1" 200 1453
+INFO 2025-09-28 20:50:34,465 views 2150 281472894300544 [Profile] Pobieranie profilu dla user_id: 10014
+INFO 2025-09-28 20:50:34,466 views 2150 281472976089472 [Profile] Pobieranie profilu dla user_id: 10014
+INFO 2025-09-28 20:50:34,474 views 2150 281472976089472 [Profile] Profil zwrócony pomyślnie: test12
+INFO 2025-09-28 20:50:34,476 basehttp 2150 281472976089472 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-28 20:50:34,476 views 2150 281472894300544 [Profile] Profil zwrócony pomyślnie: test12
+INFO 2025-09-28 20:50:34,478 basehttp 2150 281472894300544 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-28 20:50:34,487 views 2150 281472894300544 [Profile] Pobieranie profilu dla user_id: 10014
+INFO 2025-09-28 20:50:34,489 views 2150 281472976089472 [Profile] Pobieranie profilu dla user_id: 10014
+INFO 2025-09-28 20:50:34,495 views 2150 281472894300544 [Profile] Profil zwrócony pomyślnie: test12
+INFO 2025-09-28 20:50:34,496 views 2150 281472976089472 [Profile] Profil zwrócony pomyślnie: test12
+INFO 2025-09-28 20:50:34,496 basehttp 2150 281472894300544 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-28 20:50:34,497 basehttp 2150 281472976089472 "GET /api/auth/profile/ HTTP/1.1" 200 481
+INFO 2025-09-28 20:50:34,503 views 2150 281472976089472 [Recommendations] Request for user_id: 10014
+INFO 2025-09-28 20:50:34,503 views 2150 281472976089472 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-28 20:50:34,504 views 2150 281472894300544 [Recommendations] Request for user_id: 10014
+INFO 2025-09-28 20:50:34,504 views 2150 281472976089472 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-28 20:50:34,504 views 2150 281472894300544 [Recommendations] Request data resolved: {'mode': 'hybrid', 'preferences': {}, 'top': 3}
+INFO 2025-09-28 20:50:34,504 views 2150 281472894300544 [Recommendations] mode=hybrid, top=3
+INFO 2025-09-28 20:50:34,508 engine 2150 281472976089472 [Engine] Fetched profile for user 10014: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:34,508 views 2150 281472976089472 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:34,508 engine 2150 281472894300544 [Engine] Fetched profile for user 10014: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:34,508 views 2150 281472894300544 [Recommendations] Profile found: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:34,515 engine 2150 281472894300544 [Engine] Found 1200 active plans
+INFO 2025-09-28 20:50:34,516 engine 2150 281472894300544 [Engine] User profile for matching: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:34,516 engine 2150 281472976089472 [Engine] Found 1200 active plans
+INFO 2025-09-28 20:50:34,526 engine 2150 281472976089472 [Engine] User profile for matching: {'goal': 'zdrowie', 'level': 'poczatkujacy', 'days': 3, 'equipment': 'silownia'}
+INFO 2025-09-28 20:50:34,526 engine 2150 281472894300544 [Engine] Content-based returning 12 recommendations
+INFO 2025-09-28 20:50:34,535 engine 2150 281472976089472 [Engine] Content-based returning 12 recommendations
+INFO 2025-09-28 20:50:34,535 engine 2150 281472894300544 [Engine] Found 50 similar users for user 10014
+INFO 2025-09-28 20:50:34,535 engine 2150 281472976089472 [Engine] Found 50 similar users for user 10014
+INFO 2025-09-28 20:50:34,536 engine 2150 281472894300544 [Engine] Collaborative returning 25 recommendations
+INFO 2025-09-28 20:50:34,536 views 2150 281472894300544 [Recommendations] Algorithm returned 12 results
+INFO 2025-09-28 20:50:34,536 engine 2150 281472976089472 [Engine] Collaborative returning 25 recommendations
+INFO 2025-09-28 20:50:34,536 views 2150 281472976089472 [Recommendations] Algorithm returned 12 results
+INFO 2025-09-28 20:50:34,537 views 2150 281472894300544 [Recommendations] Returning 3 recommendations
+INFO 2025-09-28 20:50:34,537 basehttp 2150 281472894300544 "POST /api/recommendations/ HTTP/1.1" 200 1453
+INFO 2025-09-28 20:50:34,537 views 2150 281472976089472 [Recommendations] Returning 3 recommendations
+INFO 2025-09-28 20:50:34,538 basehttp 2150 281472976089472 "POST /api/recommendations/ HTTP/1.1" 200 1453
