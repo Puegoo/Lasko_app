@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import RecommendationService from '../services/recommendationService';
+import { RecommendationService } from '../services/recommendationService';
 
 // ---------- UI helpers ----------
 const GradientGridBg = () => (
@@ -131,28 +131,45 @@ export default function PlanDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activating, setActivating] = useState(false);
-  const recApi = new RecommendationService();
+  const recApi = useMemo(() => new RecommendationService(), []);
 
   useEffect(() => {
     const fetchPlanDetails = async () => {
       try {
         setLoading(true);
         setError(null);
-        console.log('[PlanDetailsPage] Fetching plan:', planId);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('[PlanDetailsPage] START - Fetching plan:', planId);
         const data = await recApi.getPlanDetailed(planId);
-        console.log('[PlanDetailsPage] Plan data:', data);
+        
+        console.log('[PlanDetailsPage] Raw API Response:', JSON.stringify(data, null, 2));
+        console.log('[PlanDetailsPage] data.plan exists?', !!data.plan);
+        console.log('[PlanDetailsPage] data.plan:', data.plan);
+        
+        // Sprawdź czy dane są w data.plan czy bezpośrednio w data
+        const planData = data.plan || data;
+        
+        console.log('[PlanDetailsPage] Using planData:', planData);
+        console.log('[PlanDetailsPage] planData.id:', planData.id || planData.plan_id);
+        console.log('[PlanDetailsPage] planData.name:', planData.name);
+        console.log('[PlanDetailsPage] planData.days:', planData.days);
+        console.log('[PlanDetailsPage] planData.days is Array?', Array.isArray(planData.days));
         
         // Normalizuj dane planu
         const normalizedPlan = {
-          id: data.plan_id || data.id,
-          name: data.name,
-          description: data.description,
-          goalType: data.goal_type || data.goalType,
-          difficultyLevel: data.difficulty_level || data.difficultyLevel,
-          trainingDaysPerWeek: data.training_days_per_week || data.trainingDaysPerWeek,
-          equipmentRequired: data.equipment_required || data.equipmentRequired,
-          days: data.days || data.workouts || [],
+          id: planData.plan_id || planData.id,
+          name: planData.name,
+          description: planData.description,
+          goalType: planData.goal_type || planData.goalType,
+          difficultyLevel: planData.difficulty_level || planData.difficultyLevel,
+          trainingDaysPerWeek: planData.training_days_per_week || planData.trainingDaysPerWeek,
+          equipmentRequired: planData.equipment_required || planData.equipmentRequired,
+          days: planData.days || planData.workouts || [],
         };
+        
+        console.log('[PlanDetailsPage] Normalized plan:', normalizedPlan);
+        console.log('[PlanDetailsPage] normalizedPlan.days length:', normalizedPlan.days?.length);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
         setPlan(normalizedPlan);
       } catch (err) {
@@ -166,7 +183,7 @@ export default function PlanDetailsPage() {
     if (planId) {
       fetchPlanDetails();
     }
-  }, [planId]);
+  }, [planId, recApi]);
 
   const handleActivatePlan = async () => {
     if (!plan) return;

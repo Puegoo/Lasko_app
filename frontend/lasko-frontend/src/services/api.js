@@ -5,7 +5,6 @@ import {
   clearTokens,
   isTokenValid,
   setTokens,
-  getUserData,
   getRefreshToken
 } from './authService';
 
@@ -87,7 +86,10 @@ class ApiService {
         console.log(`📥 [ApiService] Odpowiedź: ${response.status} ${response.statusText}`);
 
         if (!response.ok) {
-          if (response.status === 401 && attempt === 1) {
+          // Nie próbuj odświeżać tokenu dla endpointów logowania/rejestracji
+          const isAuthEndpoint = endpoint.includes('/login') || endpoint.includes('/register');
+          
+          if (response.status === 401 && attempt === 1 && !isAuthEndpoint && getAccessToken()) {
             console.warn('🔄 [ApiService] 401 - próba odświeżenia tokenu');
             // Spróbuj odświeżyć token i spróbuj ponownie
             try {
@@ -101,7 +103,9 @@ class ApiService {
           }
 
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+          // Backend może zwracać 'detail', 'message', lub 'error'
+          const errorMessage = errorData.detail || errorData.message || errorData.error;
+          throw new Error(errorMessage || `HTTP ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json().catch(() => ({}));

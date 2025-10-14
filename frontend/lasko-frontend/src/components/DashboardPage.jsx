@@ -186,8 +186,21 @@ const PlanCard = ({ plan, isActive = false }) => {
   
   const handleViewDetails = () => {
     // Przekieruj do dedykowanej strony szczegółów planu
-    const planId = plan.planId || plan.id;
+    console.log('[PlanCard] handleViewDetails - full plan object:', plan);
+    console.log('[PlanCard] plan.planId:', plan?.planId);
+    console.log('[PlanCard] plan.id:', plan?.id);
+    console.log('[PlanCard] plan.plan_id:', plan?.plan_id);
+    console.log('[PlanCard] Object.keys(plan):', Object.keys(plan || {}));
+    
+    const planId = plan?.planId || plan?.id || plan?.plan_id;
     console.log('[DashboardPage] Navigating to plan details for ID:', planId);
+    
+    if (!planId) {
+      console.error('[PlanCard] ERROR: No valid planId found!');
+      alert('Błąd: Nie można otworzyć szczegółów planu (brak ID)');
+      return;
+    }
+    
     navigate(`/plan-details/${planId}`);
   };
   
@@ -320,6 +333,12 @@ const DashboardPage = () => {
         setUserProfile(profileData.profile);
       }
       const recoData = await apiService.generateRecommendations?.('hybrid', {});
+      console.log('[DashboardPage] recoData from API:', recoData);
+      console.log('[DashboardPage] recommendations:', recoData?.recommendations);
+      if (recoData?.recommendations && recoData.recommendations.length > 0) {
+        console.log('[DashboardPage] First recommendation:', recoData.recommendations[0]);
+        console.log('[DashboardPage] First recommendation keys:', Object.keys(recoData.recommendations[0] || {}));
+      }
       setRecommendations(recoData?.recommendations || []);
     } catch (err) {
       console.error('Błąd ładowania danych:', err);
