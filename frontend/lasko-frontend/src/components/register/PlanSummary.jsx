@@ -78,7 +78,11 @@ const Navbar = () => {
 
   useEffect(() => {
     if (!user && looksAuthed) {
-      try { debugAuth?.(); } catch {}
+      try { 
+        debugAuth?.(); 
+      } catch (error) {
+        console.warn('[PlanSummary] Debug auth failed:', error);
+      }
     }
   }, [user, looksAuthed, debugAuth]);
 
@@ -266,7 +270,11 @@ export default function PlanSummary() {
     const hasToken = typeof getToken === 'function' ? !!getToken() : false;
     const authed = typeof isAuthenticated === 'function' ? isAuthenticated() : hasToken;
     if (!user && authed) {
-      try { debugAuth?.(); } catch {}
+      try { 
+        debugAuth?.(); 
+      } catch (error) {
+        console.warn('[PlanSummary] User rehydration failed:', error);
+      }
     }
   }, [user, isAuthenticated, getToken, debugAuth]);
 
@@ -277,25 +285,55 @@ export default function PlanSummary() {
   const [activeTab, setActiveTab] = useState('overview'); // overview | details | schedule
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
+  const [fetchedPlanIds, setFetchedPlanIds] = useState(new Set());
   const recApi = useMemo(() => new RecommendationService(), []);
 
   const normalizePlanDetails = (base, detailed) => {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔄 [PlanSummary] normalizePlanDetails START');
+    console.log('   INPUT base:', JSON.stringify(base, null, 2));
+    console.log('   INPUT detailed:', JSON.stringify(detailed, null, 2));
+    
     const plan = detailed?.plan || detailed || {};
+    console.log('   EXTRACTED plan:', JSON.stringify(plan, null, 2));
+    console.log('   plan.days:', plan.days);
+    console.log('   plan.workouts:', plan.workouts);
+    console.log('   plan.sessions:', plan.sessions);
+    
     const daysRaw = plan.days ?? plan.workouts ?? plan.sessions ?? [];
-    const days = Array.isArray(daysRaw) ? daysRaw.map((d, idx) => ({
-      title: d.title || d.name || d.dayName || `Dzień ${idx + 1}`,
-      exercises: Array.isArray(d.exercises) ? d.exercises
-                : Array.isArray(d.items) ? d.items
-                : Array.isArray(d.movements) ? d.movements
-                : [],
-    })) : [];
+    console.log('   SELECTED daysRaw:', JSON.stringify(daysRaw, null, 2));
+    console.log('   Type of daysRaw:', typeof daysRaw);
+    console.log('   Is Array daysRaw:', Array.isArray(daysRaw));
+    console.log('   Length of daysRaw:', Array.isArray(daysRaw) ? daysRaw.length : 'N/A');
+    
+    const days = Array.isArray(daysRaw) ? daysRaw.map((d, idx) => {
+      console.log(`   Processing day ${idx}:`, d);
+      const result = {
+        title: d.title || d.name || d.dayName || `Dzień ${idx + 1}`,
+        exercises: Array.isArray(d.exercises) ? d.exercises
+                  : Array.isArray(d.items) ? d.items
+                  : Array.isArray(d.movements) ? d.movements
+                  : [],
+      };
+      console.log(`   Mapped day ${idx}:`, result);
+      return result;
+    }) : [];
 
-    return {
+    console.log('   FINAL normalized days:', JSON.stringify(days, null, 2));
+    console.log('   Length of normalized days:', days.length);
+
+    const result = {
       ...base,
       name: base?.name ?? plan?.name,
       description: base?.description ?? plan?.description,
       days,
     };
+    
+    console.log('   RETURN value:', JSON.stringify(result, null, 2));
+    console.log('🔄 [PlanSummary] normalizePlanDetails END');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    return result;
   };
 
   // odczyt z sessionStorage, jeśli przyszliśmy „na pusto” + pobranie katalogu ćwiczeń
@@ -316,30 +354,97 @@ export default function PlanSummary() {
 
   // dociągnij szczegóły planu, jeśli mamy ID ale brak days
   useEffect(() => {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('⚙️ [PlanSummary] useEffect TRIGGERED');
+    console.log('   planData:', planData);
+    console.log('   planData.recommendedPlan:', planData?.recommendedPlan);
+    
     const pid = planData?.recommendedPlan?.planId || planData?.recommendedPlan?.id;
-    const hasDays = Array.isArray(planData?.recommendedPlan?.days) && planData.recommendedPlan.days.length > 0;
-    if (!pid || hasDays) return;
+    const currentDays = planData?.recommendedPlan?.days;
+    const hasDays = Array.isArray(currentDays) && currentDays.length > 0;
+    const alreadyFetched = fetchedPlanIds.has(pid);
+    
+    console.log('   pid:', pid);
+    console.log('   currentDays:', currentDays);
+    console.log('   Type of currentDays:', typeof currentDays);
+    console.log('   Is Array currentDays:', Array.isArray(currentDays));
+    console.log('   currentDays.length:', currentDays?.length);
+    console.log('   hasDays:', hasDays);
+    console.log('   alreadyFetched:', alreadyFetched);
+    console.log('   fetchedPlanIds Set:', Array.from(fetchedPlanIds));
+    
+    // Jeśli nie ma ID, już ma days, lub już próbowaliśmy pobrać ten plan - nie rób nic
+    if (!pid) {
+      console.log('❌ [PlanSummary] No plan ID - skipping');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      return;
+    }
+    if (hasDays) {
+      console.log('✅ [PlanSummary] Already has days - skipping');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      return;
+    }
+    if (alreadyFetched) {
+      console.log('⏭️ [PlanSummary] Already fetched this plan ID - skipping');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      return;
+    }
+    
+    console.log('🚀 [PlanSummary] Will fetch plan details!');
+    
     let isCancelled = false;
     (async () => {
       try {
         setDetailsError(null);
         setDetailsLoading(true);
+        console.log('📥 [PlanSummary] Fetching plan details for pid:', pid);
+        
+        // Oznacz że pobieramy ten plan
+        setFetchedPlanIds(prev => {
+          const newSet = new Set([...prev, pid]);
+          console.log('   Updated fetchedPlanIds:', Array.from(newSet));
+          return newSet;
+        });
+        
         const detailed = await recApi.getPlanDetailed(pid);
-        if (isCancelled) return;
+        console.log('📦 [PlanSummary] Fetched plan details:', detailed);
+        
+        if (isCancelled) {
+          console.log('⚠️ [PlanSummary] Request cancelled');
+          return;
+        }
+        
+        console.log('🔄 [PlanSummary] Calling normalizePlanDetails...');
+        const normalizedPlan = normalizePlanDetails(planData.recommendedPlan, detailed);
+        console.log('✅ [PlanSummary] Normalized plan:', normalizedPlan);
+        
         const merged = {
           ...planData,
-          recommendedPlan: normalizePlanDetails(planData.recommendedPlan, detailed),
+          recommendedPlan: normalizedPlan,
         };
+        console.log('📝 [PlanSummary] Merged plan data:', merged);
+        console.log('   merged.recommendedPlan.days:', merged.recommendedPlan?.days);
+        console.log('   merged.recommendedPlan.days length:', merged.recommendedPlan?.days?.length);
+        
         setPlanData(merged);
         sessionStorage.setItem('lasko_plan_draft', JSON.stringify(merged));
+        console.log('💾 [PlanSummary] Saved to state and sessionStorage');
       } catch (e) {
+        console.error('❌ [PlanSummary] Error fetching plan details:', e);
+        console.error('   Error stack:', e.stack);
         if (!isCancelled) setDetailsError(e?.message || 'Nie udało się pobrać szczegółów planu.');
       } finally {
         if (!isCancelled) setDetailsLoading(false);
+        console.log('⚙️ [PlanSummary] useEffect COMPLETED');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       }
     })();
-    return () => { isCancelled = true; };
-  }, [planData?.recommendedPlan?.planId, planData?.recommendedPlan?.id]); // tylko po ID
+    return () => { 
+      console.log('🧹 [PlanSummary] useEffect cleanup');
+      isCancelled = true; 
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planData?.recommendedPlan?.planId, planData?.recommendedPlan?.id]); // tylko po ID, nie po całym planData!
 
   // bezpieczne odczyty
   const { recommendedPlan, name, goal, level, trainingDaysPerWeek, timePerSession, equipment, altPlans = [] } = {
@@ -353,16 +458,6 @@ export default function PlanSummary() {
   const totalSets = useMemo(() => sumSets(allExercises), [allExercises]);
   const totalExercises = allExercises.length;
   const totalDays = recommendedPlan?.days?.length || 0;
-
-  // zamiana na plan alternatywny
-  const useAlternativePlan = (idx) => {
-    const alt = altPlans[idx];
-    if (!alt) return;
-    const updated = { ...planData, recommendedPlan: alt, name: alt.name || planData.name };
-    setPlanData(updated);
-    sessionStorage.setItem('lasko_plan_draft', JSON.stringify(updated));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   // akcje personalizacji
   const removeExercise = (dayIdx, exIdx, exercise) => {
@@ -528,6 +623,46 @@ export default function PlanSummary() {
 
         {/* Main Content */}
         <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+          {/* Komunikat gdy brak planu */}
+          {!recommendedPlan && (
+            <div className="text-center py-16">
+              <div className="mb-6 inline-flex h-24 w-24 items-center justify-center rounded-full bg-red-900/20 border border-red-500/30">
+                <svg width="48" height="48" fill="none" stroke="currentColor" className="text-red-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h2 className="mb-3 text-2xl font-bold text-white">Brak zarekomendowanego planu</h2>
+              <p className="mb-6 text-gray-300 max-w-md mx-auto">
+                Nie udało się wygenerować planu treningowego. Dane z ankiety mogły nie zostać poprawnie zapisane.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <SecondaryButton onClick={() => navigate('/enhanced-plan-creator')}>
+                  ← Wróć do kreatora
+                </SecondaryButton>
+                <PrimaryButton onClick={() => navigate('/dashboard')}>
+                  Przejdź do dashboardu
+                </PrimaryButton>
+              </div>
+              <div className="mt-8 rounded-xl bg-blue-400/10 border border-blue-400/20 p-4 text-left max-w-xl mx-auto">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">💡</span>
+                  <div>
+                    <h4 className="font-semibold text-white mb-2">Wskazówka</h4>
+                    <p className="text-sm text-gray-300">
+                      Sprawdź konsolę przeglądarki (F12) aby zobaczyć szczegółowe informacje o błędzie.
+                      Prawdopodobne przyczyny:
+                    </p>
+                    <ul className="mt-2 text-sm text-gray-300 list-disc list-inside space-y-1">
+                      <li>Błąd połączenia z backendem</li>
+                      <li>Brak planów treningowych w bazie danych</li>
+                      <li>Nieprawidłowe dane profilu</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {activeTab === 'overview' && recommendedPlan && (
             <div className="space-y-8">
               {/* opis */}
@@ -614,7 +749,15 @@ export default function PlanSummary() {
                         )}
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => useAlternativePlan(idx)}
+                            onClick={() => {
+                              const alt = altPlans[idx];
+                              if (alt) {
+                                const updated = { ...planData, recommendedPlan: alt, name: alt.name || planData.name };
+                                setPlanData(updated);
+                                sessionStorage.setItem('lasko_plan_draft', JSON.stringify(updated));
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
                             className="group relative inline-flex items-center justify-center rounded-full px-5 py-2 text-xs font-bold text-white"
                           >
                             <span className="absolute inset-0 rounded-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] opacity-90 transition-opacity group-hover:opacity-100" />
@@ -765,7 +908,8 @@ export default function PlanSummary() {
                     }
                   }
                 });
-              } catch (e) {
+              } catch (error) {
+                console.error('[PlanSummary] Failed to activate plan:', error);
                 alert('Nie udało się aktywować planu. Spróbuj ponownie.');
               }
             }}
@@ -806,7 +950,7 @@ export default function PlanSummary() {
                   if (!q) return true;
                   return x.name?.toLowerCase().includes(q) || x.muscle_group?.toLowerCase().includes(q);
                 })
-                .sort((a, b) => (a.muscle_group === swapModal.oldExercise?.muscle_group ? -1 : 1))
+                .sort((a) => (a.muscle_group === swapModal.oldExercise?.muscle_group ? -1 : 1))
                 .slice(0, 120)
                 .map((x) => (
                   <button

@@ -1,14 +1,15 @@
-# backend/accounts/models.py - POPRAWIONY MODEL
+# backend/accounts/models.py - POPRAWIONY MODEL BEZ created_at/updated_at
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField
 
+
 class AuthAccount(models.Model):
     """Model użytkownika zgodny ze schematem SQL"""
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(max_length=100, unique=True)
-    password = models.CharField(max_length=255)  # ZMIANA: password zamiast password_hash
+    password = models.CharField(max_length=255)
     first_name = models.CharField(max_length=50, blank=True, null=True)
     
     # Pola zgodne z Django
@@ -47,47 +48,141 @@ class AuthAccount(models.Model):
             # Nowe konto z niezahashowanym hasłem
             self.set_password(self.password)
         super().save(*args, **kwargs)
+    
+    @property
+    def is_authenticated(self):
+        """Zawsze True dla aktywnych użytkowników"""
+        return self.is_active
+    
+    @property
+    def is_anonymous(self):
+        """Zawsze False dla zalogowanych użytkowników"""
+        return False
+    
+    def has_perm(self, perm, obj=None):
+        """Sprawdzanie uprawnień"""
+        return self.is_admin or self.is_superuser
+    
+    def has_module_perms(self, app_label):
+        """Sprawdzanie uprawnień do modułu"""
+        return self.is_admin or self.is_superuser
 
 
 class UserProfile(models.Model):
-    """Profil użytkownika"""
+    """Profil użytkownika - BEZ created_at i updated_at"""
+    
+    GOAL_CHOICES = [
+        ('masa', 'Budowa masy'),
+        ('sila', 'Siła'),
+        ('wytrzymalosc', 'Wytrzymałość'),
+        ('spalanie', 'Spalanie tłuszczu'),
+        ('zdrowie', 'Ogólne zdrowie'),
+    ]
+    
+    LEVEL_CHOICES = [
+        ('poczatkujacy', 'Początkujący'),
+        ('sredniozaawansowany', 'Średniozaawansowany'),
+        ('zaawansowany', 'Zaawansowany'),
+    ]
+    
+    EQUIPMENT_CHOICES = [
+        ('silownia', 'Siłownia'),
+        ('dom_podstawowy', 'Dom - podstawowy'),
+        ('dom_zaawansowany', 'Dom - zaawansowany'),
+        ('masa_ciala', 'Masa ciała'),
+        ('minimalne', 'Minimalne'),
+    ]
+    
+    RECOMMENDATION_METHOD_CHOICES = [
+        ('ai', 'AI-based'),
+        ('collaborative', 'Collaborative Filtering'),
+        ('content_based', 'Content-based'),
+        ('hybrid', 'Hybrid')
+    ]
+    
+    # Relacja z kontem - primary key zgodnie z SQL
     auth_account = models.OneToOneField(
-        AuthAccount, 
+        AuthAccount,
         on_delete=models.CASCADE,
-        db_column='auth_account_id'
+        primary_key=True,
+        db_column='auth_account_id',
+        related_name='userprofile'
     )
+    
+    # Dane podstawowe
     first_name = models.CharField(max_length=50, blank=True, null=True)
     date_of_birth = models.DateField(blank=True, null=True)
-    goal = models.CharField(max_length=50, blank=True, null=True)
-    level = models.CharField(max_length=50, blank=True, null=True)
-    training_days_per_week = models.IntegerField(blank=True, null=True)
-    equipment_preference = models.CharField(max_length=50, blank=True, null=True)
-    preferred_session_duration = models.IntegerField(default=60)
-
+    
+    # Parametry treningowe - WSZYSTKIE MOGĄ BYĆ NULL
+    goal = models.CharField(
+        max_length=50,
+        choices=GOAL_CHOICES,
+        blank=True,
+        null=True
+    )
+    level = models.CharField(
+        max_length=50,
+        choices=LEVEL_CHOICES,
+        blank=True,
+        null=True
+    )
+    training_days_per_week = models.IntegerField(
+        blank=True,
+        null=True
+    )
+    equipment_preference = models.CharField(
+        max_length=50,
+        choices=EQUIPMENT_CHOICES,
+        blank=True,
+        null=True
+    )
+    preferred_session_duration = models.IntegerField(
+        default=60,
+        blank=True,
+        null=True
+    )
+    
+    # Preferencje użytkownika
     avoid_exercises = ArrayField(
         base_field=models.CharField(max_length=100),
-        blank=True, null=True, default=list
+        blank=True,
+        null=True,
+        default=list
     )
     focus_areas = ArrayField(
         base_field=models.CharField(max_length=50),
-        blank=True, null=True, default=list
+        blank=True,
+        null=True,
+        default=list
     )
-
+    
+    # Metoda rekomendacji
     recommendation_method = models.CharField(
         max_length=50,
+        choices=RECOMMENDATION_METHOD_CHOICES,
         default='hybrid',
-        choices=[
-            ('ai', 'AI-based'),
-            ('collaborative', 'Collaborative Filtering'),
-            ('content_based', 'Content-based'),
-            ('hybrid', 'Hybrid')
-        ]
+        blank=True
     )
+    
+    # Metadata - tylko last_survey_date bo istnieje w bazie
     last_survey_date = models.DateTimeField(default=timezone.now)
+    
+    # NIE DODAJEMY created_at i updated_at bo ich nie ma w bazie!
     
     class Meta:
         db_table = 'user_profiles'
-        managed = False  # Nie zarządzaj tabelą przez Django
+        managed = False  # Nie zarządzaj tabelą przez Django (już istnieje)
     
     def __str__(self):
         return f"Profile: {self.auth_account.username}"
+    
+    @property
+    def age(self):
+        """Oblicz wiek na podstawie daty urodzenia"""
+        if self.date_of_birth:
+            from datetime import date
+            today = date.today()
+            return today.year - self.date_of_birth.year - (
+                (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
+            )
+        return None

@@ -1,3 +1,4 @@
+// Lasko_app/frontend/lasko-frontend/src/services/apiClient.js
 import axios from 'axios'
 
 const base = import.meta.env.VITE_API_BASE_URL || '/api'

@@ -231,15 +231,27 @@ def _generate_fallback(user_id, mode, top, preferences):
                 "equipment": user_profile.equipment_preference,
             }
             logger.info(f"[Recommendations] User profile for fallback: {profile_data}")
+            
+            # Jeśli profil jest pusty, użyj preferencji z requesta
+            if not profile_data["goal"] and preferences.get("goal"):
+                profile_data["goal"] = preferences.get("goal")
+                logger.info(f"[Recommendations] Using goal from preferences: {profile_data['goal']}")
+            if not profile_data["level"] and preferences.get("level"):
+                profile_data["level"] = preferences.get("level")
+                logger.info(f"[Recommendations] Using level from preferences: {profile_data['level']}")
+            if not profile_data["equipment"] and preferences.get("equipment_preference"):
+                profile_data["equipment"] = preferences.get("equipment_preference")
+                logger.info(f"[Recommendations] Using equipment from preferences: {profile_data['equipment']}")
 
         except UserProfile.DoesNotExist:
             logger.warning(f"[Recommendations] No profile found for user: {user_id}")
             profile_data = {
-                "goal": "zdrowie",
-                "level": "poczatkujacy",
-                "days": 3,
-                "equipment": "silownia"
+                "goal": preferences.get("goal", "zdrowie"),
+                "level": preferences.get("level", "poczatkujacy"),
+                "days": preferences.get("training_days_per_week", 3),
+                "equipment": preferences.get("equipment_preference", "silownia")
             }
+            logger.info(f"[Recommendations] Using profile from preferences: {profile_data}")
 
         # Try to get real plans from database
         try:
@@ -279,6 +291,7 @@ def _generate_fallback(user_id, mode, top, preferences):
                 
                 if not plans:
                     # If still no plans, get ANY plan
+                    logger.warning(f"[Recommendations] No plans found with filters, getting any active plans")
                     cursor.execute("""
                         SELECT plan_id, name, description, goal_type, difficulty_level, 
                                training_days_per_week, equipment_required
@@ -288,6 +301,7 @@ def _generate_fallback(user_id, mode, top, preferences):
                         LIMIT %s
                     """, [top])
                     plans = cursor.fetchall()
+                    logger.info(f"[Recommendations] Found {len(plans)} plans without filters")
                 
                 if plans:
                     recommendations = []
@@ -478,19 +492,42 @@ def plan_detailed(request, plan_id: int):
     Zwraca { success, plan: {..., days: [...] } }
     """
     try:
+        logger.info("=" * 80)
+        logger.info(f"[PlanDetailed] ===== REQUEST START =====")
+        logger.info(f"[PlanDetailed] Plan ID: {plan_id}")
+        logger.info(f"[PlanDetailed] Request method: {request.method}")
+        logger.info(f"[PlanDetailed] Request path: {request.path}")
+        logger.info(f"[PlanDetailed] HAS_ENGINE: {HAS_ENGINE}")
+        
         data = None
 
         # 1) Spróbuj przez engine (jeśli dostępny)
         if HAS_ENGINE:
             try:
+                logger.info(f"[PlanDetailed] Calling engine.plan_details([{plan_id}])")
                 details = plan_details([plan_id]) or {}
+                logger.info(f"[PlanDetailed] Engine returned: {details}")
+                logger.info(f"[PlanDetailed] Type of details: {type(details)}")
+                logger.info(f"[PlanDetailed] Keys in details: {list(details.keys()) if isinstance(details, dict) else 'N/A'}")
+                
                 # engine może zwrócić klucze int lub str
                 data = details.get(plan_id) or details.get(str(plan_id))
+                logger.info(f"[PlanDetailed] Extracted data from engine: {data}")
+                
+                if data:
+                    logger.info(f"[PlanDetailed] Type of data: {type(data)}")
+                    logger.info(f"[PlanDetailed] Keys in data: {list(data.keys()) if isinstance(data, dict) else 'N/A'}")
+                    if 'days' in data:
+                        logger.info(f"[PlanDetailed] data['days']: {data['days']}")
+                        logger.info(f"[PlanDetailed] Type of data['days']: {type(data['days'])}")
+                        logger.info(f"[PlanDetailed] Length of data['days']: {len(data['days']) if isinstance(data['days'], list) else 'N/A'}")
             except Exception as e:
                 logger.warning(f"[PlanDetailed] engine.plan_details error: {e}")
+                logger.warning(f"[PlanDetailed] Exception traceback: {traceback.format_exc()}")
 
         # 2) Fallback – podstawowe meta z bazy (bez dni)
         if not data:
+            logger.info(f"[PlanDetailed] No data from engine, using database fallback")
             with connection.cursor() as cursor:
                 cursor.execute("""
                     SELECT plan_id, name, description, goal_type, difficulty_level,
@@ -499,6 +536,8 @@ def plan_detailed(request, plan_id: int):
                     WHERE plan_id = %s
                 """, [plan_id])
                 row = cursor.fetchone()
+                logger.info(f"[PlanDetailed] Database row: {row}")
+                
                 if row:
                     data = {
                         "plan_id": row[0],
@@ -510,16 +549,27 @@ def plan_detailed(request, plan_id: int):
                         "equipment_required": row[6],
                         "days": [],   # brak szczegółowych dni — UI to obsłuży
                     }
+                    logger.info(f"[PlanDetailed] Created fallback data: {data}")
 
         if not data:
+            logger.error(f"[PlanDetailed] Plan not found: {plan_id}")
             return Response({"error": "Plan not found", "code": "plan_not_found"},
                             status=status.HTTP_404_NOT_FOUND)
 
         # Upewnij się, że zawsze jest tablica 'days'
         if 'days' not in data or data['days'] is None:
+            logger.info(f"[PlanDetailed] No 'days' in data, setting empty array")
             data['days'] = []
 
-        return Response({"success": True, "plan": data}, status=status.HTTP_200_OK)
+        response_data = {"success": True, "plan": data}
+        logger.info(f"[PlanDetailed] Final response data: {response_data}")
+        logger.info(f"[PlanDetailed] Type of response_data['plan']: {type(response_data['plan'])}")
+        logger.info(f"[PlanDetailed] Type of response_data['plan']['days']: {type(response_data['plan']['days'])}")
+        logger.info(f"[PlanDetailed] Length of response_data['plan']['days']: {len(response_data['plan']['days'])}")
+        logger.info(f"[PlanDetailed] ===== REQUEST END =====")
+        logger.info("=" * 80)
+        
+        return Response(response_data, status=status.HTTP_200_OK)
 
     except Exception as e:
         logger.error(f"[PlanDetailed] Exception: {e}")

@@ -112,20 +112,34 @@ def _days_ok(user_days, plan_days, tolerance=1):
 def _hard_gate(user: Dict, g: str, lv: str, d: int, eq: str) -> bool:
     """
     Twarde kryteria – jeśli nie przejdą, plan nie jest oceniany w ogóle.
-    - cel i poziom: dokładny match
-    - dni: różnica ≤ 1
-    - sprzęt: preferowany miękko (nie blokuje), korygowany punktacją
+    - cel: dokładny match (obowiązkowy)
+    - poziom: dopuszczamy różnice (tylko BLOKUJ jeśli jest za trudny)
+    - dni: różnica ≤ 2 (bardziej elastycznie)
+    - sprzęt: NIE BLOKUJ (oceniamy punktami)
     """
     ug = _norm(user.get('goal'))
     ul = _norm(user.get('level'))
-    ue = _norm(user.get('equipment'))
+    
+    # CEL: musi się zgadzać (jeśli użytkownik podał)
     if ug and _norm(g) != ug:
         return False
-    if ul and _norm(lv) != ul:
+    
+    # POZIOM: blokuj TYLKO jeśli plan jest zaawansowany a użytkownik początkujący
+    # (inne kombinacje dopuszczamy)
+    if ul and _norm(lv):
+        plan_level = _norm(lv)
+        user_level = ul
+        # Blokuj zaawansowane plany dla początkujących
+        if user_level == 'poczatkujacy' and plan_level == 'zaawansowany':
+            return False
+    
+    # DNI: bardziej elastycznie - różnica do 2 dni
+    if not _days_ok(user.get('days'), d, tolerance=2):
         return False
-    if not _days_ok(user.get('days'), d, tolerance=1):
-        return False
-    if ue and _norm(eq) != ue: return False 
+    
+    # SPRZĘT: NIE BLOKUJ - oceniamy w punktacji
+    # (użytkownik może mieć dostęp do różnego sprzętu)
+    
     return True
 
 
@@ -321,11 +335,19 @@ def hybrid(user_id: int, user: Dict) -> List[Dict]:
 
 
 def plan_details(ids: List[int]) -> Dict[int, Dict]:
-    """Get detailed information for specific plan IDs."""
+    """Get detailed information for specific plan IDs including days/workouts."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"[plan_details] Called with IDs: {ids}")
+    
     if not ids:
+        logger.info(f"[plan_details] No IDs provided, returning empty dict")
         return {}
+    
     with connection.cursor() as cur:
-        q = """
+        # Najpierw pobierz podstawowe informacje o planach
+        q_plans = """
         SELECT
             id AS plan_id,
             name, description, goal_type, difficulty_level,
@@ -333,8 +355,8 @@ def plan_details(ids: List[int]) -> Dict[int, Dict]:
         FROM training_plans
         WHERE id = ANY(%s)
         """
-        cur.execute(q, [ids])
-        return {
+        cur.execute(q_plans, [ids])
+        plans = {
             r[0]: {
                 'plan_id': r[0],
                 'name': r[1],
@@ -343,8 +365,89 @@ def plan_details(ids: List[int]) -> Dict[int, Dict]:
                 'difficulty_level': r[4],
                 'training_days_per_week': r[5],
                 'equipment_required': r[6],
+                'days': []  # Zainicjalizuj pustą tablicę
             } for r in cur.fetchall()
         }
+        
+        logger.info(f"[plan_details] Found {len(plans)} plans")
+        
+        # Teraz pobierz dni treningowe dla każdego planu z ćwiczeniami
+        for plan_id in plans.keys():
+            # Pobierz dni
+            q_days = """
+            SELECT
+                pd.id,
+                pd.name,
+                pd.day_order,
+                pd.day_of_week
+            FROM plan_days pd
+            WHERE pd.plan_id = %s
+            ORDER BY pd.day_order
+            """
+            cur.execute(q_days, [plan_id])
+            days_rows = cur.fetchall()
+            
+            logger.info(f"[plan_details] Plan {plan_id}: found {len(days_rows)} days")
+            
+            days = []
+            for day_row in days_rows:
+                day_id, day_name, day_order, day_of_week = day_row
+                logger.info(f"[plan_details] Plan {plan_id}, Day {day_order}: {day_name}")
+                
+                # Pobierz ćwiczenia dla tego dnia
+                q_exercises = """
+                SELECT
+                    e.id,
+                    e.name,
+                    e.description,
+                    e.muscle_group,
+                    e.type,
+                    e.video_url,
+                    e.image_url,
+                    pe.target_sets,
+                    pe.target_reps,
+                    pe.rest_seconds,
+                    pe.superset_group
+                FROM plan_exercises pe
+                JOIN exercises e ON pe.exercise_id = e.id
+                WHERE pe.plan_day_id = %s
+                ORDER BY pe.id
+                """
+                cur.execute(q_exercises, [day_id])
+                exercises_rows = cur.fetchall()
+                
+                logger.info(f"[plan_details] Day {day_id}: found {len(exercises_rows)} exercises")
+                
+                exercises = []
+                for ex_row in exercises_rows:
+                    ex_id, ex_name, ex_desc, ex_muscle, ex_type, ex_video, ex_image, sets, reps, rest, superset = ex_row
+                    exercises.append({
+                        'id': ex_id,
+                        'name': ex_name,
+                        'description': ex_desc,
+                        'muscle_group': ex_muscle,
+                        'type': ex_type,
+                        'video_url': ex_video,
+                        'image_url': ex_image,
+                        'sets': sets,
+                        'reps': reps,
+                        'rest_seconds': rest,
+                        'superset_group': superset
+                    })
+                
+                days.append({
+                    'dayNumber': day_order,
+                    'title': day_name or f'Dzień {day_order}',
+                    'name': day_name or f'Dzień {day_order}',
+                    'dayOfWeek': day_of_week,
+                    'exercises': exercises
+                })
+            
+            plans[plan_id]['days'] = days
+            logger.info(f"[plan_details] Plan {plan_id}: assigned {len(days)} days with exercises")
+        
+        logger.info(f"[plan_details] Returning plans with days: {list(plans.keys())}")
+        return plans
 
 
 def explain_match(user: Dict, plan: Dict, total_users=None, avg_rating=None) -> List[str]:

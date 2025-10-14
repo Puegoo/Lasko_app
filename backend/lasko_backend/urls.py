@@ -39,7 +39,4 @@ urlpatterns = [
     path('api/', api_root, name='api_root'),
     path('api/auth/', include('accounts.urls')),
     path('api/recommendations/', include('recommendations.urls')),
-    
-    path('api/plans/<int:plan_id>/detailed', rec_views.plan_detailed, name='plan_detailed'),
-    path('api/plans/<int:plan_id>/activate', rec_views.activate_plan_by_path, name='activate_plan_by_path'),
 ]

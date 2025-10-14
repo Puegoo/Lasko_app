@@ -48,22 +48,59 @@ export class RecommendationService {
   }
 
   async getPlanDetailed(planId, { signal } = {}) {
-      const tryFetch = async (url) => {
-        const r = await fetch(url, { method: 'GET', headers: this._headers(), signal });
-        return r.ok ? r.json() : null;
-      };
       const id = encodeURIComponent(planId);
       const base = this.baseURL || '';
-      const out =
-        (await tryFetch(`${base}/api/plans/${id}/detailed`)) ||
-        (await tryFetch(`${base}/api/recommendations/plan/${id}/detailed`)) ||
-        null;
-      if (!out) throw new Error('Nie udało się pobrać szczegółów planu.');
-      return out;
+      const url = `${base}/api/recommendations/plans/${id}/detailed/`;
+      
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('📡 [RecommendationService] getPlanDetailed START');
+      console.log('   Plan ID:', planId);
+      console.log('   Encoded ID:', id);
+      console.log('   Full URL:', url);
+      console.log('   Headers:', this._headers());
+      
+      const r = await fetch(url, { method: 'GET', headers: this._headers(), signal });
+      
+      console.log('   Response Status:', r.status);
+      console.log('   Response OK:', r.ok);
+      console.log('   Response Headers:', Object.fromEntries(r.headers.entries()));
+      
+      if (r.status === 401) {
+        console.error('❌ [RecommendationService] 401 - Brak autoryzacji');
+        throw new Error('Brak tokenu autoryzacji - zaloguj się ponownie');
+      }
+      if (!r.ok) {
+        console.error('❌ [RecommendationService] Response not OK:', r.status, r.statusText);
+        throw new Error('Nie udało się pobrać szczegółów planu.');
+      }
+      
+      const data = await r.json();
+      console.log('✅ [RecommendationService] Response Data:', data);
+      console.log('   Type of data:', typeof data);
+      console.log('   Is Array:', Array.isArray(data));
+      console.log('   Keys:', Object.keys(data || {}));
+      
+      if (data.plan) {
+        console.log('   data.plan exists:', data.plan);
+        console.log('   data.plan.days:', data.plan.days);
+        console.log('   Type of data.plan.days:', typeof data.plan.days);
+        console.log('   Is Array data.plan.days:', Array.isArray(data.plan.days));
+      }
+      
+      if (data.days) {
+        console.log('   data.days exists:', data.days);
+        console.log('   Type of data.days:', typeof data.days);
+        console.log('   Is Array data.days:', Array.isArray(data.days));
+      }
+      
+      console.log('📡 [RecommendationService] getPlanDetailed END');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      return data;
     }
 
   async activatePlan(planId) {
-    const res = await fetch(`${this.baseURL}/api/plans/${encodeURIComponent(planId)}/activate`, {
+    const res = await fetch(`${this.baseURL}/api/recommendations/plans/${encodeURIComponent(planId)}/activate/`, {
       method: 'POST',
       headers: this._headers(),
     });

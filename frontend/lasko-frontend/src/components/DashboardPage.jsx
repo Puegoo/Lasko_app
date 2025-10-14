@@ -181,100 +181,111 @@ const ActionCard = ({ icon, title, description, onClick }) => (
   </button>
 );
 
-const PlanCard = ({ plan, isActive = false }) => (
-  <div className={[
-    'relative rounded-2xl border p-6 transition-all',
-    isActive 
-      ? 'border-emerald-400/60 bg-gradient-to-br from-emerald-400/10 to-teal-400/10' 
-      : 'border-white/10 bg-white/[0.04] hover:border-emerald-400/40'
-  ].join(' ')}>
-    {isActive && (
-      <div className="absolute -top-3 left-6">
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-3 py-1 text-xs font-bold text-black">
-          <span className="h-1.5 w-1.5 rounded-full bg-black animate-pulse" />
-          AKTYWNY
-        </span>
-      </div>
-    )}
-    
-    <div className="mb-4 flex items-start justify-between">
-      <div>
-        <h3 className="text-xl font-bold text-white">{plan.name}</h3>
-        {plan.description && (
-          <p className="mt-1 text-sm text-gray-400">{plan.description}</p>
-        )}
-      </div>
-      {plan.matchPercentage && (
-        <div className="text-right">
-          <div className="text-2xl font-bold text-emerald-300">{plan.matchPercentage}%</div>
-          <div className="text-xs text-gray-400">dopasowania</div>
+const PlanCard = ({ plan, isActive = false }) => {
+  const navigate = useNavigate();
+  
+  const handleViewDetails = () => {
+    // Przekieruj do dedykowanej strony szczegółów planu
+    const planId = plan.planId || plan.id;
+    console.log('[DashboardPage] Navigating to plan details for ID:', planId);
+    navigate(`/plan-details/${planId}`);
+  };
+  
+  return (
+    <div className={[
+      'relative rounded-2xl border p-6 transition-all',
+      isActive 
+        ? 'border-emerald-400/60 bg-gradient-to-br from-emerald-400/10 to-teal-400/10' 
+        : 'border-white/10 bg-white/[0.04] hover:border-emerald-400/40'
+    ].join(' ')}>
+      {isActive && (
+        <div className="absolute -top-3 left-6">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-3 py-1 text-xs font-bold text-black">
+            <span className="h-1.5 w-1.5 rounded-full bg-black animate-pulse" />
+            AKTYWNY
+          </span>
         </div>
       )}
-    </div>
+      
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+          {plan.description && (
+            <p className="mt-1 text-sm text-gray-400 line-clamp-2">{plan.description}</p>
+          )}
+        </div>
+        {plan.matchPercentage && (
+          <div className="text-right">
+            <div className="text-2xl font-bold text-emerald-300">{plan.matchPercentage}%</div>
+            <div className="text-xs text-gray-400">dopasowania</div>
+          </div>
+        )}
+      </div>
 
-    <div className="mb-4 grid grid-cols-4 gap-3">
-      <div className="rounded-xl bg-white/[0.04] p-3 text-center">
-        <div className="text-lg font-bold text-white">
-          {plan.trainingDaysPerWeek || plan.trainingDays || 3}
+      <div className="mb-4 grid grid-cols-4 gap-3">
+        <div className="rounded-xl bg-white/[0.04] p-3 text-center">
+          <div className="text-lg font-bold text-white">
+            {plan.trainingDaysPerWeek || plan.trainingDays || 3}
+          </div>
+          <div className="text-xs text-gray-500">dni/tydz.</div>
         </div>
-        <div className="text-xs text-gray-500">dni/tydz.</div>
-      </div>
-      <div className="rounded-xl bg-white/[0.04] p-3 text-center">
-        <div className="text-lg font-bold text-white">
-          {plan.sessionDuration || 60}
+        <div className="rounded-xl bg-white/[0.04] p-3 text-center">
+          <div className="text-lg font-bold text-white">
+            {plan.sessionDuration || 60}
+          </div>
+          <div className="text-xs text-gray-500">min/sesja</div>
         </div>
-        <div className="text-xs text-gray-500">min/sesja</div>
-      </div>
-      <div className="rounded-xl bg-white/[0.04] p-3 text-center">
-        <div className="text-lg font-bold text-white">
-          {plan.durationWeeks || plan.planDuration || 12}
+        <div className="rounded-xl bg-white/[0.04] p-3 text-center">
+          <div className="text-lg font-bold text-white">
+            {plan.durationWeeks || plan.planDuration || 12}
+          </div>
+          <div className="text-xs text-gray-500">tygodni</div>
         </div>
-        <div className="text-xs text-gray-500">tygodni</div>
-      </div>
-      <div className="rounded-xl bg-white/[0.04] p-3 text-center">
-        <div className="text-lg font-bold text-white">
-          {plan.completedWorkouts || 0}
+        <div className="rounded-xl bg-white/[0.04] p-3 text-center">
+          <div className="text-lg font-bold text-white">
+            {plan.completedWorkouts || 0}
+          </div>
+          <div className="text-xs text-gray-500">treningów</div>
         </div>
-        <div className="text-xs text-gray-500">treningów</div>
       </div>
-    </div>
 
-    {plan.matchReasons && plan.matchReasons.length > 0 && (
-      <div className="mb-4 flex flex-wrap gap-2">
-        {plan.matchReasons.map((reason, index) => (
-          <span 
-            key={index}
-            className="rounded-full bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 text-xs font-medium text-emerald-300"
-          >
-            {reason}
-          </span>
-        ))}
-      </div>
-    )}
+      {plan.matchReasons && plan.matchReasons.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {plan.matchReasons.map((reason, index) => (
+            <span 
+              key={index}
+              className="rounded-full bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 text-xs font-medium text-emerald-300"
+            >
+              {reason}
+            </span>
+          ))}
+        </div>
+      )}
 
-    <div className="flex gap-3">
-      {isActive ? (
-        <>
-          <PrimaryButton onClick={() => console.log('Start workout')} className="flex-1">
-            Rozpocznij trening
-          </PrimaryButton>
-          <GhostButton onClick={() => console.log('View details')}>
-            Szczegóły
-          </GhostButton>
+      <div className="flex gap-3">
+        {isActive ? (
+          <>
+            <PrimaryButton onClick={() => console.log('Start workout')} className="flex-1">
+              Rozpocznij trening
+            </PrimaryButton>
+            <GhostButton onClick={handleViewDetails}>
+              Zobacz szczegóły
+            </GhostButton>
         </>
       ) : (
         <>
           <SecondaryButton onClick={() => console.log('Activate plan')} className="flex-1">
             Aktywuj plan
           </SecondaryButton>
-          <GhostButton onClick={() => console.log('View details')}>
-            Zobacz
+          <GhostButton onClick={handleViewDetails}>
+            Zobacz szczegóły
           </GhostButton>
         </>
       )}
     </div>
   </div>
-);
+  );
+};
 
 // Główny komponent Dashboard
 const DashboardPage = () => {
@@ -298,6 +309,7 @@ const DashboardPage = () => {
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUserData = async () => {

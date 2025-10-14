@@ -43,7 +43,7 @@ RECO_CHOICES = [
 
 class UserRegistrationSerializer(serializers.Serializer):
     """
-    Serializer do rejestracji użytkowników
+    Serializer do rejestracji użytkowników - BEZ DOMYŚLNYCH WARTOŚCI
     """
     
     # Account fields
@@ -53,40 +53,40 @@ class UserRegistrationSerializer(serializers.Serializer):
     password_confirm = serializers.CharField(write_only=True, required=False)
     first_name = serializers.CharField(max_length=50, required=False, allow_blank=True)
     
-    # Profile fields
+    # Profile fields - WSZYSTKIE OPCJONALNE, BEZ DOMYŚLNYCH
     goal = serializers.ChoiceField(
-        choices=GOAL_CHOICES, 
-        default='zdrowie',
-        required=False
+        choices=GOAL_CHOICES,
+        required=False,
+        allow_null=True
     )
     level = serializers.ChoiceField(
-        choices=LEVEL_CHOICES, 
-        default='poczatkujacy',
-        required=False
+        choices=LEVEL_CHOICES,
+        required=False,
+        allow_null=True
     )
     training_days_per_week = serializers.IntegerField(
-        min_value=1, 
-        max_value=7, 
-        default=3,
-        required=False
+        min_value=1,
+        max_value=7,
+        required=False,
+        allow_null=True
     )
     equipment_preference = serializers.ChoiceField(
-        choices=EQUIPMENT_CHOICES, 
-        default='silownia',
-        required=False
+        choices=EQUIPMENT_CHOICES,
+        required=False,
+        allow_null=True
     )
     recommendation_method = serializers.ChoiceField(
-        choices=RECO_CHOICES, 
-        default='hybrid',
-        required=False
+        choices=RECO_CHOICES,
+        required=False,
+        allow_null=True
     )
     
     # Optional profile fields
     date_of_birth = serializers.DateField(required=False, allow_null=True)
     preferred_session_duration = serializers.IntegerField(
-        min_value=15, 
-        max_value=180, 
-        required=False, 
+        min_value=15,
+        max_value=180,
+        required=False,
         allow_null=True
     )
     avoid_exercises = serializers.ListField(
@@ -112,14 +112,6 @@ class UserRegistrationSerializer(serializers.Serializer):
                     'password_confirm': 'Hasła nie są zgodne'
                 })
         
-        # 2. Walidacja hasła Django (opcjonalnie)
-        # try:
-        #     validate_password(data['password'])
-        # except ValidationError as e:
-        #     raise serializers.ValidationError({
-        #         'password': list(e.messages)
-        #     })
-        
         return data
     
     def validate_username(self, value):
@@ -140,7 +132,7 @@ class UserRegistrationSerializer(serializers.Serializer):
     
     def create(self, validated_data):
         """
-        Utwórz konto użytkownika i profil - POPRAWIONA WERSJA
+        Utwórz konto użytkownika i profil - NIE NADPISUJ WARTOŚCIAMI DOMYŚLNYMI
         """
         try:
             logger.info(f"[Registration] Tworzenie konta: {validated_data['username']}")
@@ -156,8 +148,17 @@ class UserRegistrationSerializer(serializers.Serializer):
                 'avoid_exercises', 'focus_areas'
             ]
             
-            account_data = {key: validated_data[key] for key in account_fields if key in validated_data}
-            profile_data = {key: validated_data[key] for key in profile_fields if key in validated_data}
+            # Wyciągnij tylko te dane, które faktycznie przyszły
+            account_data = {}
+            for key in account_fields:
+                if key in validated_data and validated_data[key] is not None:
+                    account_data[key] = validated_data[key]
+            
+            # Wyciągnij dane profilu - TYLKO TE CO PRZYSZŁY, BEZ DOMYŚLNYCH
+            profile_data = {}
+            for key in profile_fields:
+                if key in validated_data and validated_data[key] is not None:
+                    profile_data[key] = validated_data[key]
             
             # Kopiuj first_name do profilu jeśli istnieje
             if account_data.get('first_name'):
@@ -165,7 +166,12 @@ class UserRegistrationSerializer(serializers.Serializer):
             
             logger.info(f"[Registration] Account data: {list(account_data.keys())}")
             logger.info(f"[Registration] Profile data: {list(profile_data.keys())}")
-            logger.info(f"[Registration] Profile values - goal: {profile_data.get('goal')}, level: {profile_data.get('level')}, equipment: {profile_data.get('equipment_preference')}")
+            
+            # Loguj faktyczne wartości, które przyszły
+            if profile_data:
+                logger.info(f"[Registration] Otrzymane dane profilu: {profile_data}")
+            else:
+                logger.info(f"[Registration] Brak danych profilu - zostaną ustawione później")
             
             # Transakcja atomowa
             with transaction.atomic():
@@ -187,29 +193,29 @@ class UserRegistrationSerializer(serializers.Serializer):
                 
                 logger.info(f"[Registration] Konto utworzone: ID {auth_account.id}")
                 
-                # 3. Utwórz profil z FAKTYCZNYMI danymi użytkownika
+                # 3. Utwórz profil - TYLKO Z DANYMI KTÓRE PRZYSZŁY
                 profile_data['auth_account'] = auth_account
                 
-                # KLUCZOWA POPRAWKA: Ustaw domyślne TYLKO dla pól których NIE MA w profile_data
-                profile_defaults = {
-                    'goal': 'zdrowie',
-                    'level': 'poczatkujacy',
-                    'training_days_per_week': 3,
-                    'equipment_preference': 'silownia',
-                    'recommendation_method': 'hybrid'
-                }
+                # Ustaw tylko recommendation_method jeśli nie przyszła
+                if 'recommendation_method' not in profile_data:
+                    profile_data['recommendation_method'] = 'hybrid'
+                    logger.info(f"[Registration] Ustawiono domyślną metodę rekomendacji: hybrid")
                 
-                # Używaj domyślnych tylko dla NIEISTNIEJĄCYCH kluczy
-                for key, default_value in profile_defaults.items():
-                    if key not in profile_data:
-                        profile_data[key] = default_value
+                # NIE USTAWIAJ ŻADNYCH INNYCH DOMYŚLNYCH WARTOŚCI!
+                # Pozwól aby goal, level, equipment_preference były NULL w bazie
                 
-                logger.info(f"[Registration] Finalne dane profilu: goal={profile_data.get('goal')}, level={profile_data.get('level')}, equipment={profile_data.get('equipment_preference')}")
+                logger.info(f"[Registration] Tworzenie profilu z finalnymi danymi: {profile_data}")
                 
                 user_profile = UserProfile.objects.create(**profile_data)
                 
+                # Loguj co faktycznie zostało zapisane
                 logger.info(f"[Registration] Profil utworzony dla: {auth_account.username}")
-                logger.info(f"[Registration] Zapisane wartości - goal: {user_profile.goal}, level: {user_profile.level}, equipment: {user_profile.equipment_preference}")
+                logger.info(f"[Registration] Zapisane wartości w bazie:")
+                logger.info(f"  - goal: {user_profile.goal}")
+                logger.info(f"  - level: {user_profile.level}")
+                logger.info(f"  - equipment_preference: {user_profile.equipment_preference}")
+                logger.info(f"  - training_days_per_week: {user_profile.training_days_per_week}")
+                logger.info(f"  - recommendation_method: {user_profile.recommendation_method}")
                 
                 return {
                     'auth_account': auth_account,
@@ -264,7 +270,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'first_name', 'date_of_birth', 'age', 'goal', 'level',
             'training_days_per_week', 'equipment_preference',
-            'preferred_session_duration', 'avoid_exercises', 
+            'preferred_session_duration', 'avoid_exercises',
             'focus_areas', 'last_survey_date', 'recommendation_method'
         ]
         
@@ -310,7 +316,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'first_name', 'date_of_birth', 'goal', 'level',
             'training_days_per_week', 'equipment_preference',
-            'preferred_session_duration', 'avoid_exercises', 
+            'preferred_session_duration', 'avoid_exercises',
             'focus_areas', 'recommendation_method'
         ]
         
@@ -328,6 +334,32 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         if value is not None and (value < 15 or value > 180):
             raise serializers.ValidationError("Czas sesji musi być między 15 a 180 minut.")
         return value
+    
+    def update(self, instance, validated_data):
+        """Aktualizuj tylko te pola, które zostały przesłane"""
+        logger.info(f"[UpdateProfile] Aktualizacja profilu użytkownika: {instance.auth_account.username}")
+        logger.info(f"[UpdateProfile] Otrzymane dane: {validated_data}")
+        
+        # Sprawdź czy są istotne dane treningowe - jeśli tak, zaktualizuj last_survey_date
+        training_fields = ['goal', 'level', 'training_days_per_week', 'equipment_preference']
+        has_training_data = any(field in validated_data and validated_data[field] is not None 
+                               for field in training_fields)
+        
+        for attr, value in validated_data.items():
+            if value is not None:  # Zapisuj tylko niepuste wartości
+                setattr(instance, attr, value)
+                logger.info(f"[UpdateProfile] Ustawiono {attr} = {value}")
+        
+        # Zaktualizuj datę wypełnienia ankiety jeśli dodano dane treningowe
+        if has_training_data:
+            from django.utils import timezone
+            instance.last_survey_date = timezone.now()
+            logger.info(f"[UpdateProfile] Zaktualizowano last_survey_date")
+        
+        instance.save()
+        
+        logger.info(f"[UpdateProfile] Profil zaktualizowany pomyślnie")
+        return instance
 
 
 class AuthAccountSerializer(serializers.ModelSerializer):
@@ -336,7 +368,7 @@ class AuthAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuthAccount
         fields = [
-            'id', 'username', 'email', 'first_name', 
+            'id', 'username', 'email', 'first_name',
             'is_admin', 'created_at', 'last_login'
         ]
         read_only_fields = ['id', 'created_at', 'last_login']

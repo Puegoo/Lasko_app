@@ -6,6 +6,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AuthDebug from '../../utils/authDebug';
 import { RecommendationService } from '../../services/recommendationService';
+import saveUserProfile from '../../services/saveUserProfile';
 
 // ---------- Lokalne UI helpers ----------
 const GradientGridBg = () => (
@@ -86,7 +87,11 @@ const Navbar = () => {
 
   useEffect(() => {
     if (!user && looksAuthed) {
-      try { debugAuth?.(); } catch {}
+      try { 
+        debugAuth?.(); 
+      } catch (error) {
+        console.warn('[Navbar] Debug auth failed:', error);
+      }
     }
   }, [user, looksAuthed, debugAuth]);
 
@@ -193,15 +198,15 @@ const goalOptions = [
 ];
 
 const levelOptions = [
-  { value: 'początkujący', label: 'Początkujący', description: '0–1 rok doświadczenia' },
-  { value: 'średniozaawansowany', label: 'Średniozaawansowany', description: '1–3 lata doświadczenia' },
+  { value: 'poczatkujacy', label: 'Początkujący', description: '0–1 rok doświadczenia' },
+  { value: 'sredniozaawansowany', label: 'Średniozaawansowany', description: '1–3 lata doświadczenia' },
   { value: 'zaawansowany', label: 'Zaawansowany', description: '3+ lata doświadczenia' },
 ];
 
 const equipmentOptions = [
-  { value: 'siłownia', label: 'Pełna siłownia', icon: '🏟️' },
-  { value: 'dom_hantle', label: 'Dom (hantle + ławka)', icon: '🏠' },
-  { value: 'dom_masa', label: 'Dom (masa własna)', icon: '🤸' },
+  { value: 'silownia', label: 'Pełna siłownia', icon: '🏟️' },
+  { value: 'dom_podstawowy', label: 'Dom (hantle + ławka)', icon: '🏠' },
+  { value: 'masa_ciala', label: 'Dom (masa własna)', icon: '🤸' },
   { value: 'minimalne', label: 'Minimalne wyposażenie', icon: '⚡' },
 ];
 
@@ -242,7 +247,6 @@ const EnhancedPlanCreator = () => {
   // STAN KOMPONENTU
   // ============================================================================
   const initialData = location.state?.userData || {};
-  const fromSurvey = location.state?.fromSurvey || false;
 
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -336,98 +340,171 @@ const EnhancedPlanCreator = () => {
   // ============================================================================
   // GENEROWANIE REKOMENDACJI
   // ============================================================================
-  const generateRecommendedPlan = async () => {
-    setLoading(true);
-    setApiError(null);
-    try {
-      console.log('🚀 [EnhancedPlanCreator] === ROZPOCZYNAM GENEROWANIE PLANU ===');
-      const authed = typeof isAuthenticated === 'function' ? isAuthenticated() : !!getToken?.();
-      console.log('🔍 Stan autoryzacji:', {
-        isAuthenticated: authed,
-        hasUser: !!user,
-        hasToken: !!getToken?.(),
-        username: user?.username,
-      });
+// frontend/lasko-frontend/src/components/register/EnhancedPlanCreator.jsx
+// Zastąp całą funkcję generateRecommendedPlan tą wersją:
 
-      if (!authed) {
-        console.warn('⚠️ Brak ważnego access tokena – warstwa API spróbuje refresh.');
-        try { debugAuth?.(); } catch {}
+const generateRecommendedPlan = async () => {
+  setLoading(true);
+  setApiError(null);
+  try {
+    console.log('🚀 [EnhancedPlanCreator] === ROZPOCZYNAM GENEROWANIE PLANU ===');
+    const authed = typeof isAuthenticated === 'function' ? isAuthenticated() : !!getToken?.();
+    console.log('🔍 Stan autoryzacji:', {
+      isAuthenticated: authed,
+      hasUser: !!user,
+      hasToken: !!getToken?.(),
+      username: user?.username,
+    });
+
+    if (!authed) {
+      console.warn('⚠️ Brak ważnego access tokena – warstwa API spróbuje refresh.');
+      try { 
+        debugAuth?.(); 
+      } catch (error) {
+        console.warn('[EnhancedPlanCreator] Debug auth failed:', error);
+      }
+    }
+
+    // ========== ZAPISZ DANE PROFILU UŻYTKOWNIKA ==========
+    try {
+      console.log('💾 [EnhancedPlanCreator] Zapisuję dane profilu użytkownika...');
+      
+      // Mapuj metody z frontendu na backend
+      const methodMapping = {
+        'user': 'collaborative',
+        'product': 'content_based',
+        'hybrid': 'hybrid'
+      };
+      
+      const profileData = {
+        // Cel treningowy
+        goal: planData.goal,
+        // Poziom zaawansowania
+        level: planData.level,
+        // Wyposażenie - mapuj na format backendu
+        equipment_preference: planData.equipment,
+        // Dni treningowe w tygodniu
+        training_days_per_week: planData.trainingDaysPerWeek,
+        // Czas sesji treningowej
+        preferred_session_duration: planData.timePerSession,
+        // Obszary skupienia
+        focus_areas: planData.focusAreas || [],
+        // Ćwiczenia do unikania
+        avoid_exercises: planData.avoidances || [],
+        // Metoda rekomendacji - WAŻNE: mapuj wartości frontendu na backend
+        recommendation_method: methodMapping[planData.recommendationMethod] || 'hybrid',
+      };
+      
+      console.log('📤 [EnhancedPlanCreator] Dane do zapisu:', profileData);
+      console.log('🔍 [EnhancedPlanCreator] Pełne planData:', planData);
+      
+      // Sprawdź czy wszystkie wymagane dane są wypełnione
+      const requiredFields = ['goal', 'level', 'equipment', 'trainingDaysPerWeek'];
+      const missingFields = requiredFields.filter(field => !planData[field]);
+      if (missingFields.length > 0) {
+        console.error('❌ [EnhancedPlanCreator] Brakujące wymagane pola:', missingFields);
+        throw new Error(`Brakujące wymagane dane: ${missingFields.join(', ')}. Wypełnij wszystkie kroki ankiety.`);
+      }
+      
+      const saveResult = await saveUserProfile(profileData);
+      console.log('✅ [EnhancedPlanCreator] Profil użytkownika zaktualizowany:', saveResult);
+      
+    } catch (profileError) {
+      console.error('⚠️ [EnhancedPlanCreator] Błąd zapisu profilu:', profileError);
+      console.error('⚠️ [EnhancedPlanCreator] Stack trace:', profileError.stack);
+      // KRYTYCZNY BŁĄD - nie możemy kontynuować bez zapisania profilu
+      // Dane profilu są potrzebne do wygenerowania rekomendacji
+      setApiError(`Nie udało się zapisać danych profilu: ${profileError.message}. Spróbuj ponownie.`);
+      setLoading(false);
+      return; // Przerwij proces
+    }
+    // ========== KONIEC ZAPISU PROFILU ==========
+
+    // Przygotuj preferencje do generowania rekomendacji
+    const preferences = {
+      goal: planData.goal,
+      level: planData.level,
+      equipment_preference: planData.equipment,
+      training_days_per_week: planData.trainingDaysPerWeek,
+      time_per_session: planData.timePerSession,
+      focus_areas: planData.focusAreas,
+      avoidances: planData.avoidances,
+      body: planData.body,
+    };
+
+    console.log('📊 [EnhancedPlanCreator] Generuję rekomendacje z preferencjami:', preferences);
+
+    const response = await generateRecommendations(planData.recommendationMethod, preferences);
+
+    if (response && Array.isArray(response.recommendations) && response.recommendations.length > 0) {
+      // Prefetch szczegółów dla TOP 1–3
+      const topRecs = response.recommendations.slice(0, 3);
+      let detailed = [];
+      try {
+        detailed = await Promise.all(
+          topRecs.map(r => recApi.getPlanDetailed(r.planId).catch(() => null))
+        );
+      } catch (error) {
+        console.warn('[EnhancedPlanCreator] Failed to fetch plan details:', error);
       }
 
-      const preferences = {
-        goal: planData.goal,
-        level: planData.level,
-        equipment_preference: planData.equipment,
-        training_days_per_week: planData.trainingDaysPerWeek,
-        time_per_session: planData.timePerSession,
-        focus_areas: planData.focusAreas,
-        avoidances: planData.avoidances,
-        body: planData.body,
+      const merged = topRecs.map((r, i) => (detailed[i] ? normalizePlanDetails(r, detailed[i]) : r));
+      const recommendedPlan = merged[0];
+      const altPlans = merged.slice(1);
+
+      const updatedPlanData = {
+        ...planData,
+        recommendedPlan,
+        altPlans,
+        name: recommendedPlan.name || planData.name,
       };
 
-      const response = await generateRecommendations(planData.recommendationMethod, preferences);
+      // Ustal i zapisz username natychmiast, zanim przejdziemy dalej
+      const usernameCandidate =
+        user?.username ||
+        initialData?.username ||
+        sessionStorage.getItem('lasko_username') ||
+        null;
 
-      if (response && Array.isArray(response.recommendations) && response.recommendations.length > 0) {
-        // Prefetch szczegółów dla TOP 1–3
-        const topRecs = response.recommendations.slice(0, 3);
-        let detailed = [];
-        try {
-          detailed = await Promise.all(
-            topRecs.map(r => recApi.getPlanDetailed(r.planId).catch(() => null))
-          );
-        } catch (_) {}
-
-        const merged = topRecs.map((r, i) => (detailed[i] ? normalizePlanDetails(r, detailed[i]) : r));
-        const recommendedPlan = merged[0];
-        const altPlans = merged.slice(1);
-
-        const updatedPlanData = {
-          ...planData,
-          recommendedPlan,
-          altPlans,
-          name: recommendedPlan.name || planData.name,
-        };
-
-        // Ustal i zapisz username natychmiast, zanim przejdziemy dalej
-        const usernameCandidate =
-          user?.username ||
-          initialData?.username ||
-          sessionStorage.getItem('lasko_username') ||
-          null;
-
-        if (usernameCandidate) {
-          sessionStorage.setItem('lasko_username', usernameCandidate);
-        }
-
-        setPlanData(updatedPlanData);
-        sessionStorage.setItem('lasko_plan_draft', JSON.stringify(updatedPlanData));
-
-        navigate('/plan-summary', {
-          state: { planData: updatedPlanData, fromCreator: true, username: usernameCandidate },
-        });
-      } else {
-        if (!response) throw new Error('Brak odpowiedzi z serwera');
-        if (!response.recommendations) throw new Error('Serwer nie zwrócił rekomendacji');
-        if (!Array.isArray(response.recommendations)) throw new Error('Rekomendacje mają nieprawidłowy format');
-        if (response.recommendations.length === 0) throw new Error('Nie znaleziono planów pasujących do Twoich kryteriów. Spróbuj zmienić preferencje.');
-        throw new Error('Nieoczekiwana struktura danych z serwera');
+      if (usernameCandidate) {
+        sessionStorage.setItem('lasko_username', usernameCandidate);
       }
-    } catch (error) {
-      console.error('❌ [EnhancedPlanCreator] Błąd generowania planu:', error);
-      const msg = (error?.message || '').toLowerCase();
-      if (msg.includes('autoryzac') || msg.includes('401')) {
-        try { await AuthDebug.fullDiagnostic(); } catch {}
-        setApiError('Sesja wygasła. Zostaniesz przekierowany do logowania.');
-        setTimeout(() => {
-          navigate('/login', { state: { message: 'Sesja wygasła - zaloguj się ponownie', returnTo: '/plan-creator' } });
-        }, 3000);
-      } else {
-        setApiError(error.message || 'Wystąpił nieoczekiwany błąd podczas generowania planu');
-      }
-    } finally {
-      setLoading(false);
+
+      setPlanData(updatedPlanData);
+      sessionStorage.setItem('lasko_plan_draft', JSON.stringify(updatedPlanData));
+
+      console.log('✅ [EnhancedPlanCreator] Plan wygenerowany, przechodzę do podsumowania');
+
+      navigate('/plan-summary', {
+        state: { planData: updatedPlanData, fromCreator: true, username: usernameCandidate },
+      });
+    } else {
+      if (!response) throw new Error('Brak odpowiedzi z serwera');
+      if (!response.recommendations) throw new Error('Serwer nie zwrócił rekomendacji');
+      if (!Array.isArray(response.recommendations)) throw new Error('Rekomendacje mają nieprawidłowy format');
+      if (response.recommendations.length === 0) throw new Error('Nie znaleziono planów pasujących do Twoich kryteriów. Spróbuj zmienić preferencje.');
+      throw new Error('Nieoczekiwana struktura danych z serwera');
     }
-  };
+  } catch (error) {
+    console.error('❌ [EnhancedPlanCreator] Błąd generowania planu:', error);
+    const msg = (error?.message || '').toLowerCase();
+    if (msg.includes('autoryzac') || msg.includes('401')) {
+      try { 
+        await AuthDebug.fullDiagnostic(); 
+      } catch (debugError) {
+        console.warn('[EnhancedPlanCreator] Debug diagnostic failed:', debugError);
+      }
+      setApiError('Sesja wygasła. Zostaniesz przekierowany do logowania.');
+      setTimeout(() => {
+        navigate('/login', { state: { message: 'Sesja wygasła - zaloguj się ponownie', returnTo: '/plan-creator' } });
+      }, 3000);
+    } else {
+      setApiError(error.message || 'Wystąpił nieoczekiwany błąd podczas generowania planu');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ============================================================================
   // RENDER KROKÓW
