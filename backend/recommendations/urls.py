@@ -23,3 +23,10 @@ urlpatterns = [
     path('plans/<int:plan_id>/exercises/<int:exercise_id>/delete/', views.delete_plan_exercise, name='delete_plan_exercise'),
     path('plans/<int:plan_id>/days/<int:day_id>/exercises/', views.add_plan_exercise, name='add_plan_exercise'),
 ]
+
+# Workout URLs (mapped under /api/workouts/)
+workout_urlpatterns = [
+    path('today/', views.today_workout, name='today_workout'),
+    path('sessions/', views.start_workout_session, name='start_workout_session'),
+    path('sessions/<int:session_id>/finish/', views.finish_workout_session, name='finish_workout_session'),
+]

@@ -14,6 +14,7 @@ import PlanCreatorPreview from './components/PlanCreatorPreview';
 import LoginPage from './components/auth/LoginPage';
 import PlanSummary from './components/register/PlanSummary.jsx';
 import PlanDetailsPage from './components/PlanDetailsPage.jsx';
+import WorkoutPage from './components/WorkoutPage.jsx';
 
 // Assets
 import laskoHi from './assets/Lasko_pose/Lasko_Hi.png';
@@ -443,6 +444,14 @@ const App = () => {
         element={
           <ProtectedRoute>
             <PlanDetailsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workout/today"
+        element={
+          <ProtectedRoute>
+            <WorkoutPage />
           </ProtectedRoute>
         }
       />

@@ -1166,3 +1166,311 @@ def add_plan_exercise(request, plan_id: int, day_id: int):
             "message": str(e),
             "code": "server_error"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# WORKOUT ENDPOINTS
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def today_workout(request):
+    """
+    GET /api/workouts/today/
+    Pobierz dzisiejszy trening na podstawie aktywnego planu i harmonogramu użytkownika
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        logger.info(f"[TodayWorkout] Fetching today's workout for user {user_id}")
+
+        with connection.cursor() as cursor:
+            # Pobierz aktywny plan użytkownika
+            cursor.execute("""
+                SELECT uap.plan_id, tp.name
+                FROM user_active_plans uap
+                JOIN training_plans tp ON uap.plan_id = tp.id
+                WHERE uap.auth_account_id = %s AND uap.is_completed = FALSE
+            """, [user_id])
+            
+            active_plan = cursor.fetchone()
+            if not active_plan:
+                return Response({
+                    "workout": None,
+                    "message": "No active plan"
+                }, status=status.HTTP_200_OK)
+            
+            plan_id, plan_name = active_plan
+
+            # Pobierz harmonogram użytkownika (z bazy danych)
+            cursor.execute("""
+                SELECT training_schedule, notifications_enabled
+                FROM user_active_plans
+                WHERE auth_account_id = %s
+            """, [user_id])
+            
+            schedule_row = cursor.fetchone()
+            if schedule_row and schedule_row[0]:
+                import json
+                schedule = json.loads(schedule_row[0]) if isinstance(schedule_row[0], str) else (schedule_row[0] or [])
+            else:
+                schedule = []
+            
+            # Określ dzisiejszy dzień tygodnia (po polsku)
+            from datetime import datetime
+            today_weekday = datetime.now().weekday()
+            weekday_names = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+            today_name = weekday_names[today_weekday]
+
+            # Sprawdź czy dziś jest dzień treningowy
+            if not schedule or today_name not in schedule:
+                return Response({
+                    "workout": None,
+                    "message": f"Today ({today_name}) is not a training day",
+                    "schedule": schedule
+                }, status=status.HTTP_200_OK)
+
+            # Znajdź który dzień treningowy to jest (1-based index)
+            training_day_index = schedule.index(today_name) + 1
+
+            # Pobierz odpowiedni dzień planu
+            cursor.execute("""
+                SELECT id, name, day_order
+                FROM plan_days
+                WHERE plan_id = %s
+                ORDER BY day_order
+                LIMIT 1 OFFSET %s
+            """, [plan_id, training_day_index - 1])
+            
+            plan_day = cursor.fetchone()
+            if not plan_day:
+                # Jeśli nie ma odpowiedniego dnia, weź pierwszy
+                cursor.execute("""
+                    SELECT id, name, day_order
+                    FROM plan_days
+                    WHERE plan_id = %s
+                    ORDER BY day_order
+                    LIMIT 1
+                """, [plan_id])
+                plan_day = cursor.fetchone()
+
+            if not plan_day:
+                return Response({
+                    "workout": None,
+                    "message": "No workout day found in plan"
+                }, status=status.HTTP_200_OK)
+
+            day_id, day_name, day_order = plan_day
+
+            # Pobierz ćwiczenia dla tego dnia
+            cursor.execute("""
+                SELECT 
+                    e.id,
+                    e.name,
+                    e.description,
+                    e.muscle_group,
+                    e.type,
+                    e.video_url,
+                    e.image_url,
+                    pe.target_sets,
+                    pe.target_reps,
+                    pe.rest_seconds,
+                    pe.superset_group
+                FROM plan_exercises pe
+                JOIN exercises e ON pe.exercise_id = e.id
+                WHERE pe.plan_day_id = %s
+                ORDER BY pe.id
+            """, [day_id])
+            
+            exercises = []
+            for row in cursor.fetchall():
+                exercises.append({
+                    "id": row[0],
+                    "name": row[1],
+                    "description": row[2],
+                    "muscle_group": row[3],
+                    "type": row[4],
+                    "video_url": row[5],
+                    "image_url": row[6],
+                    "target_sets": row[7],
+                    "target_reps": row[8],
+                    "rest_seconds": row[9],
+                    "superset_group": row[10]
+                })
+
+            logger.info(f"[TodayWorkout] Found {len(exercises)} exercises for user {user_id}")
+
+            return Response({
+                "workout": {
+                    "plan_id": plan_id,
+                    "plan_name": plan_name,
+                    "day_id": day_id,
+                    "name": day_name,
+                    "day_order": day_order,
+                    "weekday": today_name,
+                    "exercises": exercises
+                }
+            }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[TodayWorkout] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error fetching today's workout",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def start_workout_session(request):
+    """
+    POST /api/workouts/sessions/
+    Rozpocznij nową sesję treningową
+    Body: {
+        "plan_id": int,
+        "plan_day_id": int (optional)
+    }
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        data = request.data
+        plan_id = data.get('plan_id')
+        plan_day_id = data.get('plan_day_id')
+
+        if not plan_id:
+            return Response({"error": "plan_id is required", "code": "missing_plan_id"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        logger.info(f"[StartSession] User {user_id} starting session for plan {plan_id}")
+
+        with connection.cursor() as cursor:
+            # Utwórz nową sesję treningową
+            cursor.execute("""
+                INSERT INTO training_sessions (auth_account_id, plan_id, session_date)
+                VALUES (%s, %s, NOW())
+                RETURNING id
+            """, [user_id, plan_id])
+            
+            session_id = cursor.fetchone()[0]
+
+            logger.info(f"[StartSession] Created session {session_id} for user {user_id}")
+
+            return Response({
+                "session_id": session_id,
+                "message": "Session started successfully"
+            }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        logger.error(f"[StartSession] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error starting session",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def finish_workout_session(request, session_id: int):
+    """
+    POST /api/workouts/sessions/<session_id>/finish/
+    Zakończ sesję treningową i zapisz wszystkie serie
+    Body: {
+        "duration_minutes": int,
+        "sets": [
+            {
+                "exercise_id": int,
+                "set_order": int,
+                "weight_kg": float,
+                "reps": int,
+                "notes": str (optional)
+            }
+        ]
+    }
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        data = request.data
+        duration_minutes = data.get('duration_minutes', 0)
+        sets = data.get('sets', [])
+
+        logger.info(f"[FinishSession] User {user_id} finishing session {session_id} with {len(sets)} sets")
+
+        with connection.cursor() as cursor:
+            # Sprawdź czy sesja należy do użytkownika
+            cursor.execute("""
+                SELECT auth_account_id
+                FROM training_sessions
+                WHERE id = %s
+            """, [session_id])
+            
+            row = cursor.fetchone()
+            if not row:
+                return Response({"error": "Session not found", "code": "session_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+            
+            if row[0] != user_id:
+                return Response({"error": "Permission denied", "code": "permission_denied"},
+                                status=status.HTTP_403_FORBIDDEN)
+
+            # Zaktualizuj czas trwania sesji
+            cursor.execute("""
+                UPDATE training_sessions
+                SET duration_minutes = %s
+                WHERE id = %s
+            """, [duration_minutes, session_id])
+
+            # Zapisz wszystkie serie
+            for set_data in sets:
+                cursor.execute("""
+                    INSERT INTO logged_sets (session_id, exercise_id, set_order, weight_kg, reps, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, [
+                    session_id,
+                    set_data.get('exercise_id'),
+                    set_data.get('set_order'),
+                    set_data.get('weight_kg'),
+                    set_data.get('reps'),
+                    set_data.get('notes', '')
+                ])
+
+            logger.info(f"[FinishSession] Session {session_id} completed with {len(sets)} sets")
+
+            return Response({
+                "success": True,
+                "message": "Workout session completed successfully",
+                "session_id": session_id,
+                "total_sets": len(sets)
+            }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[FinishSession] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error finishing session",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

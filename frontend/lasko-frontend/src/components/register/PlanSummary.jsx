@@ -73,8 +73,27 @@ const Navbar = () => {
   const looksAuthed =
     (typeof isAuthenticated === 'function' && isAuthenticated()) ||
     (typeof getToken === 'function' && !!getToken());
+  
+  // Pobierz username z różnych źródeł
+  const getUsernameFromStorage = () => {
+    try {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        return parsed.username || parsed.first_name;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
   const navbarName =
-    user?.username || sessionStorage.getItem('lasko_username') || 'Użytkowniku';
+    user?.username || 
+    user?.first_name ||
+    sessionStorage.getItem('lasko_username') || 
+    getUsernameFromStorage() ||
+    'Użytkowniku';
 
   useEffect(() => {
     if (!user && looksAuthed) {
@@ -259,10 +278,26 @@ export default function PlanSummary() {
   const navigate = useNavigate();
   const { user, isAuthenticated, getToken, debugAuth } = useAuth();
 
+  // Pobierz username z różnych źródeł (fallback)
+  const getUserFromStorage = () => {
+    try {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        return parsed.username || parsed.first_name;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
   const username =
     state?.username ||
     user?.username ||
+    user?.first_name ||
     sessionStorage.getItem('lasko_username') ||
+    getUserFromStorage() ||
     null;
 
   // jeżeli authed, ale user nie dohydratowany – dohydratacja
@@ -280,7 +315,7 @@ export default function PlanSummary() {
 
   const [planData, setPlanData] = useState(state?.planData || null);
   const [exerciseCatalog, setExerciseCatalog] = useState([]);
-  const [overrides, setOverrides] = useState({ replaced_exercises: [], removed_exercises: [] });
+  const [_overrides, setOverrides] = useState({ replaced_exercises: [], removed_exercises: [] });
   const [swapModal, setSwapModal] = useState({ open: false, dayIdx: null, oldExercise: null, q: '' });
   const [activeTab, setActiveTab] = useState('overview'); // overview | details | schedule
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -312,29 +347,33 @@ export default function PlanSummary() {
   };
 
   // Inicjalizuj harmonogram gdy zmieni się plan
+  // Pobierz zapisany harmonogram z bazy danych (user_active_plans)
   useEffect(() => {
+    const fetchSchedule = async () => {
+      try {
+        // Pobierz harmonogram z backendu (zapisany w tabeli user_active_plans)
+        const response = await apiService.request('/api/auth/schedule/get/');
+        console.log('[PlanSummary] Loaded schedule from database:', response);
+        
+        if (response.success && response.schedule && response.schedule.length > 0) {
+          setSchedule(response.schedule);
+        } else if (tdPerWeek) {
+          // Jeśli nie ma zapisanego harmonogramu, wygeneruj domyślny
+          setSchedule(generateSchedule(tdPerWeek));
+        }
+      } catch (error) {
+        console.error('[PlanSummary] Error fetching schedule:', error);
+        // Jeśli błąd, wygeneruj domyślny harmonogram
+        if (tdPerWeek) {
+          setSchedule(generateSchedule(tdPerWeek));
+        }
+      }
+    };
+
     if (tdPerWeek && !schedule.length) {
-      setSchedule(generateSchedule(tdPerWeek));
+      fetchSchedule();
     }
   }, [tdPerWeek, schedule.length]);
-
-  // Zapisz harmonogram do backend
-  const saveSchedule = async (scheduleData, notificationsEnabled) => {
-    try {
-      const response = await apiService.post('/api/auth/schedule/save/', {
-        schedule: scheduleData,
-        notifications_enabled: notificationsEnabled
-      });
-      
-      if (response.success) {
-        console.log('[PlanSummary] Schedule saved successfully');
-        return true;
-      }
-    } catch (error) {
-      console.error('[PlanSummary] Failed to save schedule:', error);
-    }
-    return false;
-  };
 
   const normalizePlanDetails = (base, detailed) => {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -924,7 +963,7 @@ export default function PlanSummary() {
               </div>
 
               <div className="grid gap-3">
-                {weekDays.map((day, idx) => {
+                {weekDays.map((day) => {
                   const isTrainingDay = schedule.includes(day);
                   return (
                     <div
@@ -1001,20 +1040,17 @@ export default function PlanSummary() {
               </div>
 
               {/* Przycisk zapisz harmonogram */}
-              <div className="flex justify-center">
-                <PrimaryButton
-                  onClick={async () => {
-                    const notificationsEnabled = document.getElementById('notifications')?.checked || false;
-                    const success = await saveSchedule(schedule, notificationsEnabled);
-                    if (success) {
-                      alert('Harmonogram został zapisany!');
-                    } else {
-                      alert('Nie udało się zapisać harmonogramu. Spróbuj ponownie.');
-                    }
-                  }}
-                >
-                  💾 Zapisz harmonogram
-                </PrimaryButton>
+              <div className="rounded-xl bg-yellow-400/10 border border-yellow-400/20 p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">ℹ️</span>
+                  <div>
+                    <h4 className="font-semibold text-white mb-1">Informacja</h4>
+                    <p className="text-sm text-gray-300">
+                      Harmonogram zostanie automatycznie zapisany przy aktywacji planu. 
+                      Kliknij przycisk <span className="font-bold text-emerald-300">"Aktywuj z moimi zmianami"</span> poniżej.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1030,12 +1066,34 @@ export default function PlanSummary() {
               try {
                 const planId = planData?.recommendedPlan?.planId || planData?.recommendedPlan?.id;
                 if (!planId) return alert('Brak ID planu do aktywacji.');
-                await apiService.post?.('/api/user/active-plan', { plan_id: planId, overrides });
+                
+                console.log('[PlanSummary] Aktywuję plan:', planId);
+                
+                // KROK 1: Aktywuj plan (tworzy rekord w user_active_plans)
+                await apiService.request(`/api/recommendations/plans/${planId}/activate/`, {
+                  method: 'POST'
+                });
+                
+                console.log('[PlanSummary] Plan aktywowany, zapisuję harmonogram:', schedule);
+                
+                // KROK 2: Zapisz harmonogram (aktualizuje user_active_plans.training_schedule)
+                const notificationsEnabled = document.getElementById('notifications')?.checked || false;
+                await apiService.request('/api/auth/schedule/save/', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    schedule,
+                    notifications_enabled: notificationsEnabled
+                  })
+                });
+                
+                console.log('[PlanSummary] Harmonogram zapisany, przekierowuję do Dashboard');
+                
+                // KROK 3: Przekieruj do Dashboard
                 navigate('/dashboard', {
                   state: {
                     activePlan: {
-                      planId: planId,  // DODANE - ID planu!
-                      id: planId,  // DODANE - fallback
+                      planId: planId,
+                      id: planId,
                       name: planData?.name || planData?.recommendedPlan?.name,
                       trainingDaysPerWeek,
                       sessionDuration: timePerSession,
@@ -1045,7 +1103,7 @@ export default function PlanSummary() {
                 });
               } catch (error) {
                 console.error('[PlanSummary] Failed to activate plan:', error);
-                alert('Nie udało się aktywować planu. Spróbuj ponownie.');
+                alert('Nie udało się aktywować planu: ' + (error.message || 'Nieznany błąd'));
               }
             }}
           >

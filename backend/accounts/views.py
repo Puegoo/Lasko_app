@@ -539,18 +539,49 @@ def check_username(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def save_schedule(request):
-    """Zapisz harmonogram treningów użytkownika"""
+    """Zapisz harmonogram treningów użytkownika w bazie danych"""
     try:
-        user = request.user
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+        
+        if not user_id:
+            return Response({
+                'success': False,
+                'message': 'Invalid token'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
         schedule = request.data.get('schedule', [])
         notifications_enabled = request.data.get('notifications_enabled', True)
         
-        # Zapisz harmonogram w sesji lub bazie danych
-        # Na razie zapisujemy w sesji, później można dodać do bazy
-        request.session['user_schedule'] = schedule
-        request.session['notifications_enabled'] = notifications_enabled
+        # Zapisz harmonogram w bazie danych (w tabeli user_active_plans)
+        from django.db import connection
+        import json
         
-        logger.info(f"[Schedule] User {user.id} saved schedule: {schedule}")
+        with connection.cursor() as cursor:
+            # Sprawdź czy użytkownik ma aktywny plan
+            cursor.execute("""
+                SELECT id FROM user_active_plans 
+                WHERE auth_account_id = %s
+            """, [user_id])
+            
+            row = cursor.fetchone()
+            
+            if row:
+                # Zaktualizuj istniejący rekord
+                cursor.execute("""
+                    UPDATE user_active_plans
+                    SET training_schedule = %s::jsonb,
+                        notifications_enabled = %s
+                    WHERE auth_account_id = %s
+                """, [json.dumps(schedule), notifications_enabled, user_id])
+                logger.info(f"[Schedule] User {user_id} updated schedule: {schedule}")
+            else:
+                logger.warning(f"[Schedule] User {user_id} has no active plan - schedule not saved")
+                return Response({
+                    'success': False,
+                    'message': 'Brak aktywnego planu - najpierw aktywuj plan'
+                }, status=status.HTTP_400_BAD_REQUEST)
         
         return Response({
             'success': True,
@@ -561,6 +592,8 @@ def save_schedule(request):
         
     except Exception as e:
         logger.error(f"[Schedule] Error saving schedule: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return Response({
             'success': False,
             'message': 'Nie udało się zapisać harmonogramu'
@@ -570,11 +603,43 @@ def save_schedule(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_schedule(request):
-    """Pobierz harmonogram użytkownika"""
+    """Pobierz harmonogram użytkownika z bazy danych"""
     try:
-        user = request.user
-        schedule = request.session.get('user_schedule', [])
-        notifications_enabled = request.session.get('notifications_enabled', True)
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+        
+        if not user_id:
+            return Response({
+                'success': False,
+                'message': 'Invalid token'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        from django.db import connection
+        import json
+        
+        with connection.cursor() as cursor:
+            # Pobierz harmonogram z bazy danych
+            cursor.execute("""
+                SELECT training_schedule, notifications_enabled 
+                FROM user_active_plans 
+                WHERE auth_account_id = %s
+            """, [user_id])
+            
+            row = cursor.fetchone()
+            
+            if row:
+                # Deserializuj JSONB do Python list
+                schedule_jsonb = row[0]
+                schedule = json.loads(schedule_jsonb) if isinstance(schedule_jsonb, str) else (schedule_jsonb or [])
+                notifications_enabled = row[1] if row[1] is not None else True
+                
+                logger.info(f"[Schedule] User {user_id} loaded schedule: {schedule}")
+            else:
+                # Brak aktywnego planu - zwróć pusty harmonogram
+                schedule = []
+                notifications_enabled = True
+                logger.info(f"[Schedule] User {user_id} has no active plan")
         
         return Response({
             'success': True,
@@ -584,6 +649,8 @@ def get_schedule(request):
         
     except Exception as e:
         logger.error(f"[Schedule] Error getting schedule: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return Response({
             'success': False,
             'message': 'Nie udało się pobrać harmonogramu'

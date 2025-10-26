@@ -76,8 +76,26 @@ const Navbar = () => {
     (typeof isAuthenticated === 'function' && isAuthenticated()) ||
     (typeof getToken === 'function' && !!getToken());
 
+  // Pobierz username z różnych źródeł (fallback chain)
+  const getUsernameFromStorage = () => {
+    try {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        return parsed.username || parsed.first_name;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
   const navbarName =
-    user?.username || sessionStorage.getItem('lasko_username') || 'Użytkowniku';
+    user?.username || 
+    user?.first_name ||
+    sessionStorage.getItem('lasko_username') || 
+    getUsernameFromStorage() ||
+    'Użytkowniku';
 
   useEffect(() => {
     if (user?.username) {
@@ -217,6 +235,21 @@ const EnhancedPlanCreator = () => {
   const { user, isAuthenticated, getToken, generateRecommendations, debugAuth } = useAuth();
   const recApi = useMemo(() => new RecommendationService(), []);
 
+  // Pobierz dane użytkownika z różnych źródeł (fallback)
+  const getUserFromStorage = () => {
+    try {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        return JSON.parse(userData);
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
+  const currentUser = user || getUserFromStorage();
+
   // pamiętaj username w sessionStorage, gdy tylko się pojawi
   useEffect(() => {
     if (user?.username) {
@@ -269,7 +302,7 @@ const EnhancedPlanCreator = () => {
       heightCm: initialData.heightCm || '',
       activityLevel: initialData.activityLevel || 'średnia',
     },
-    name: initialData.name || (user?.first_name ? `Plan dla ${user.first_name}` : (user?.username ? `Plan dla ${user.username}` : 'Plan Użytkownik')),
+    name: initialData.name || (currentUser?.first_name ? `Plan dla ${currentUser.first_name}` : (currentUser?.username ? `Plan dla ${currentUser.username}` : 'Plan Użytkownik')),
     recommendedPlan: null,
     altPlans: [],
   });
@@ -484,7 +517,8 @@ const generateRecommendedPlan = async () => {
 
       // Ustal i zapisz username natychmiast, zanim przejdziemy dalej
       const usernameCandidate =
-        user?.username ||
+        currentUser?.username ||
+        currentUser?.first_name ||
         initialData?.username ||
         sessionStorage.getItem('lasko_username') ||
         null;

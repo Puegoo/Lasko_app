@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { RecommendationService } from '../services/recommendationService';
+import apiService from '../services/api';
 
 // ---------- UI helpers ----------
 const GradientGridBg = () => (
@@ -156,6 +157,9 @@ export default function PlanDetailsPage() {
   const [activePlanId, setActivePlanId] = useState(null); // ID aktywnego planu użytkownika
   const [schedule, setSchedule] = useState([]); // Dni treningowe w harmonogramie
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // Tryb edycji
+  const [editedPlan, setEditedPlan] = useState(null); // Edytowany plan
+  const [saving, setSaving] = useState(false); // Stan zapisywania
   const recApi = useMemo(() => new RecommendationService(), []);
 
   // Dni tygodnia
@@ -195,12 +199,36 @@ export default function PlanDetailsPage() {
     fetchActivePlan();
   }, [recApi]);
 
-  // Wygeneruj harmonogram automatycznie gdy plan jest załadowany
+  // Pobierz zapisany harmonogram użytkownika z bazy danych
   useEffect(() => {
-    if (plan && plan.trainingDaysPerWeek && !schedule.length) {
-      setSchedule(generateSchedule(plan.trainingDaysPerWeek));
+    const fetchSchedule = async () => {
+      try {
+        // Pobierz harmonogram z backendu (zapisany w user_active_plans)
+        const response = await apiService.request('/api/auth/schedule/get/');
+        console.log('[PlanDetailsPage] Loaded schedule from database:', response);
+        
+        if (response.success && response.schedule && response.schedule.length > 0) {
+          setSchedule(response.schedule);
+          setNotificationsEnabled(response.notifications_enabled ?? false);
+        } else if (plan && plan.trainingDaysPerWeek) {
+          // Jeśli nie ma zapisanego harmonogramu, wygeneruj domyślny
+          const defaultSchedule = generateSchedule(plan.trainingDaysPerWeek);
+          setSchedule(defaultSchedule);
+        }
+      } catch (error) {
+        console.error('[PlanDetailsPage] Error fetching schedule:', error);
+        // Jeśli błąd, wygeneruj domyślny harmonogram
+        if (plan && plan.trainingDaysPerWeek) {
+          setSchedule(generateSchedule(plan.trainingDaysPerWeek));
+        }
+      }
+    };
+
+    if (plan && !schedule.length) {
+      fetchSchedule();
     }
-  }, [plan, schedule.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan]);
 
   useEffect(() => {
     const fetchPlanDetails = async () => {
@@ -278,21 +306,142 @@ export default function PlanDetailsPage() {
 
   const saveSchedule = async () => {
     try {
-      const { post } = await import('../services/api');
-      const response = await post('/api/auth/schedule/save/', {
-        schedule,
-        notifications_enabled: notificationsEnabled
+      // Zapisz harmonogram do bazy danych (user_active_plans.training_schedule)
+      const response = await apiService.request('/api/auth/schedule/save/', {
+        method: 'POST',
+        body: JSON.stringify({
+          schedule,
+          notifications_enabled: notificationsEnabled
+        })
       });
       
       if (response.success) {
+        console.log('[PlanDetailsPage] Schedule saved to database:', schedule);
         alert('✅ Harmonogram został zapisany!');
         return true;
+      } else {
+        alert('❌ ' + (response.message || 'Nie udało się zapisać harmonogramu'));
       }
     } catch (error) {
       console.error('[PlanDetailsPage] Failed to save schedule:', error);
-      alert('❌ Nie udało się zapisać harmonogramu');
+      alert('❌ Nie udało się zapisać harmonogramu: ' + (error.message || 'Nieznany błąd'));
     }
     return false;
+  };
+
+  // Rozpocznij edycję
+  const handleStartEdit = () => {
+    setEditedPlan(JSON.parse(JSON.stringify(plan))); // Deep copy
+    setIsEditing(true);
+    setActiveTab('overview'); // Przełącz na zakładkę przeglądu
+  };
+
+  // Anuluj edycję
+  const handleCancelEdit = () => {
+    setEditedPlan(null);
+    setIsEditing(false);
+  };
+
+  // Zapisz zmiany w planie
+  const handleSavePlan = async () => {
+    if (!editedPlan) return;
+    
+    try {
+      setSaving(true);
+      
+      // Zapisz metadane planu
+      await apiService.request(`/api/recommendations/plans/${planId}/`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: editedPlan.name,
+          description: editedPlan.description,
+        })
+      });
+
+      // Zapisz zmiany w ćwiczeniach
+      if (editedPlan.days) {
+        for (const day of editedPlan.days) {
+          if (day.exercises) {
+            for (const exercise of day.exercises) {
+              if (exercise.id && exercise._modified) {
+                await apiService.request(`/api/recommendations/plans/${planId}/exercises/${exercise.id}/`, {
+                  method: 'PUT',
+                  body: JSON.stringify({
+                    target_sets: exercise.target_sets || exercise.targetSets,
+                    target_reps: exercise.target_reps || exercise.targetReps,
+                    rest_seconds: exercise.rest_seconds || exercise.restSeconds,
+                    superset_group: exercise.superset_group || exercise.supersetGroup
+                  })
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Odśwież dane planu
+      setPlan(editedPlan);
+      setIsEditing(false);
+      setEditedPlan(null);
+      alert('✅ Plan został zaktualizowany!');
+      
+    } catch (error) {
+      console.error('[PlanDetailsPage] Failed to save plan:', error);
+      alert('❌ Nie udało się zapisać planu: ' + (error.message || 'Nieznany błąd'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Aktualizuj pole w edytowanym planie
+  const updatePlanField = (field, value) => {
+    setEditedPlan(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Aktualizuj ćwiczenie
+  const updateExercise = (dayIndex, exerciseIndex, field, value) => {
+    setEditedPlan(prev => {
+      const newPlan = JSON.parse(JSON.stringify(prev));
+      if (newPlan.days?.[dayIndex]?.exercises?.[exerciseIndex]) {
+        newPlan.days[dayIndex].exercises[exerciseIndex][field] = value;
+        newPlan.days[dayIndex].exercises[exerciseIndex]._modified = true;
+      }
+      return newPlan;
+    });
+  };
+
+  // Usuń ćwiczenie
+  const removeExercise = async (dayIndex, exerciseIndex) => {
+    const exercise = editedPlan.days?.[dayIndex]?.exercises?.[exerciseIndex];
+    if (!exercise) return;
+
+    if (!confirm(`Czy na pewno chcesz usunąć ćwiczenie "${exercise.name}"?`)) {
+      return;
+    }
+
+    try {
+      if (exercise.id) {
+        await apiService.request(`/api/recommendations/plans/${planId}/exercises/${exercise.id}/delete/`, {
+          method: 'DELETE'
+        });
+      }
+
+      setEditedPlan(prev => {
+        const newPlan = JSON.parse(JSON.stringify(prev));
+        if (newPlan.days?.[dayIndex]?.exercises) {
+          newPlan.days[dayIndex].exercises.splice(exerciseIndex, 1);
+        }
+        return newPlan;
+      });
+
+      alert('✅ Ćwiczenie zostało usunięte');
+    } catch (error) {
+      console.error('[PlanDetailsPage] Failed to remove exercise:', error);
+      alert('❌ Nie udało się usunąć ćwiczenia');
+    }
   };
 
   // Mapowania etykiet
@@ -379,47 +528,101 @@ export default function PlanDetailsPage() {
           </button>
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
             <div className="flex-1">
-              <Kicker>Szczegóły planu</Kicker>
-              <h1 className="mt-4 text-4xl md:text-5xl font-black text-white mb-4">{plan.name}</h1>
-              {plan.description && (
-                <p className="text-lg text-gray-300 max-w-3xl">{plan.description}</p>
+              <Kicker>{isEditing ? 'Edycja planu' : 'Szczegóły planu'}</Kicker>
+              {isEditing ? (
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Nazwa planu</label>
+                    <input
+                      type="text"
+                      value={editedPlan?.name || ''}
+                      onChange={(e) => updatePlanField('name', e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-2xl font-bold focus:outline-none focus:border-emerald-400/50 transition-colors"
+                      placeholder="Nazwa planu..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Opis planu (opcjonalnie)</label>
+                    <textarea
+                      value={editedPlan?.description || ''}
+                      onChange={(e) => updatePlanField('description', e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white resize-none focus:outline-none focus:border-emerald-400/50 transition-colors"
+                      rows={3}
+                      placeholder="Dodaj opis planu..."
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h1 className="mt-4 text-4xl md:text-5xl font-black text-white mb-4">{plan.name}</h1>
+                  {plan.description && (
+                    <p className="text-lg text-gray-300 max-w-3xl">{plan.description}</p>
+                  )}
+                </>
               )}
             </div>
             
             {/* Action Buttons (sticky na większych ekranach) */}
             <div className="flex flex-col gap-3 min-w-[200px]">
-              {isPlanActive ? (
-                <div className="w-full px-6 py-3 rounded-full bg-emerald-500/20 border-2 border-emerald-400/60 text-center">
-                  <span className="inline-flex items-center gap-2 text-sm font-bold text-emerald-300">
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-                    </span>
-                    Plan aktywny
-                  </span>
-                </div>
+              {isEditing ? (
+                <>
+                  <PrimaryButton 
+                    onClick={handleSavePlan} 
+                    disabled={saving}
+                    className="w-full"
+                  >
+                    {saving ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Zapisywanie...
+                      </span>
+                    ) : (
+                      '💾 Zapisz zmiany'
+                    )}
+                  </PrimaryButton>
+                  <SecondaryButton onClick={handleCancelEdit} className="w-full" disabled={saving}>
+                    ❌ Anuluj
+                  </SecondaryButton>
+                </>
               ) : (
-                <PrimaryButton 
-                  onClick={handleActivatePlan} 
-                  disabled={activating}
-                  className="w-full"
-                >
-                  {activating ? (
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Aktywowanie...
-                    </span>
+                <>
+                  {isPlanActive ? (
+                    <div className="w-full px-6 py-3 rounded-full bg-emerald-500/20 border-2 border-emerald-400/60 text-center">
+                      <span className="inline-flex items-center gap-2 text-sm font-bold text-emerald-300">
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                        </span>
+                        Plan aktywny
+                      </span>
+                    </div>
                   ) : (
-                    '✨ Aktywuj plan'
+                    <PrimaryButton 
+                      onClick={handleActivatePlan} 
+                      disabled={activating}
+                      className="w-full"
+                    >
+                      {activating ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Aktywowanie...
+                        </span>
+                      ) : (
+                        '✨ Aktywuj plan'
+                      )}
+                    </PrimaryButton>
                   )}
-                </PrimaryButton>
+                  <SecondaryButton onClick={handleStartEdit} className="w-full">
+                    ✏️ Edytuj plan
+                  </SecondaryButton>
+                  <SecondaryButton onClick={handleCopyAndEdit} className="w-full">
+                    📋 Skopiuj i edytuj
+                  </SecondaryButton>
+                  <GhostButton onClick={handleReportProblem} className="w-full">
+                    ⚠️ Zgłoś problem
+                  </GhostButton>
+                </>
               )}
-              <SecondaryButton onClick={handleCopyAndEdit} className="w-full">
-                📋 Skopiuj i edytuj
-              </SecondaryButton>
-              <GhostButton onClick={handleReportProblem} className="w-full">
-                ⚠️ Zgłoś problem
-              </GhostButton>
             </div>
           </div>
         </div>
@@ -514,9 +717,9 @@ export default function PlanDetailsPage() {
                 </div>
 
                 {/* Dni treningowe */}
-                {Array.isArray(plan.days) && plan.days.length > 0 ? (
+                {Array.isArray((isEditing ? editedPlan : plan).days) && (isEditing ? editedPlan : plan).days.length > 0 ? (
                   <div className="space-y-6">
-                    {plan.days.map((day, idx) => (
+                    {(isEditing ? editedPlan : plan).days.map((day, idx) => (
                       <div
                         key={idx}
                         className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 hover:border-emerald-400/40 transition-all"
@@ -544,38 +747,83 @@ export default function PlanDetailsPage() {
                                   {exIdx + 1}
                                 </div>
                                 <div className="flex-1">
-                                  <h4 className="font-semibold text-white mb-2 group-hover:text-emerald-300 transition-colors">
-                                    {ex.name || ex.exercise_name || 'Ćwiczenie'}
-                                  </h4>
-                                  
-                                  {/* Szczegóły ćwiczenia */}
-                                  <div className="flex flex-wrap gap-4 text-sm">
-                                    {ex.sets && (
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-gray-400">Serie:</span>
-                                        <span className="text-emerald-400 font-bold">{ex.sets}</span>
-                                      </div>
-                                    )}
-                                    {ex.reps && (
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-gray-400">Powtórzenia:</span>
-                                        <span className="text-emerald-400 font-bold">{ex.reps}</span>
-                                      </div>
-                                    )}
-                                    {ex.rest_seconds && (
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-gray-400">Odpoczynek:</span>
-                                        <span className="text-blue-400 font-bold">{ex.rest_seconds}s</span>
-                                      </div>
-                                    )}
-                                    {ex.superset_group && (
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-purple-400 text-xs font-bold uppercase">
-                                          Superset {ex.superset_group}
-                                        </span>
-                                      </div>
+                                  <div className="flex items-start justify-between gap-3">
+                                    <h4 className="font-semibold text-white mb-2 group-hover:text-emerald-300 transition-colors flex-1">
+                                      {ex.name || ex.exercise_name || 'Ćwiczenie'}
+                                    </h4>
+                                    {isEditing && (
+                                      <button
+                                        onClick={() => removeExercise(idx, exIdx)}
+                                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors"
+                                      >
+                                        🗑️ Usuń
+                                      </button>
                                     )}
                                   </div>
+                                  
+                                  {/* Szczegóły ćwiczenia */}
+                                  {isEditing ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                                      <div>
+                                        <label className="block text-xs text-gray-400 mb-1">Serie</label>
+                                        <input
+                                          type="text"
+                                          value={ex.target_sets || ex.targetSets || ex.sets || ''}
+                                          onChange={(e) => updateExercise(idx, exIdx, 'target_sets', e.target.value)}
+                                          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-400/50"
+                                          placeholder="3-4"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs text-gray-400 mb-1">Powtórzenia</label>
+                                        <input
+                                          type="text"
+                                          value={ex.target_reps || ex.targetReps || ex.reps || ''}
+                                          onChange={(e) => updateExercise(idx, exIdx, 'target_reps', e.target.value)}
+                                          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-400/50"
+                                          placeholder="8-12"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs text-gray-400 mb-1">Odpoczynek (s)</label>
+                                        <input
+                                          type="number"
+                                          value={ex.rest_seconds || ex.restSeconds || ''}
+                                          onChange={(e) => updateExercise(idx, exIdx, 'rest_seconds', parseInt(e.target.value) || 0)}
+                                          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-400/50"
+                                          placeholder="60"
+                                        />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-4 text-sm">
+                                      {ex.sets && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-gray-400">Serie:</span>
+                                          <span className="text-emerald-400 font-bold">{ex.sets}</span>
+                                        </div>
+                                      )}
+                                      {ex.reps && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-gray-400">Powtórzenia:</span>
+                                          <span className="text-emerald-400 font-bold">{ex.reps}</span>
+                                        </div>
+                                      )}
+                                      {ex.rest_seconds && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-gray-400">Odpoczynek:</span>
+                                          <span className="text-blue-400 font-bold">{ex.rest_seconds}s</span>
+                                        </div>
+                                      )}
+                                      {ex.superset_group && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-purple-400 text-xs font-bold uppercase">
+                                            Superset {ex.superset_group}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                   
                                   {/* Grupa mięśniowa */}
                                   {ex.muscle_group && (
@@ -626,7 +874,7 @@ export default function PlanDetailsPage() {
               </div>
               
               <div className="grid gap-3">
-                {weekDays.map((day, idx) => {
+                {weekDays.map((day) => {
                   const isTrainingDay = schedule.includes(day);
                   return (
                     <div

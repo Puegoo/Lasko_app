@@ -212,6 +212,8 @@ CREATE TABLE user_active_plans (
     rating INTEGER CHECK (rating >= 1 AND rating <= 5),
     rating_date TIMESTAMPTZ,
     feedback_text TEXT,
+    training_schedule JSONB DEFAULT '[]'::jsonb,  -- DODANE: Harmonogram treningowy (dni tygodnia)
+    notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,  -- DODANE: Czy powiadomienia są włączone
     FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (plan_id) REFERENCES training_plans(id) ON DELETE CASCADE
 );

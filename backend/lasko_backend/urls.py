@@ -4,6 +4,7 @@ from django.urls import path, include
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from recommendations import views as rec_views
+from recommendations.urls import workout_urlpatterns
 
 @csrf_exempt
 def health_check(request):
@@ -39,4 +40,5 @@ urlpatterns = [
     path('api/', api_root, name='api_root'),
     path('api/auth/', include('accounts.urls')),
     path('api/recommendations/', include('recommendations.urls')),
+    path('api/workouts/', include(workout_urlpatterns)),
 ]
