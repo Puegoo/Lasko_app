@@ -531,3 +531,60 @@ def check_username(request):
 
     exists = AuthAccount.objects.filter(username__iexact=username).exists()
     return Response({'available': not exists}, status=status.HTTP_200_OK)
+
+
+# ============================================================================
+# HARMONOGRAM I POWIADOMIENIA
+# ============================================================================
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_schedule(request):
+    """Zapisz harmonogram treningów użytkownika"""
+    try:
+        user = request.user
+        schedule = request.data.get('schedule', [])
+        notifications_enabled = request.data.get('notifications_enabled', True)
+        
+        # Zapisz harmonogram w sesji lub bazie danych
+        # Na razie zapisujemy w sesji, później można dodać do bazy
+        request.session['user_schedule'] = schedule
+        request.session['notifications_enabled'] = notifications_enabled
+        
+        logger.info(f"[Schedule] User {user.id} saved schedule: {schedule}")
+        
+        return Response({
+            'success': True,
+            'message': 'Harmonogram został zapisany',
+            'schedule': schedule,
+            'notifications_enabled': notifications_enabled
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"[Schedule] Error saving schedule: {str(e)}")
+        return Response({
+            'success': False,
+            'message': 'Nie udało się zapisać harmonogramu'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_schedule(request):
+    """Pobierz harmonogram użytkownika"""
+    try:
+        user = request.user
+        schedule = request.session.get('user_schedule', [])
+        notifications_enabled = request.session.get('notifications_enabled', True)
+        
+        return Response({
+            'success': True,
+            'schedule': schedule,
+            'notifications_enabled': notifications_enabled
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"[Schedule] Error getting schedule: {str(e)}")
+        return Response({
+            'success': False,
+            'message': 'Nie udało się pobrać harmonogramu'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

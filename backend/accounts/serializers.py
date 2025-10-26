@@ -372,3 +372,13 @@ class AuthAccountSerializer(serializers.ModelSerializer):
             'is_admin', 'created_at', 'last_login'
         ]
         read_only_fields = ['id', 'created_at', 'last_login']
+class AuthAccountSerializer(serializers.ModelSerializer):
+    """Serializer dla danych konta (bez hasła)"""
+    
+    class Meta:
+        model = AuthAccount
+        fields = [
+            'id', 'username', 'email', 'first_name',
+            'is_admin', 'created_at', 'last_login'
+        ]
+        read_only_fields = ['id', 'created_at', 'last_login']

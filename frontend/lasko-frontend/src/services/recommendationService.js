@@ -99,6 +99,16 @@ export class RecommendationService {
       return data;
     }
 
+  async getActivePlan() {
+    const res = await fetch(`${this.baseURL}/api/recommendations/active-plan/`, {
+      method: 'GET',
+      headers: this._headers(),
+    });
+    if (res.status === 401) throw new Error('Brak tokenu autoryzacji - zaloguj się ponownie');
+    if (!res.ok) throw new Error('Nie udało się pobrać aktywnego planu.');
+    return await res.json();
+  }
+
   async activatePlan(planId) {
     const res = await fetch(`${this.baseURL}/api/recommendations/plans/${encodeURIComponent(planId)}/activate/`, {
       method: 'POST',

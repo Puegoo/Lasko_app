@@ -15,4 +15,8 @@ urlpatterns = [
     # ➜ te dwie linie są kluczowe dla frontu
     path('check-email/', views.check_email, name='check-email'),
     path('check-username/', views.check_username, name='check-username'),
+    
+    # Harmonogram i powiadomienia
+    path('schedule/save/', views.save_schedule, name='save-schedule'),
+    path('schedule/get/', views.get_schedule, name='get-schedule'),
 ]

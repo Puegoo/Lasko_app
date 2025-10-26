@@ -89,8 +89,8 @@ const GhostButton = ({ onClick, children, className = '' }) => (
 );
 
 // Navbar
-const Navbar = () => {
-  const { user, logout } = useAuth();
+const Navbar = ({ username }) => {
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -108,7 +108,7 @@ const Navbar = () => {
 
         <div className="hidden items-center gap-3 md:flex">
           <span className="hidden text-sm text-gray-300 lg:inline">
-            Witaj, <span className="font-semibold text-white">{user?.username}</span>!
+            Witaj, <span className="font-semibold text-white">{username}</span>!
           </span>
           <SecondaryButton to="/enhanced-plan-creator">
             Nowy plan
@@ -181,23 +181,56 @@ const ActionCard = ({ icon, title, description, onClick }) => (
   </button>
 );
 
-const PlanCard = ({ plan, isActive = false }) => {
+const PlanCard = ({ plan, isActive = false, onActivate, activePlanId = null }) => {
   const navigate = useNavigate();
+  
+  const findPlanId = (p) => {
+    if (!p) return null;
+    // Explicit common fields first
+    const explicit = p.planId || p.id || p.plan_id || p.plan?.id || p.plan?.planId;
+    if (explicit) return explicit;
+
+    // Scan top-level keys ending with 'id'
+    const topLevel = Object.entries(p)
+      .filter(([k, v]) => /id$/i.test(k) && (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v))))
+      .map(([, v]) => v);
+    if (topLevel.length > 0) return topLevel[0];
+
+    // Scan nested 'plan' object if exists
+    if (p.plan && typeof p.plan === 'object') {
+      const nested = Object.entries(p.plan)
+        .filter(([k, v]) => /id$/i.test(k) && (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v))))
+        .map(([, v]) => v);
+      if (nested.length > 0) return nested[0];
+    }
+    return null;
+  };
+  
+  // Sprawdź czy ten plan jest już aktywny
+  const planId = findPlanId(plan);
+  const isPlanActive = activePlanId && planId && (
+    activePlanId === planId || 
+    String(activePlanId) === String(planId)
+  );
   
   const handleViewDetails = () => {
     // Przekieruj do dedykowanej strony szczegółów planu
-    console.log('[PlanCard] handleViewDetails - full plan object:', plan);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[PlanCard] handleViewDetails - CALLED');
+    console.log('[PlanCard] Full plan object:', JSON.stringify(plan, null, 2));
     console.log('[PlanCard] plan.planId:', plan?.planId);
     console.log('[PlanCard] plan.id:', plan?.id);
     console.log('[PlanCard] plan.plan_id:', plan?.plan_id);
     console.log('[PlanCard] Object.keys(plan):', Object.keys(plan || {}));
     
-    const planId = plan?.planId || plan?.id || plan?.plan_id;
-    console.log('[DashboardPage] Navigating to plan details for ID:', planId);
+    const planId = findPlanId(plan);
+    console.log('[PlanCard] findPlanId returned:', planId);
+    console.log('[PlanCard] Type of planId:', typeof planId);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     if (!planId) {
-      console.error('[PlanCard] ERROR: No valid planId found!');
-      alert('Błąd: Nie można otworzyć szczegółów planu (brak ID)');
+      console.error('[PlanCard] ERROR: No valid planId found!', { plan });
+      alert('Błąd: Nie można otworzyć szczegółów planu (brak ID w danych planu).');
       return;
     }
     
@@ -278,16 +311,34 @@ const PlanCard = ({ plan, isActive = false }) => {
       <div className="flex gap-3">
         {isActive ? (
           <>
-            <PrimaryButton onClick={() => console.log('Start workout')} className="flex-1">
+            <PrimaryButton onClick={() => navigate('/workout/today')} className="flex-1">
               Rozpocznij trening
             </PrimaryButton>
             <GhostButton onClick={handleViewDetails}>
               Zobacz szczegóły
             </GhostButton>
         </>
+      ) : isPlanActive ? (
+        <>
+          <div className="flex-1 px-6 py-3 rounded-full bg-emerald-500/20 border-2 border-emerald-400/60 text-center">
+            <span className="inline-flex items-center gap-2 text-sm font-bold text-emerald-300">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+              </span>
+              Plan aktywny
+            </span>
+          </div>
+          <GhostButton onClick={handleViewDetails}>
+            Zobacz szczegóły
+          </GhostButton>
+        </>
       ) : (
         <>
-          <SecondaryButton onClick={() => console.log('Activate plan')} className="flex-1">
+          <SecondaryButton 
+            onClick={() => onActivate ? onActivate(plan) : alert('Funkcja aktywacji nie jest dostępna')} 
+            className="flex-1"
+          >
             Aktywuj plan
           </SecondaryButton>
           <GhostButton onClick={handleViewDetails}>
@@ -305,16 +356,22 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
-
-  // plany przekazane przez nawigację (po aktywacji)
-  const activePlan = location.state?.activePlan;
-  const createdPlan = location.state?.createdPlan;
-  const displayPlan = activePlan || createdPlan;
+  
+  // Pobierz nazwę użytkownika z różnych źródeł (fallback)
+  const username = user?.username || 
+                   sessionStorage.getItem('lasko_username') || 
+                   localStorage.getItem('user_data') && JSON.parse(localStorage.getItem('user_data'))?.username ||
+                   'Sportowcu';
 
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
+  const [activePlan, setActivePlan] = useState(null);
   const [error, setError] = useState(null);
+
+  // plany przekazane przez nawigację (po aktywacji) - tymczasowe
+  const tempActivePlan = location.state?.activePlan;
+  const displayPlan = activePlan || tempActivePlan;
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -328,10 +385,26 @@ const DashboardPage = () => {
   const fetchUserData = async () => {
     setLoading(true);
     try {
+      // Pobierz profil użytkownika
       const profileData = await apiService.fetchUserProfile?.();
       if (profileData?.profile) {
         setUserProfile(profileData.profile);
       }
+      
+      // Pobierz aktywny plan użytkownika
+      const activePlanData = await apiService.request('/api/recommendations/active-plan/');
+      console.log('[DashboardPage] Active plan data:', activePlanData);
+      console.log('[DashboardPage] has_active_plan:', activePlanData?.has_active_plan);
+      console.log('[DashboardPage] plan:', activePlanData?.plan);
+      if (activePlanData?.has_active_plan && activePlanData?.plan) {
+        console.log('[DashboardPage] Setting active plan:', activePlanData.plan);
+        console.log('[DashboardPage] Active plan ID:', activePlanData.plan.planId || activePlanData.plan.id);
+        setActivePlan(activePlanData.plan);
+      } else {
+        console.log('[DashboardPage] No active plan found');
+      }
+      
+      // Pobierz rekomendacje
       const recoData = await apiService.generateRecommendations?.('hybrid', {});
       console.log('[DashboardPage] recoData from API:', recoData);
       console.log('[DashboardPage] recommendations:', recoData?.recommendations);
@@ -350,6 +423,29 @@ const DashboardPage = () => {
 
   const handleCreateNewPlan = () => navigate('/enhanced-plan-creator');
   const handleEditProfile = () => navigate('/profile/edit');
+  
+  const handleActivatePlan = async (plan) => {
+    try {
+      const planId = plan?.planId || plan?.id;
+      if (!planId) {
+        alert('Brak ID planu do aktywacji');
+        return;
+      }
+      // Wywołaj endpoint aktywacji
+      const response = await apiService.request(`/api/recommendations/plans/${planId}/activate/`, {
+        method: 'POST'
+      });
+      
+      if (response.success) {
+        alert('Plan został aktywowany! 🎉');
+        // Odśwież dane Dashboard
+        await fetchUserData();
+      }
+    } catch (error) {
+      console.error('Błąd aktywacji planu:', error);
+      alert('Nie udało się aktywować planu: ' + error.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -376,13 +472,19 @@ const DashboardPage = () => {
   const hasReco = (recommendations?.length || 0) > 0;
   const recoPrimary = hasReco ? recommendations[0] : null;
 
+  console.log('[DashboardPage] RENDER - activePlan:', activePlan);
+  console.log('[DashboardPage] RENDER - tempActivePlan:', tempActivePlan);
+  console.log('[DashboardPage] RENDER - displayPlan:', displayPlan);
+  console.log('[DashboardPage] RENDER - hasActivePlan:', hasActivePlan);
+  console.log('[DashboardPage] RENDER - recoPrimary:', recoPrimary);
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
       <GradientGridBg />
       <GlowOrb className="left-[15%] top-32 h-64 w-64 bg-emerald-400/20" />
       <GlowOrb className="right-[20%] bottom-40 h-52 w-52 bg-teal-400/20" />
 
-      <Navbar />
+      <Navbar username={username} />
 
       <div className="mx-auto max-w-7xl px-6 pt-28 pb-16">
         {/* Header */}
@@ -413,7 +515,7 @@ const DashboardPage = () => {
                 <>
                   <Kicker>Dashboard</Kicker>
                   <h1 className="mt-4 text-4xl font-black text-white md:text-5xl">
-                    Cześć, {user?.username || 'Sportowcu'}!
+                    Cześć, {username}!
                   </h1>
                   <p className="mt-3 text-lg text-gray-300">
                     Zarządzaj swoimi treningami i śledź postępy
@@ -469,27 +571,142 @@ const DashboardPage = () => {
 
         {/* Main grid */}
         <div className="grid gap-8 lg:grid-cols-3">
-          {/* Left column - Plans and Actions */}
+          {/* Left column - Main content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Featured */}
+            {/* Sekcja "Dzisiaj" */}
             {hasActivePlan ? (
-              <PlanCard plan={displayPlan} isActive={true} />
-            ) : hasReco ? (
-              <PlanCard plan={recoPrimary} />
-            ) : (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-12 text-center">
-                <div className="mx-auto mb-6 h-24 w-24 rounded-full bg-gradient-to-br from-emerald-400/20 to-teal-400/20 flex items-center justify-center">
-                  <span className="text-5xl">💪</span>
+              <div className="rounded-3xl border border-emerald-400/30 bg-gradient-to-br from-emerald-400/10 to-teal-400/10 p-8">
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <div className="inline-flex items-center gap-2 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-300 mb-3">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Dzisiaj
+                    </div>
+                    <h2 className="text-3xl font-bold text-white mb-2">{displayPlan.name}</h2>
+                    <p className="text-gray-300">Gotowy do treningu</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-4xl font-black text-emerald-400">{displayPlan.trainingDaysPerWeek || 3}</div>
+                    <div className="text-xs text-gray-400">dni/tydz</div>
+                  </div>
                 </div>
-                <h2 className="mb-4 text-3xl font-bold text-white">
-                  Stwórz swój pierwszy plan
-                </h2>
-                <p className="mb-8 mx-auto max-w-md text-gray-400">
-                  Algorytm AI przeanalizuje Twoje cele, poziom zaawansowania i dane biometryczne,
-                  aby stworzyć idealny plan dopasowany tylko do Ciebie.
-                </p>
-                <PrimaryButton onClick={handleCreateNewPlan} size="large">
-                  Stwórz plan treningowy
+                <div className="flex gap-3">
+                  <PrimaryButton onClick={() => navigate('/workout/today')} className="flex-1">
+                    🏋️ Rozpocznij trening
+                  </PrimaryButton>
+                  <SecondaryButton onClick={() => {
+                    console.log('[Dashboard] Active plan - displayPlan:', displayPlan);
+                    console.log('[Dashboard] displayPlan.planId:', displayPlan?.planId);
+                    console.log('[Dashboard] displayPlan.id:', displayPlan?.id);
+                    const planId = displayPlan?.planId || displayPlan?.id;
+                    if (!planId) {
+                      alert('Brak ID aktywnego planu');
+                      return;
+                    }
+                    navigate(`/plan-details/${planId}`);
+                  }}>
+                    Zobacz szczegóły
+                  </SecondaryButton>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-gray-300 mb-4">
+                  Dzisiaj
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Brak aktywnego planu</h2>
+                <p className="text-gray-400 mb-6">Zacznij od aktywacji rekomendowanego planu lub stwórz własny</p>
+                <div className="flex gap-3">
+                  {hasReco && (() => {
+                    const recoPrimaryId = recoPrimary?.planId || recoPrimary?.id;
+                    const activeId = activePlan?.planId || activePlan?.id;
+                    const isRecoPrimaryActive = activeId && recoPrimaryId && String(activeId) === String(recoPrimaryId);
+                    
+                    return !isRecoPrimaryActive ? (
+                      <SecondaryButton onClick={() => handleActivatePlan(recoPrimary)} className="flex-1">
+                        Aktywuj rekomendację
+                      </SecondaryButton>
+                    ) : null;
+                  })()}
+                  <PrimaryButton onClick={handleCreateNewPlan} className="flex-1">
+                    Stwórz plan
+                  </PrimaryButton>
+                </div>
+              </div>
+            )}
+
+            {/* Sekcja "Rekomendowany plan" */}
+            {hasReco && !hasActivePlan && (() => {
+              const recoPrimaryId = recoPrimary?.planId || recoPrimary?.id;
+              const activeId = activePlan?.planId || activePlan?.id;
+              const isRecoPrimaryActive = activeId && recoPrimaryId && String(activeId) === String(recoPrimaryId);
+              
+              return (
+                <div className="rounded-3xl border border-blue-400/20 bg-blue-400/5 p-8">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <div className="inline-flex items-center gap-2 rounded-full bg-blue-400/20 px-3 py-1 text-xs font-bold text-blue-300 mb-3">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+                        Rekomendacja
+                      </div>
+                      <h2 className="text-2xl font-bold text-white mb-2">{recoPrimary.name}</h2>
+                      <p className="text-gray-300 mb-4">{recoPrimary.description || 'Plan dopasowany do Twoich preferencji'}</p>
+                      {recoPrimary.score && (
+                        <div className="flex items-center gap-2 text-blue-300">
+                          <span className="text-lg">⭐</span>
+                          <span className="font-semibold">Dopasowanie: {Math.min(Math.round(recoPrimary.score * 100), 100)}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <PrimaryButton onClick={() => {
+                      console.log('[Dashboard] Recommended plan - recoPrimary:', recoPrimary);
+                      console.log('[Dashboard] recoPrimary.planId:', recoPrimary?.planId);
+                      console.log('[Dashboard] recoPrimary.id:', recoPrimary?.id);
+                      const planId = recoPrimary?.planId || recoPrimary?.id;
+                      if (!planId) {
+                        alert('Brak ID rekomendowanego planu');
+                        return;
+                      }
+                      navigate(`/plan-details/${planId}`);
+                    }} className="flex-1">
+                      Zobacz szczegóły
+                    </PrimaryButton>
+                    {!isRecoPrimaryActive ? (
+                      <SecondaryButton onClick={() => handleActivatePlan(recoPrimary)} className="flex-1">
+                        Aktywuj plan
+                      </SecondaryButton>
+                    ) : (
+                      <div className="flex-1 px-6 py-3 rounded-full bg-emerald-500/20 border-2 border-emerald-400/60 text-center">
+                        <span className="inline-flex items-center gap-2 text-sm font-bold text-emerald-300">
+                          <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                          </span>
+                          Plan aktywny
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Sekcja "Szybki start" */}
+            {!hasActivePlan && (
+              <div className="rounded-3xl border border-purple-400/20 bg-purple-400/5 p-8">
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <div className="inline-flex items-center gap-2 rounded-full bg-purple-400/20 px-3 py-1 text-xs font-bold text-purple-300 mb-3">
+                      Szybki start
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Trening bez planu</h2>
+                    <p className="text-gray-300">Rozpocznij swobodną sesję treningową</p>
+                  </div>
+                </div>
+                <PrimaryButton onClick={() => navigate('/workout/free')} className="w-full">
+                  ⚡ Nowa sesja
                 </PrimaryButton>
               </div>
             )}
@@ -543,7 +760,12 @@ const DashboardPage = () => {
                 <h2 className="mb-4 text-xl font-bold text-white">Polecane plany</h2>
                 <div className="grid gap-4">
                   {recommendations.slice(hasActivePlan ? 0 : 1, 3).map((plan, index) => (
-                    <PlanCard key={`${plan.id || plan.name}-${index}`} plan={plan} />
+                    <PlanCard 
+                      key={`${plan.id || plan.name}-${index}`} 
+                      plan={plan} 
+                      onActivate={handleActivatePlan}
+                      activePlanId={activePlan?.planId || activePlan?.id}
+                    />
                   ))}
                 </div>
                 <div className="mt-4 text-center">
@@ -562,10 +784,10 @@ const DashboardPage = () => {
               <div className="mb-6 text-center">
                 <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 flex items-center justify-center">
                   <span className="text-3xl font-black text-black">
-                    {user?.username?.charAt(0)?.toUpperCase() || 'U'}
+                    {username?.charAt(0)?.toUpperCase() || 'U'}
                   </span>
                 </div>
-                <h3 className="text-xl font-bold text-white">{user?.username}</h3>
+                <h3 className="text-xl font-bold text-white">{username}</h3>
                 <p className="text-sm text-gray-400">{user?.email}</p>
               </div>
 

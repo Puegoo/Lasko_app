@@ -286,7 +286,55 @@ export default function PlanSummary() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(null);
   const [fetchedPlanIds, setFetchedPlanIds] = useState(new Set());
+  const [schedule, setSchedule] = useState([]);
   const recApi = useMemo(() => new RecommendationService(), []);
+
+  // Dni tygodnia
+  const weekDays = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'];
+
+  // Bezpieczne dni treningowe zanim zdestrukturyzujemy planData niżej
+  const tdPerWeek = (planData?.trainingDaysPerWeek
+    ?? planData?.recommendedPlan?.trainingDaysPerWeek
+    ?? 0);
+
+  // Generuj harmonogram na podstawie liczby dni treningowych
+  const generateSchedule = (trainingDays) => {
+    const defaultSchedule = {
+      1: ['Środa'],
+      2: ['Poniedziałek', 'Czwartek'],
+      3: ['Poniedziałek', 'Środa', 'Piątek'],
+      4: ['Poniedziałek', 'Wtorek', 'Czwartek', 'Piątek'],
+      5: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek'],
+      6: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'],
+      7: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+    };
+    return defaultSchedule[trainingDays] || defaultSchedule[3];
+  };
+
+  // Inicjalizuj harmonogram gdy zmieni się plan
+  useEffect(() => {
+    if (tdPerWeek && !schedule.length) {
+      setSchedule(generateSchedule(tdPerWeek));
+    }
+  }, [tdPerWeek, schedule.length]);
+
+  // Zapisz harmonogram do backend
+  const saveSchedule = async (scheduleData, notificationsEnabled) => {
+    try {
+      const response = await apiService.post('/api/auth/schedule/save/', {
+        schedule: scheduleData,
+        notifications_enabled: notificationsEnabled
+      });
+      
+      if (response.success) {
+        console.log('[PlanSummary] Schedule saved successfully');
+        return true;
+      }
+    } catch (error) {
+      console.error('[PlanSummary] Failed to save schedule:', error);
+    }
+    return false;
+  };
 
   const normalizePlanDetails = (base, detailed) => {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -451,6 +499,10 @@ export default function PlanSummary() {
     ...planData,
     equipment: planData?.equipment ?? planData?.equipment_preference,
   };
+  
+  console.log('[PlanSummary] planData.name:', planData?.name);
+  console.log('[PlanSummary] extracted name:', name);
+  console.log('[PlanSummary] recommendedPlan.name:', recommendedPlan?.name);
 
   // agregaty
   const allExercises = useMemo(() => extractAllExercises(recommendedPlan), [recommendedPlan]);
@@ -668,7 +720,7 @@ export default function PlanSummary() {
               {/* opis */}
               <div>
                 <h2 className="mb-3 text-2xl font-bold text-white">
-                  {recommendedPlan.name || 'Plan treningowy'}
+                  {name || recommendedPlan.name || 'Plan treningowy'}
                 </h2>
                 {recommendedPlan.description && (
                   <p className="text-gray-300 leading-relaxed">
@@ -690,6 +742,32 @@ export default function PlanSummary() {
                 <div className="rounded-xl bg-purple-400/10 border border-purple-400/20 p-4">
                   <p className="text-sm text-purple-300">Średni czas treningu</p>
                   <p className="mt-1 text-2xl font-bold text-white">{timePerSession} min</p>
+                </div>
+              </div>
+
+              {/* Score planu */}
+              <div>
+                <h3 className="mb-4 text-lg font-bold text-white">Dopasowanie planu</h3>
+                <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="text-emerald-400">⭐</span>
+                        <span className="font-semibold text-white">Score dopasowania</span>
+                      </div>
+                      <p className="text-sm text-gray-300">
+                        Ten plan został wybrany na podstawie Twoich preferencji i celów treningowych
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-emerald-400">
+                        {recommendedPlan?.score 
+                          ? `${Math.min(Math.round(recommendedPlan.score * 100), 100)}%` 
+                          : '85%'}
+                      </div>
+                      <div className="text-xs text-gray-400">dopasowanie</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -841,30 +919,43 @@ export default function PlanSummary() {
               <div>
                 <h2 className="mb-3 text-2xl font-bold text-white">Harmonogram tygodniowy</h2>
                 <p className="text-gray-400">
-                  Sugerowany rozkład treningów w tygodniu
+                  Wybierz dni treningowe w tygodniu. Możesz zmienić sugerowany harmonogram.
                 </p>
               </div>
 
               <div className="grid gap-3">
-                {['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'].map((day, idx) => {
-                  const isTrainingDay = idx < trainingDaysPerWeek;
+                {weekDays.map((day, idx) => {
+                  const isTrainingDay = schedule.includes(day);
                   return (
                     <div
                       key={day}
                       className={[
-                        'flex items-center justify-between rounded-xl border p-4 transition-colors',
+                        'flex items-center justify-between rounded-xl border p-4 transition-colors cursor-pointer',
                         isTrainingDay
                           ? 'border-emerald-400/20 bg-emerald-400/5'
-                          : 'border-white/10 bg-white/[0.02]'
+                          : 'border-white/10 bg-white/[0.02] hover:border-white/20'
                       ].join(' ')}
+                      onClick={() => {
+                        if (isTrainingDay) {
+                          // Usuń dzień z harmonogramu
+                          setSchedule(prev => prev.filter(d => d !== day));
+                        } else {
+                          // Dodaj dzień do harmonogramu (maksymalnie trainingDaysPerWeek dni)
+                          if (schedule.length < tdPerWeek) {
+                            setSchedule(prev => [...prev, day]);
+                          }
+                        }
+                      }}
                     >
                       <span className="font-semibold text-white">{day}</span>
                       {isTrainingDay ? (
                         <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-medium text-emerald-300">
-                          Trening {idx + 1}
+                          Trening {schedule.indexOf(day) + 1}
                         </span>
                       ) : (
-                        <span className="text-sm text-gray-500">Dzień wolny</span>
+                        <span className="text-sm text-gray-500">
+                          {schedule.length >= tdPerWeek ? 'Maksymalnie ' + tdPerWeek + ' dni' : 'Kliknij aby dodać'}
+                        </span>
                       )}
                     </div>
                   );
@@ -877,11 +968,53 @@ export default function PlanSummary() {
                   <div>
                     <h4 className="font-semibold text-white">Wskazówka</h4>
                     <p className="mt-1 text-sm text-gray-300">
-                      Pamiętaj o odpowiedniej regeneracji między treningami. Jeśli czujesz się zmęczony, 
-                      możesz przesunąć trening na następny dzień.
+                      Wybierz dni, które najlepiej pasują do Twojego harmonogramu. 
+                      Pamiętaj o odpowiedniej regeneracji między treningami.
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Powiadomienia */}
+              <div className="rounded-2xl bg-purple-400/10 border border-purple-400/20 p-6">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🔔</span>
+                  <div>
+                    <h4 className="font-semibold text-white">Powiadomienia</h4>
+                    <p className="mt-1 text-sm text-gray-300">
+                      Otrzymasz przypomnienia o treningach w wybrane dni. 
+                      Możesz włączyć/wyłączyć powiadomienia w ustawieniach.
+                    </p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="notifications" 
+                        defaultChecked
+                        className="rounded border-white/20 bg-white/10 text-purple-400 focus:ring-purple-400/50"
+                      />
+                      <label htmlFor="notifications" className="text-sm text-gray-300">
+                        Włącz powiadomienia o treningach
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Przycisk zapisz harmonogram */}
+              <div className="flex justify-center">
+                <PrimaryButton
+                  onClick={async () => {
+                    const notificationsEnabled = document.getElementById('notifications')?.checked || false;
+                    const success = await saveSchedule(schedule, notificationsEnabled);
+                    if (success) {
+                      alert('Harmonogram został zapisany!');
+                    } else {
+                      alert('Nie udało się zapisać harmonogramu. Spróbuj ponownie.');
+                    }
+                  }}
+                >
+                  💾 Zapisz harmonogram
+                </PrimaryButton>
               </div>
             </div>
           )}
@@ -901,6 +1034,8 @@ export default function PlanSummary() {
                 navigate('/dashboard', {
                   state: {
                     activePlan: {
+                      planId: planId,  // DODANE - ID planu!
+                      id: planId,  // DODANE - fallback
                       name: planData?.name || planData?.recommendedPlan?.name,
                       trainingDaysPerWeek,
                       sessionDuration: timePerSession,
@@ -971,3 +1106,9 @@ export default function PlanSummary() {
     </div>
   );
 }
+
+
+
+
+
+

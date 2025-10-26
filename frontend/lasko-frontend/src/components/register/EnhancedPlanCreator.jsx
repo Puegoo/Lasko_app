@@ -263,12 +263,13 @@ const EnhancedPlanCreator = () => {
     focusAreas: initialData.focusAreas || [],
     avoidances: initialData.avoidances || [],
     body: {
-      age: initialData.age || '',
+      dateOfBirth: initialData.dateOfBirth || '',
+      age: initialData.age || (initialData.dateOfBirth ? calculateAge(initialData.dateOfBirth) : ''),
       weightKg: initialData.weightKg || '',
       heightCm: initialData.heightCm || '',
       activityLevel: initialData.activityLevel || 'średnia',
     },
-    name: initialData.name || '',
+    name: initialData.name || (user?.first_name ? `Plan dla ${user.first_name}` : (user?.username ? `Plan dla ${user.username}` : 'Plan Użytkownik')),
     recommendedPlan: null,
     altPlans: [],
   });
@@ -295,10 +296,31 @@ const EnhancedPlanCreator = () => {
     return errs;
   }, [planData.equipment, planData.timePerSession]);
 
+  // Funkcja obliczania wieku z daty urodzenia
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return '';
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const validateBody = useMemo(() => {
     const errs = {};
     const { age, weightKg, heightCm } = planData.body;
-    if (!age || age < 16 || age > 100) errs.age = 'Podaj wiek między 16 a 100 lat.';
+    
+    // Walidacja wieku
+    if (!age || age === '') {
+      errs.age = 'Podaj swój wiek.';
+    } else if (age < 16 || age > 100) {
+      errs.age = 'Musisz mieć między 16 a 100 lat.';
+    }
+    
+    // Walidacja wagi i wzrostu
     if (!weightKg || weightKg < 30 || weightKg > 300) errs.weightKg = 'Podaj wagę między 30 a 300 kg.';
     if (!heightCm || heightCm < 120 || heightCm > 250) errs.heightCm = 'Podaj wzrost między 120 a 250 cm.';
     return errs;
@@ -430,6 +452,7 @@ const generateRecommendedPlan = async () => {
       focus_areas: planData.focusAreas,
       avoidances: planData.avoidances,
       body: planData.body,
+      plan_name: planData.name, // Dodaj nazwę planu z ankiety
     };
 
     console.log('📊 [EnhancedPlanCreator] Generuję rekomendacje z preferencjami:', preferences);
@@ -763,33 +786,45 @@ const generateRecommendedPlan = async () => {
           Ile czasu możesz poświęcić na jeden trening? *
         </label>
         <div className="mx-auto max-w-md">
-          <div className="relative">
+          {/* Wyświetlanie wartości */}
+          <div className="mb-4 text-center">
+            <div className="inline-flex items-baseline gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-6 py-3">
+              <span className="text-4xl font-black text-white">{planData.timePerSession}</span>
+              <span className="text-lg text-gray-400">minut</span>
+            </div>
+          </div>
+          
+          {/* Interaktywny suwak */}
+          <div className="relative px-3 py-2">
             <input
-              type="number"
+              type="range"
               min="15"
               max="180"
+              step="5"
               value={planData.timePerSession}
               onChange={(e) => setPlanData((p) => ({ ...p, timePerSession: parseInt(e.target.value) || 60 }))}
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-center text-2xl font-bold text-white outline-none transition-all focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/30"
-              placeholder="60"
+              className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer
+                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 
+                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r 
+                [&::-webkit-slider-thumb]:from-emerald-400 [&::-webkit-slider-thumb]:to-teal-300 
+                [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-emerald-500/50
+                [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110
+                [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 
+                [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-gradient-to-r 
+                [&::-moz-range-thumb]:from-emerald-400 [&::-moz-range-thumb]:to-teal-300 
+                [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:shadow-emerald-500/50
+                [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:transition-transform 
+                [&::-moz-range-thumb]:hover:scale-110"
+              style={{
+                background: `linear-gradient(to right, rgb(29, 205, 159) 0%, rgb(29, 205, 159) ${((planData.timePerSession - 15) / (180 - 15)) * 100}%, rgba(255,255,255,0.1) ${((planData.timePerSession - 15) / (180 - 15)) * 100}%, rgba(255,255,255,0.1) 100%)`
+              }}
             />
-            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400">minut</span>
           </div>
-          <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-            <span>Min: 15 min</span>
-            <span>Zalecane: 45-90 min</span>
-            <span>Max: 180 min</span>
-          </div>
-          {/* Slider wizualny */}
-          <div className="mt-3 h-2 rounded-full bg-white/10 relative">
-            <div
-              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all"
-              style={{ width: `${((planData.timePerSession - 15) / (180 - 15)) * 100}%` }}
-            />
-            <div
-              className="absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-white shadow-lg transition-all"
-              style={{ left: `${((planData.timePerSession - 15) / (180 - 15)) * 100}%` }}
-            />
+          
+          <div className="mt-2 flex items-center justify-between text-sm text-gray-500">
+            <span>15 min</span>
+            <span className="text-emerald-400">Zalecane: 45-90 min</span>
+            <span>180 min</span>
           </div>
         </div>
         {errors.timePerSession && (
@@ -838,14 +873,22 @@ const generateRecommendedPlan = async () => {
             <div className="relative">
               <input
                 type="number"
+                value={planData.body.age || ''}
+                onChange={(e) => {
+                  const age = parseInt(e.target.value) || '';
+                  setPlanData((p) => ({ 
+                    ...p, 
+                    body: { 
+                      ...p.body, 
+                      age: age
+                    } 
+                  }));
+                }}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-lg font-semibold text-white outline-none transition-all focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/30 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                 min="16"
                 max="100"
-                value={planData.body.age}
-                onChange={(e) => setPlanData((p) => ({ ...p, body: { ...p.body, age: parseInt(e.target.value) || '' } }))}
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-lg font-semibold text-white outline-none transition-all focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/30"
-                placeholder="25"
+                placeholder="Wprowadź swój wiek"
               />
-              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500">lat</span>
             </div>
             {errors.age && (
               <p className="mt-2 text-sm text-red-400">{errors.age}</p>
@@ -864,7 +907,7 @@ const generateRecommendedPlan = async () => {
                 step="0.1"
                 value={planData.body.weightKg}
                 onChange={(e) => setPlanData((p) => ({ ...p, body: { ...p.body, weightKg: parseFloat(e.target.value) || '' } }))}
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-lg font-semibold text-white outline-none transition-all focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/30"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-lg font-semibold text-white outline-none transition-all focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/30 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                 placeholder="70.0"
               />
               <span className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500">kg</span>
@@ -885,7 +928,7 @@ const generateRecommendedPlan = async () => {
                 max="250"
                 value={planData.body.heightCm}
                 onChange={(e) => setPlanData((p) => ({ ...p, body: { ...p.body, heightCm: parseInt(e.target.value) || '' } }))}
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-lg font-semibold text-white outline-none transition-all focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/30"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-lg font-semibold text-white outline-none transition-all focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/30 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                 placeholder="175"
               />
               <span className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500">cm</span>

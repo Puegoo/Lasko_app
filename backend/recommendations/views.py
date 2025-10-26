@@ -175,9 +175,12 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 meta.get('avg_rating')
             )
 
+            # Użyj nazwy z ankiety jeśli dostępna, w przeciwnym razie nazwa z bazy
+            plan_name = preferences.get('plan_name') or plan_detail['name']
+            
             enriched_recommendation = {
                 "planId": plan_id,
-                "name": plan_detail['name'],
+                "name": plan_name,
                 "description": plan_detail['description'],
                 "goalType": plan_detail['goal_type'],
                 "difficultyLevel": plan_detail['difficulty_level'],
@@ -186,6 +189,8 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 "score": round(float(recommendation['score']), 2),
                 "matchReasons": match_reasons
             }
+            
+            logger.info(f"[Recommendations] Enriched recommendation #{len(enriched_recommendations)}: planId={plan_id}, keys={list(enriched_recommendation.keys())}")
 
             enriched_recommendations.append(enriched_recommendation)
 
@@ -202,6 +207,7 @@ def _generate_with_engine(user_id, mode, top, preferences):
         }
 
         logger.info(f"[Recommendations] Returning {len(enriched_recommendations)} recommendations")
+        logger.info(f"[Recommendations] First recommendation sample: {enriched_recommendations[0] if enriched_recommendations else 'N/A'}")
         return Response(response_data, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -402,6 +408,75 @@ def _generate_mock_recommendations(user_id, mode, top, profile_data):
 # ============================================================================
 # PLAN ACTIVATION
 # ============================================================================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_active_plan(request):
+    """
+    GET /api/recommendations/active-plan/
+    Zwraca aktywny plan użytkownika
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({
+                "error": "Invalid token",
+                "code": "invalid_token"
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        logger.info(f"[GetActivePlan] Getting active plan for user_id: {user_id}")
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT 
+                    tp.id, tp.name, tp.description, tp.goal_type, 
+                    tp.difficulty_level, tp.training_days_per_week, tp.equipment_required,
+                    uap.start_date, uap.rating
+                FROM user_active_plans uap
+                JOIN training_plans tp ON uap.plan_id = tp.id
+                WHERE uap.auth_account_id = %s
+            """, [user_id])
+            row = cursor.fetchone()
+
+            if not row:
+                return Response({
+                    "success": True,
+                    "has_active_plan": False,
+                    "plan": None
+                }, status=status.HTTP_200_OK)
+
+            plan_data = {
+                "planId": row[0],
+                "id": row[0],
+                "name": row[1],
+                "description": row[2],
+                "goalType": row[3],
+                "difficultyLevel": row[4],
+                "trainingDaysPerWeek": row[5],
+                "equipmentRequired": row[6],
+                "startDate": row[7].isoformat() if row[7] else None,
+                "rating": row[8]
+            }
+
+            logger.info(f"[GetActivePlan] Found active plan: {plan_data['name']}")
+
+            return Response({
+                "success": True,
+                "has_active_plan": True,
+                "plan": plan_data
+            }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[GetActivePlan] Exception: {str(e)}")
+        return Response({
+            "error": "Server error getting active plan",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def activate_plan(request):
@@ -434,7 +509,7 @@ def activate_plan(request):
 
         with connection.cursor() as cursor:
             # Check if plan exists
-            cursor.execute("SELECT plan_id, name FROM training_plans WHERE plan_id=%s", [plan_id])
+            cursor.execute("SELECT id, name FROM training_plans WHERE id=%s", [plan_id])
             row = cursor.fetchone()
             if not row:
                 return Response({
@@ -601,7 +676,7 @@ def activate_plan_by_path(request, plan_id: int):
         logger.info(f"[ActivatePlanAlias] Activate plan {plan_id} for user_id: {user_id}")
 
         with connection.cursor() as cursor:
-            cursor.execute("SELECT plan_id, name FROM training_plans WHERE plan_id=%s", [plan_id])
+            cursor.execute("SELECT id, name FROM training_plans WHERE id=%s", [plan_id])
             row = cursor.fetchone()
             if not row:
                 return Response({"error": "Plan does not exist", "code": "plan_not_found"},
@@ -644,6 +719,450 @@ def activate_plan_by_path(request, plan_id: int):
         logger.error(traceback.format_exc())
         return Response({
             "error": "Server error during plan activation",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# PLAN EDITING ENDPOINTS
+# ============================================================================
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_plan(request, plan_id: int):
+    """
+    PUT/PATCH /api/recommendations/plans/<plan_id>/
+    Update plan metadata (name, description, etc.)
+    Body: {
+        "name": "New Plan Name",
+        "description": "New description",
+        "goal_type": "masa",
+        "difficulty_level": "sredniozaawansowany",
+        "training_days_per_week": 4,
+        "equipment_required": "silownia"
+    }
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        logger.info(f"[UpdatePlan] User {user_id} updating plan {plan_id}")
+        
+        data = request.data
+        
+        with connection.cursor() as cursor:
+            # Check if plan exists and user has permission
+            cursor.execute("""
+                SELECT id, auth_account_id, name 
+                FROM training_plans 
+                WHERE id = %s
+            """, [plan_id])
+            row = cursor.fetchone()
+            
+            if not row:
+                return Response({"error": "Plan not found", "code": "plan_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+            
+            plan_owner_id = row[1]
+            
+            # Check if user owns the plan or is staff
+            if plan_owner_id and plan_owner_id != user_id:
+                cursor.execute("SELECT is_staff, is_superuser FROM auth_accounts WHERE id=%s", [user_id])
+                user_row = cursor.fetchone()
+                is_admin = user_row and (user_row[0] or user_row[1])
+                
+                if not is_admin:
+                    return Response({"error": "Permission denied", "code": "permission_denied"},
+                                    status=status.HTTP_403_FORBIDDEN)
+            
+            # Build update query dynamically
+            update_fields = []
+            update_values = []
+            
+            if 'name' in data:
+                update_fields.append("name = %s")
+                update_values.append(data['name'])
+            
+            if 'description' in data:
+                update_fields.append("description = %s")
+                update_values.append(data['description'])
+            
+            if 'goal_type' in data:
+                update_fields.append("goal_type = %s")
+                update_values.append(data['goal_type'])
+            
+            if 'difficulty_level' in data:
+                update_fields.append("difficulty_level = %s")
+                update_values.append(data['difficulty_level'])
+            
+            if 'training_days_per_week' in data:
+                update_fields.append("training_days_per_week = %s")
+                update_values.append(data['training_days_per_week'])
+            
+            if 'equipment_required' in data:
+                update_fields.append("equipment_required = %s")
+                update_values.append(data['equipment_required'])
+            
+            if not update_fields:
+                return Response({"error": "No fields to update", "code": "no_fields"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            
+            # Execute update
+            update_values.append(plan_id)
+            query = f"UPDATE training_plans SET {', '.join(update_fields)} WHERE id = %s"
+            cursor.execute(query, update_values)
+            
+            # Log change to plan_history
+            cursor.execute("""
+                INSERT INTO plan_history (plan_id, changed_by, changes)
+                VALUES (%s, %s, %s)
+            """, [plan_id, user_id, str(data)])
+            
+            logger.info(f"[UpdatePlan] Plan {plan_id} updated successfully")
+        
+        return Response({
+            "success": True,
+            "message": "Plan updated successfully",
+            "planId": plan_id
+        }, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        logger.error(f"[UpdatePlan] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error updating plan",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_plan_day(request, plan_id: int, day_id: int):
+    """
+    PUT/PATCH /api/recommendations/plans/<plan_id>/days/<day_id>/
+    Update plan day (name, day_of_week, etc.)
+    Body: {
+        "name": "Upper Body",
+        "day_of_week": "Poniedziałek",
+        "day_order": 1
+    }
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        logger.info(f"[UpdatePlanDay] User {user_id} updating day {day_id} in plan {plan_id}")
+        
+        data = request.data
+        
+        with connection.cursor() as cursor:
+            # Check permissions
+            cursor.execute("""
+                SELECT tp.id, tp.auth_account_id 
+                FROM training_plans tp
+                JOIN plan_days pd ON tp.id = pd.plan_id
+                WHERE tp.id = %s AND pd.id = %s
+            """, [plan_id, day_id])
+            row = cursor.fetchone()
+            
+            if not row:
+                return Response({"error": "Plan day not found", "code": "day_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+            
+            plan_owner_id = row[1]
+            if plan_owner_id and plan_owner_id != user_id:
+                return Response({"error": "Permission denied", "code": "permission_denied"},
+                                status=status.HTTP_403_FORBIDDEN)
+            
+            # Build update query
+            update_fields = []
+            update_values = []
+            
+            if 'name' in data:
+                update_fields.append("name = %s")
+                update_values.append(data['name'])
+            
+            if 'day_of_week' in data:
+                update_fields.append("day_of_week = %s")
+                update_values.append(data['day_of_week'])
+            
+            if 'day_order' in data:
+                update_fields.append("day_order = %s")
+                update_values.append(data['day_order'])
+            
+            if not update_fields:
+                return Response({"error": "No fields to update", "code": "no_fields"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            
+            update_values.append(day_id)
+            query = f"UPDATE plan_days SET {', '.join(update_fields)} WHERE id = %s"
+            cursor.execute(query, update_values)
+            
+            logger.info(f"[UpdatePlanDay] Day {day_id} updated successfully")
+        
+        return Response({
+            "success": True,
+            "message": "Plan day updated successfully",
+            "dayId": day_id
+        }, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        logger.error(f"[UpdatePlanDay] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error updating plan day",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_plan_exercise(request, plan_id: int, exercise_id: int):
+    """
+    PUT/PATCH /api/recommendations/plans/<plan_id>/exercises/<exercise_id>/
+    Update exercise in plan (sets, reps, rest, superset_group)
+    Body: {
+        "target_sets": "3-4",
+        "target_reps": "8-12",
+        "rest_seconds": 90,
+        "superset_group": 1
+    }
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        logger.info(f"[UpdatePlanExercise] User {user_id} updating exercise {exercise_id} in plan {plan_id}")
+        
+        data = request.data
+        
+        with connection.cursor() as cursor:
+            # Check permissions
+            cursor.execute("""
+                SELECT tp.id, tp.auth_account_id 
+                FROM training_plans tp
+                JOIN plan_days pd ON tp.id = pd.plan_id
+                JOIN plan_exercises pe ON pd.id = pe.plan_day_id
+                WHERE tp.id = %s AND pe.id = %s
+            """, [plan_id, exercise_id])
+            row = cursor.fetchone()
+            
+            if not row:
+                return Response({"error": "Exercise not found", "code": "exercise_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+            
+            plan_owner_id = row[1]
+            if plan_owner_id and plan_owner_id != user_id:
+                return Response({"error": "Permission denied", "code": "permission_denied"},
+                                status=status.HTTP_403_FORBIDDEN)
+            
+            # Build update query
+            update_fields = []
+            update_values = []
+            
+            if 'target_sets' in data:
+                update_fields.append("target_sets = %s")
+                update_values.append(data['target_sets'])
+            
+            if 'target_reps' in data:
+                update_fields.append("target_reps = %s")
+                update_values.append(data['target_reps'])
+            
+            if 'rest_seconds' in data:
+                update_fields.append("rest_seconds = %s")
+                update_values.append(data['rest_seconds'])
+            
+            if 'superset_group' in data:
+                update_fields.append("superset_group = %s")
+                update_values.append(data['superset_group'])
+            
+            if not update_fields:
+                return Response({"error": "No fields to update", "code": "no_fields"},
+                                status=status.HTTP_400_BAD_REQUEST)
+            
+            update_values.append(exercise_id)
+            query = f"UPDATE plan_exercises SET {', '.join(update_fields)} WHERE id = %s"
+            cursor.execute(query, update_values)
+            
+            logger.info(f"[UpdatePlanExercise] Exercise {exercise_id} updated successfully")
+        
+        return Response({
+            "success": True,
+            "message": "Exercise updated successfully",
+            "exerciseId": exercise_id
+        }, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        logger.error(f"[UpdatePlanExercise] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error updating exercise",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_plan_exercise(request, plan_id: int, exercise_id: int):
+    """
+    DELETE /api/recommendations/plans/<plan_id>/exercises/<exercise_id>/
+    Delete exercise from plan
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        logger.info(f"[DeletePlanExercise] User {user_id} deleting exercise {exercise_id} from plan {plan_id}")
+        
+        with connection.cursor() as cursor:
+            # Check permissions
+            cursor.execute("""
+                SELECT tp.id, tp.auth_account_id 
+                FROM training_plans tp
+                JOIN plan_days pd ON tp.id = pd.plan_id
+                JOIN plan_exercises pe ON pd.id = pe.plan_day_id
+                WHERE tp.id = %s AND pe.id = %s
+            """, [plan_id, exercise_id])
+            row = cursor.fetchone()
+            
+            if not row:
+                return Response({"error": "Exercise not found", "code": "exercise_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+            
+            plan_owner_id = row[1]
+            if plan_owner_id and plan_owner_id != user_id:
+                return Response({"error": "Permission denied", "code": "permission_denied"},
+                                status=status.HTTP_403_FORBIDDEN)
+            
+            # Delete exercise
+            cursor.execute("DELETE FROM plan_exercises WHERE id = %s", [exercise_id])
+            
+            logger.info(f"[DeletePlanExercise] Exercise {exercise_id} deleted successfully")
+        
+        return Response({
+            "success": True,
+            "message": "Exercise deleted successfully"
+        }, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        logger.error(f"[DeletePlanExercise] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error deleting exercise",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_plan_exercise(request, plan_id: int, day_id: int):
+    """
+    POST /api/recommendations/plans/<plan_id>/days/<day_id>/exercises/
+    Add exercise to plan day
+    Body: {
+        "exercise_id": 123,
+        "target_sets": "3-4",
+        "target_reps": "8-12",
+        "rest_seconds": 90,
+        "superset_group": null
+    }
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        logger.info(f"[AddPlanExercise] User {user_id} adding exercise to day {day_id} in plan {plan_id}")
+        
+        data = request.data
+        exercise_id = data.get('exercise_id')
+        
+        if not exercise_id:
+            return Response({"error": "exercise_id is required", "code": "missing_exercise_id"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        with connection.cursor() as cursor:
+            # Check permissions
+            cursor.execute("""
+                SELECT tp.id, tp.auth_account_id 
+                FROM training_plans tp
+                JOIN plan_days pd ON tp.id = pd.plan_id
+                WHERE tp.id = %s AND pd.id = %s
+            """, [plan_id, day_id])
+            row = cursor.fetchone()
+            
+            if not row:
+                return Response({"error": "Plan day not found", "code": "day_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+            
+            plan_owner_id = row[1]
+            if plan_owner_id and plan_owner_id != user_id:
+                return Response({"error": "Permission denied", "code": "permission_denied"},
+                                status=status.HTTP_403_FORBIDDEN)
+            
+            # Check if exercise exists
+            cursor.execute("SELECT id FROM exercises WHERE id = %s", [exercise_id])
+            if not cursor.fetchone():
+                return Response({"error": "Exercise not found", "code": "exercise_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+            
+            # Insert exercise
+            cursor.execute("""
+                INSERT INTO plan_exercises (plan_day_id, exercise_id, target_sets, target_reps, rest_seconds, superset_group)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, [
+                day_id,
+                exercise_id,
+                data.get('target_sets', '3'),
+                data.get('target_reps', '10-12'),
+                data.get('rest_seconds', 60),
+                data.get('superset_group')
+            ])
+            new_exercise_id = cursor.fetchone()[0]
+            
+            logger.info(f"[AddPlanExercise] Exercise added successfully with id {new_exercise_id}")
+        
+        return Response({
+            "success": True,
+            "message": "Exercise added successfully",
+            "exerciseId": new_exercise_id
+        }, status=status.HTTP_201_CREATED)
+    
+    except Exception as e:
+        logger.error(f"[AddPlanExercise] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error adding exercise",
             "message": str(e),
             "code": "server_error"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

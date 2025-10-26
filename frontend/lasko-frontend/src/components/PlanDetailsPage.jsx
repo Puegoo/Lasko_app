@@ -19,9 +19,16 @@ const GradientGridBg = () => (
   </div>
 );
 
-const PrimaryButton = ({ onClick, to, children, className = '' }) => {
+const Kicker = ({ children }) => (
+  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-bold tracking-wide text-emerald-300">
+    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 motion-reduce:animate-none" />
+    {children}
+  </span>
+);
+
+const PrimaryButton = ({ onClick, to, children, className = '', disabled = false }) => {
   const Comp = to ? Link : 'button';
-  const props = to ? { to } : { onClick };
+  const props = to ? { to } : { onClick, disabled };
 
   return (
     <Comp
@@ -30,6 +37,7 @@ const PrimaryButton = ({ onClick, to, children, className = '' }) => {
         'group relative inline-flex items-center justify-center rounded-full font-bold text-white transition-transform',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 active:scale-[0.98]',
         'px-7 py-3 text-sm',
+        disabled ? 'opacity-50 cursor-not-allowed' : '',
         className,
       ].join(' ')}
     >
@@ -48,8 +56,8 @@ const SecondaryButton = ({ onClick, to, children, className = '' }) => {
     <Comp
       {...props}
       className={[
-        'group relative inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 font-semibold text-white backdrop-blur-sm transition-all hover:border-emerald-400/50 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 active:scale-[0.98]',
-        'px-7 py-3 text-sm',
+        'inline-flex items-center justify-center rounded-full border-2 border-emerald-400/60 px-7 py-3 text-sm font-bold text-emerald-300',
+        'hover:bg-emerald-400/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60',
         className,
       ].join(' ')}
     >
@@ -57,6 +65,19 @@ const SecondaryButton = ({ onClick, to, children, className = '' }) => {
     </Comp>
   );
 };
+
+const GhostButton = ({ onClick, children, className = '' }) => (
+  <button
+    onClick={onClick}
+    className={[
+      'inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-2.5 text-sm font-medium text-gray-300',
+      'hover:bg-white/5 hover:border-white/30 hover:text-white transition-colors',
+      className,
+    ].join(' ')}
+  >
+    {children}
+  </button>
+);
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center py-12">
@@ -131,29 +152,66 @@ export default function PlanDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activating, setActivating] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview'); // overview | schedule | stats
+  const [activePlanId, setActivePlanId] = useState(null); // ID aktywnego planu użytkownika
+  const [schedule, setSchedule] = useState([]); // Dni treningowe w harmonogramie
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const recApi = useMemo(() => new RecommendationService(), []);
+
+  // Dni tygodnia
+  const weekDays = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'];
+
+  // Generuj inteligentny harmonogram
+  const generateSchedule = (trainingDays) => {
+    const defaults = {
+      1: ['Środa'],
+      2: ['Poniedziałek', 'Czwartek'],
+      3: ['Poniedziałek', 'Środa', 'Piątek'],
+      4: ['Poniedziałek', 'Wtorek', 'Czwartek', 'Piątek'],
+      5: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek'],
+      6: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'],
+      7: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+    };
+    return defaults[trainingDays] || [];
+  };
+
+  // Pobierz aktywny plan użytkownika
+  useEffect(() => {
+    const fetchActivePlan = async () => {
+      try {
+        const response = await recApi.getActivePlan();
+        if (response?.has_active_plan && response?.plan) {
+          const activePlan = response.plan;
+          const activeId = activePlan.plan_id || activePlan.planId || activePlan.id;
+          setActivePlanId(activeId);
+          console.log('[PlanDetailsPage] Active plan ID:', activeId);
+        }
+      } catch (err) {
+        console.error('[PlanDetailsPage] Error fetching active plan:', err);
+        // Nie pokazujemy błędu użytkownikowi - to tylko informacja dodatkowa
+      }
+    };
+
+    fetchActivePlan();
+  }, [recApi]);
+
+  // Wygeneruj harmonogram automatycznie gdy plan jest załadowany
+  useEffect(() => {
+    if (plan && plan.trainingDaysPerWeek && !schedule.length) {
+      setSchedule(generateSchedule(plan.trainingDaysPerWeek));
+    }
+  }, [plan, schedule.length]);
 
   useEffect(() => {
     const fetchPlanDetails = async () => {
       try {
         setLoading(true);
         setError(null);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('[PlanDetailsPage] START - Fetching plan:', planId);
+        console.log('[PlanDetailsPage] Fetching plan:', planId);
         const data = await recApi.getPlanDetailed(planId);
-        
-        console.log('[PlanDetailsPage] Raw API Response:', JSON.stringify(data, null, 2));
-        console.log('[PlanDetailsPage] data.plan exists?', !!data.plan);
-        console.log('[PlanDetailsPage] data.plan:', data.plan);
         
         // Sprawdź czy dane są w data.plan czy bezpośrednio w data
         const planData = data.plan || data;
-        
-        console.log('[PlanDetailsPage] Using planData:', planData);
-        console.log('[PlanDetailsPage] planData.id:', planData.id || planData.plan_id);
-        console.log('[PlanDetailsPage] planData.name:', planData.name);
-        console.log('[PlanDetailsPage] planData.days:', planData.days);
-        console.log('[PlanDetailsPage] planData.days is Array?', Array.isArray(planData.days));
         
         // Normalizuj dane planu
         const normalizedPlan = {
@@ -166,10 +224,6 @@ export default function PlanDetailsPage() {
           equipmentRequired: planData.equipment_required || planData.equipmentRequired,
           days: planData.days || planData.workouts || [],
         };
-        
-        console.log('[PlanDetailsPage] Normalized plan:', normalizedPlan);
-        console.log('[PlanDetailsPage] normalizedPlan.days length:', normalizedPlan.days?.length);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
         setPlan(normalizedPlan);
       } catch (err) {
@@ -192,7 +246,8 @@ export default function PlanDetailsPage() {
       setActivating(true);
       console.log('[PlanDetailsPage] Activating plan:', plan.id);
       await recApi.activatePlan(plan.id);
-      alert('Plan został aktywowany! 🎉');
+      setActivePlanId(plan.id); // Zaktualizuj ID aktywnego planu
+      alert('Plan został aktywowany! 🎉 Przejdź do Dashboard aby rozpocząć.');
       navigate('/dashboard');
     } catch (err) {
       console.error('[PlanDetailsPage] Error activating plan:', err);
@@ -200,6 +255,44 @@ export default function PlanDetailsPage() {
     } finally {
       setActivating(false);
     }
+  };
+
+  // Sprawdź czy wyświetlany plan jest aktywny
+  const isPlanActive = activePlanId && plan && (
+    activePlanId === plan.id || 
+    activePlanId === parseInt(planId) || 
+    String(activePlanId) === String(plan.id)
+  );
+
+  const handleCopyAndEdit = () => {
+    // Przekieruj do buildera z danymi planu
+    navigate('/plan-builder', {
+      state: { basePlan: plan }
+    });
+  };
+
+  const handleReportProblem = () => {
+    alert('Funkcja zgłaszania problemów będzie dostępna wkrótce');
+    // TODO: Dodać modal z formularzem feedback
+  };
+
+  const saveSchedule = async () => {
+    try {
+      const { post } = await import('../services/api');
+      const response = await post('/api/auth/schedule/save/', {
+        schedule,
+        notifications_enabled: notificationsEnabled
+      });
+      
+      if (response.success) {
+        alert('✅ Harmonogram został zapisany!');
+        return true;
+      }
+    } catch (error) {
+      console.error('[PlanDetailsPage] Failed to save schedule:', error);
+      alert('❌ Nie udało się zapisać harmonogramu');
+    }
+    return false;
   };
 
   // Mapowania etykiet
@@ -212,19 +305,17 @@ export default function PlanDetailsPage() {
   };
 
   const equipmentLabels = {
-    'siłownia': 'Pełna siłownia',
+    siłownia: 'Pełna siłownia',
     silownia: 'Pełna siłownia',
     dom_podstawowy: 'Dom (podstawowy sprzęt)',
-    dom_hantle: 'Dom (hantle + ławka)',
-    dom_masa: 'Dom (masa własna)',
+    dom_zaawansowany: 'Dom (zaawansowany sprzęt)',
+    masa_ciala: 'Masa ciała',
     minimalne: 'Minimalne wyposażenie',
   };
 
   const levelLabels = {
     poczatkujacy: 'Początkujący',
-    'początkujący': 'Początkujący',
     sredniozaawansowany: 'Średniozaawansowany',
-    'średniozaawansowany': 'Średniozaawansowany',
     zaawansowany: 'Zaawansowany',
   };
 
@@ -265,6 +356,10 @@ export default function PlanDetailsPage() {
     );
   }
 
+  // Oblicz statystyki
+  const totalExercises = plan.days.reduce((sum, day) => sum + (day.exercises?.length || 0), 0);
+  const avgExercisesPerDay = plan.days.length > 0 ? Math.round(totalExercises / plan.days.length) : 0;
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
       <GradientGridBg />
@@ -282,124 +377,440 @@ export default function PlanDetailsPage() {
             </svg>
             Wróć
           </button>
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-4">{plan.name}</h1>
-          {plan.description && (
-            <p className="text-lg text-gray-400 max-w-3xl">{plan.description}</p>
-          )}
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="flex-1">
+              <Kicker>Szczegóły planu</Kicker>
+              <h1 className="mt-4 text-4xl md:text-5xl font-black text-white mb-4">{plan.name}</h1>
+              {plan.description && (
+                <p className="text-lg text-gray-300 max-w-3xl">{plan.description}</p>
+              )}
+            </div>
+            
+            {/* Action Buttons (sticky na większych ekranach) */}
+            <div className="flex flex-col gap-3 min-w-[200px]">
+              {isPlanActive ? (
+                <div className="w-full px-6 py-3 rounded-full bg-emerald-500/20 border-2 border-emerald-400/60 text-center">
+                  <span className="inline-flex items-center gap-2 text-sm font-bold text-emerald-300">
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                    </span>
+                    Plan aktywny
+                  </span>
+                </div>
+              ) : (
+                <PrimaryButton 
+                  onClick={handleActivatePlan} 
+                  disabled={activating}
+                  className="w-full"
+                >
+                  {activating ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Aktywowanie...
+                    </span>
+                  ) : (
+                    '✨ Aktywuj plan'
+                  )}
+                </PrimaryButton>
+              )}
+              <SecondaryButton onClick={handleCopyAndEdit} className="w-full">
+                📋 Skopiuj i edytuj
+              </SecondaryButton>
+              <GhostButton onClick={handleReportProblem} className="w-full">
+                ⚠️ Zgłoś problem
+              </GhostButton>
+            </div>
+          </div>
         </div>
 
         {/* Metadata Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-            <div className="flex items-center gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-6">
+            <div className="flex flex-col gap-2">
               <div className="text-3xl">🎯</div>
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Cel</p>
-                <p className="text-white font-semibold">{goalLabels[plan.goalType] || plan.goalType}</p>
+                <p className="text-xs text-emerald-400 uppercase tracking-wide font-bold">Cel</p>
+                <p className="text-white font-bold mt-1">{goalLabels[plan.goalType] || plan.goalType}</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-            <div className="flex items-center gap-3">
+          <div className="rounded-2xl border border-blue-400/20 bg-blue-400/5 p-6">
+            <div className="flex flex-col gap-2">
               <div className="text-3xl">📊</div>
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Poziom</p>
-                <p className="text-white font-semibold">{levelLabels[plan.difficultyLevel] || plan.difficultyLevel}</p>
+                <p className="text-xs text-blue-400 uppercase tracking-wide font-bold">Poziom</p>
+                <p className="text-white font-bold mt-1">{levelLabels[plan.difficultyLevel] || plan.difficultyLevel}</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-            <div className="flex items-center gap-3">
+          <div className="rounded-2xl border border-purple-400/20 bg-purple-400/5 p-6">
+            <div className="flex flex-col gap-2">
               <div className="text-3xl">📅</div>
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Dni treningowe</p>
-                <p className="text-white font-semibold">{plan.trainingDaysPerWeek} dni/tydzień</p>
+                <p className="text-xs text-purple-400 uppercase tracking-wide font-bold">Częstotliwość</p>
+                <p className="text-white font-bold mt-1">{plan.trainingDaysPerWeek} dni/tydzień</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-            <div className="flex items-center gap-3">
+          <div className="rounded-2xl border border-orange-400/20 bg-orange-400/5 p-6">
+            <div className="flex flex-col gap-2">
               <div className="text-3xl">🏋️</div>
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Wyposażenie</p>
-                <p className="text-white font-semibold">{equipmentLabels[plan.equipmentRequired] || plan.equipmentRequired}</p>
+                <p className="text-xs text-orange-400 uppercase tracking-wide font-bold">Wyposażenie</p>
+                <p className="text-white font-bold mt-1 text-sm">{equipmentLabels[plan.equipmentRequired] || plan.equipmentRequired}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 mb-12">
-          <PrimaryButton onClick={handleActivatePlan} className={activating ? 'opacity-50 cursor-not-allowed' : ''}>
-            {activating ? 'Aktywowanie...' : '✨ Aktywuj plan'}
-          </PrimaryButton>
-          <SecondaryButton to="/dashboard">
-            Powrót do Dashboard
-          </SecondaryButton>
+        {/* Tabs */}
+        <div className="mb-8 flex gap-2 border-b border-white/10">
+          {[
+            { id: 'overview', label: 'Przegląd', icon: '📝' },
+            { id: 'schedule', label: 'Harmonogram', icon: '📅' },
+            { id: 'stats', label: 'Statystyki', icon: '📊' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={[
+                'flex items-center gap-2 px-6 py-3 text-sm font-semibold transition-colors',
+                activeTab === tab.id
+                  ? 'border-b-2 border-emerald-400 text-emerald-300'
+                  : 'text-gray-400 hover:text-white',
+              ].join(' ')}
+            >
+              <span>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Training Days */}
-        <div>
-          <h2 className="text-3xl font-bold text-white mb-6">Szczegółowy plan treningowy</h2>
-          
-          {Array.isArray(plan.days) && plan.days.length > 0 ? (
-            <div className="grid gap-6">
-              {plan.days.map((day, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 hover:border-emerald-400/40 transition-all"
-                >
-                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-400 text-sm font-bold">
-                      {idx + 1}
-                    </span>
-                    {day.title || day.name || day.dayName || `Dzień ${idx + 1}`}
-                  </h3>
-                  
-                  {Array.isArray(day.exercises) && day.exercises.length > 0 ? (
-                    <div className="space-y-3">
-                      {day.exercises.map((ex, exIdx) => (
-                        <div
-                          key={exIdx}
-                          className="flex items-start gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-colors"
-                        >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-400 text-sm font-mono flex-shrink-0">
-                            {exIdx + 1}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-white mb-1">
-                              {ex.name || ex.exercise_name || 'Ćwiczenie'}
-                            </h4>
-                            <div className="flex flex-wrap gap-3 text-sm text-gray-400">
-                              {ex.sets && <span>Serie: <span className="text-emerald-400 font-semibold">{ex.sets}</span></span>}
-                              {ex.reps && <span>Powtórzenia: <span className="text-emerald-400 font-semibold">{ex.reps}</span></span>}
-                              {ex.rest_seconds && <span>Odpoczynek: <span className="text-emerald-400 font-semibold">{ex.rest_seconds}s</span></span>}
-                              {ex.duration_seconds && <span>Czas: <span className="text-emerald-400 font-semibold">{ex.duration_seconds}s</span></span>}
-                            </div>
-                            {ex.notes && (
-                              <p className="mt-2 text-sm text-gray-500 italic">{ex.notes}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-400 text-sm">Brak ćwiczeń dla tego dnia</p>
-                  )}
+        {/* Tab Content */}
+        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+          {activeTab === 'overview' && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-3xl font-bold text-white mb-6">Plan treningowy</h2>
+                
+                {/* Statystyki planu */}
+                <div className="grid gap-4 sm:grid-cols-3 mb-8">
+                  <div className="rounded-xl bg-emerald-400/10 border border-emerald-400/20 p-4">
+                    <p className="text-sm text-emerald-300">Liczba dni</p>
+                    <p className="mt-1 text-3xl font-bold text-white">{plan.days?.length || 0}</p>
+                  </div>
+                  <div className="rounded-xl bg-blue-400/10 border border-blue-400/20 p-4">
+                    <p className="text-sm text-blue-300">Łączna liczba ćwiczeń</p>
+                    <p className="mt-1 text-3xl font-bold text-white">{totalExercises}</p>
+                  </div>
+                  <div className="rounded-xl bg-purple-400/10 border border-purple-400/20 p-4">
+                    <p className="text-sm text-purple-300">Średnio ćwiczeń/dzień</p>
+                    <p className="mt-1 text-3xl font-bold text-white">{avgExercisesPerDay}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
-              <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-800">
-                <svg width="32" height="32" fill="none" stroke="currentColor" className="text-gray-500">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+
+                {/* Dni treningowe */}
+                {Array.isArray(plan.days) && plan.days.length > 0 ? (
+                  <div className="space-y-6">
+                    {plan.days.map((day, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 hover:border-emerald-400/40 transition-all"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-400 text-sm font-bold">
+                              {idx + 1}
+                            </span>
+                            {day.title || day.name || `Dzień ${idx + 1}`}
+                          </h3>
+                          {day.dayOfWeek && (
+                            <span className="text-sm text-gray-400">{day.dayOfWeek}</span>
+                          )}
+                        </div>
+                        
+                        {Array.isArray(day.exercises) && day.exercises.length > 0 ? (
+                          <div className="space-y-3">
+                            {day.exercises.map((ex, exIdx) => (
+                              <div
+                                key={exIdx}
+                                className="flex items-start gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-colors group"
+                              >
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-400 text-sm font-mono flex-shrink-0">
+                                  {exIdx + 1}
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-white mb-2 group-hover:text-emerald-300 transition-colors">
+                                    {ex.name || ex.exercise_name || 'Ćwiczenie'}
+                                  </h4>
+                                  
+                                  {/* Szczegóły ćwiczenia */}
+                                  <div className="flex flex-wrap gap-4 text-sm">
+                                    {ex.sets && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-400">Serie:</span>
+                                        <span className="text-emerald-400 font-bold">{ex.sets}</span>
+                                      </div>
+                                    )}
+                                    {ex.reps && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-400">Powtórzenia:</span>
+                                        <span className="text-emerald-400 font-bold">{ex.reps}</span>
+                                      </div>
+                                    )}
+                                    {ex.rest_seconds && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-400">Odpoczynek:</span>
+                                        <span className="text-blue-400 font-bold">{ex.rest_seconds}s</span>
+                                      </div>
+                                    )}
+                                    {ex.superset_group && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-purple-400 text-xs font-bold uppercase">
+                                          Superset {ex.superset_group}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Grupa mięśniowa */}
+                                  {ex.muscle_group && (
+                                    <div className="mt-2">
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-white/5 border border-white/10 px-2 py-1 text-xs text-gray-400">
+                                        💪 {ex.muscle_group}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Notatki */}
+                                  {ex.notes && (
+                                    <p className="mt-2 text-sm text-gray-500 italic border-l-2 border-white/10 pl-3">
+                                      {ex.notes}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm">Brak ćwiczeń dla tego dnia</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
+                    <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-800">
+                      <svg width="32" height="32" fill="none" stroke="currentColor" className="text-gray-500">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-400">Brak szczegółowego planu treningowego</p>
+                  </div>
+                )}
               </div>
-              <p className="text-gray-400">Brak szczegółowego planu treningowego dla tego planu</p>
+            </div>
+          )}
+
+          {activeTab === 'schedule' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-3xl font-bold text-white mb-3">Harmonogram tygodniowy</h2>
+                <p className="text-gray-300">
+                  Wybierz {plan.trainingDaysPerWeek} {plan.trainingDaysPerWeek === 1 ? 'dzień' : plan.trainingDaysPerWeek < 5 ? 'dni' : 'dni'} treningowych w tygodniu. Kliknij na dzień aby dodać lub usunąć go z harmonogramu.
+                </p>
+              </div>
+              
+              <div className="grid gap-3">
+                {weekDays.map((day, idx) => {
+                  const isTrainingDay = schedule.includes(day);
+                  return (
+                    <div
+                      key={day}
+                      className={[
+                        'flex items-center justify-between rounded-xl border p-4 transition-all cursor-pointer',
+                        isTrainingDay
+                          ? 'border-emerald-400/40 bg-emerald-400/10 hover:bg-emerald-400/15'
+                          : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
+                      ].join(' ')}
+                      onClick={() => {
+                        if (isTrainingDay) {
+                          setSchedule(schedule.filter(d => d !== day));
+                        } else {
+                          if (schedule.length < plan.trainingDaysPerWeek) {
+                            setSchedule([...schedule, day]);
+                          } else {
+                            alert(`Możesz wybrać maksymalnie ${plan.trainingDaysPerWeek} ${plan.trainingDaysPerWeek === 1 ? 'dzień' : 'dni'}.`);
+                          }
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={[
+                          'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors',
+                          isTrainingDay ? 'bg-emerald-400 text-black' : 'bg-white/5 text-gray-500'
+                        ].join(' ')}>
+                          {day.charAt(0)}
+                        </div>
+                        <span className="font-semibold text-white">{day}</span>
+                      </div>
+                      {isTrainingDay ? (
+                        <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-medium text-emerald-300">
+                          🏋️ Trening {schedule.indexOf(day) + 1}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-500">
+                          {schedule.length >= plan.trainingDaysPerWeek 
+                            ? `Max ${plan.trainingDaysPerWeek} ${plan.trainingDaysPerWeek === 1 ? 'dzień' : 'dni'}` 
+                            : 'Kliknij aby dodać'}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Podsumowanie wybranych dni */}
+              <div className="rounded-2xl bg-emerald-400/10 border border-emerald-400/20 p-6">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">📅</span>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-white mb-2">Wybrane dni treningowe</h4>
+                    {schedule.length > 0 ? (
+                      <p className="text-sm text-gray-300">
+                        <span className="font-medium text-emerald-300">{schedule.length}/{plan.trainingDaysPerWeek}</span> {schedule.length === 1 ? 'dzień' : 'dni'}: {schedule.join(', ')}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-400">Nie wybrano jeszcze żadnych dni</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Powiadomienia */}
+              <div className="rounded-2xl bg-blue-400/10 border border-blue-400/20 p-6">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🔔</span>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-white mb-3">Powiadomienia</h4>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={notificationsEnabled}
+                        onChange={(e) => setNotificationsEnabled(e.target.checked)}
+                        className="w-5 h-5 rounded border-2 border-blue-400/40 bg-white/5 checked:bg-blue-400 checked:border-blue-400 transition-colors cursor-pointer"
+                      />
+                      <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                        Przypomnij mi o treningach
+                      </span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2 ml-8">
+                      Otrzymasz powiadomienie w dni treningowe
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Przycisk zapisz */}
+              <div className="flex gap-3">
+                <PrimaryButton onClick={saveSchedule} className="flex-1">
+                  💾 Zapisz harmonogram
+                </PrimaryButton>
+                <SecondaryButton onClick={() => setSchedule(generateSchedule(plan.trainingDaysPerWeek))}>
+                  🔄 Resetuj
+                </SecondaryButton>
+              </div>
+
+              <div className="rounded-2xl bg-purple-400/10 border border-purple-400/20 p-6">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">💡</span>
+                  <div>
+                    <h4 className="font-semibold text-white mb-2">Wskazówka</h4>
+                    <p className="text-sm text-gray-300">
+                      Staraj się rozkładać dni treningowe równomiernie w tygodniu, zachowując przynajmniej jeden dzień przerwy między treningami. 
+                      Np. dla 3 dni: Poniedziałek, Środa, Piątek.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'stats' && (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-white mb-6">Statystyki planu</h2>
+              
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+                  <h3 className="text-lg font-bold text-white mb-4">Struktura planu</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.02]">
+                      <span className="text-gray-400">Łączna liczba dni</span>
+                      <span className="text-white font-bold">{plan.days?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.02]">
+                      <span className="text-gray-400">Łączna liczba ćwiczeń</span>
+                      <span className="text-white font-bold">{totalExercises}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.02]">
+                      <span className="text-gray-400">Średnio ćwiczeń/dzień</span>
+                      <span className="text-white font-bold">{avgExercisesPerDay}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.02]">
+                      <span className="text-gray-400">Dni treningowe/tydzień</span>
+                      <span className="text-white font-bold">{plan.trainingDaysPerWeek}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+                  <h3 className="text-lg font-bold text-white mb-4">Wymagania</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Poziom trudności</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full"
+                            style={{ 
+                              width: plan.difficultyLevel === 'poczatkujacy' ? '33%' : 
+                                     plan.difficultyLevel === 'sredniozaawansowany' ? '66%' : '100%'
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm text-white font-semibold">
+                          {levelLabels[plan.difficultyLevel] || plan.difficultyLevel}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Wymagane wyposażenie</p>
+                      <p className="text-white font-semibold">{equipmentLabels[plan.equipmentRequired] || plan.equipmentRequired}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Cel treningowy</p>
+                      <p className="text-white font-semibold">{goalLabels[plan.goalType] || plan.goalType}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dodatkowe informacje */}
+              <div className="rounded-2xl bg-gradient-to-r from-emerald-400/10 to-teal-400/10 border border-emerald-400/20 p-6">
+                <h3 className="text-lg font-bold text-white mb-3">💡 Dla kogo ten plan?</h3>
+                <p className="text-gray-300">
+                  Ten plan jest idealny dla osób na poziomie <strong className="text-white">{levelLabels[plan.difficultyLevel] || plan.difficultyLevel}</strong>, 
+                  których celem jest <strong className="text-white">{goalLabels[plan.goalType] || plan.goalType}</strong>.
+                  {plan.trainingDaysPerWeek <= 3 && ' Niska częstotliwość treningów sprawia, że plan jest łatwy do zintegrowania z napiętym harmonogramem.'}
+                  {plan.trainingDaysPerWeek >= 5 && ' Wysoka częstotliwość treningów zapewnia optymalne rezultaty dla osób z doświadczeniem.'}
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -407,4 +818,3 @@ export default function PlanDetailsPage() {
     </div>
   );
 }
-
