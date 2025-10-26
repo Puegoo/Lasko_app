@@ -129,6 +129,9 @@ export default function WorkoutPage() {
   const [showTimer, setShowTimer] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [sessionStartTime] = useState(new Date());
+  const [allPlanDays, setAllPlanDays] = useState([]); // Wszystkie dni z planu
+  const [isRestDay, setIsRestDay] = useState(false); // Czy dziś jest dzień odpoczynku
+  const [showDaySelector, setShowDaySelector] = useState(false); // Pokazuj selektor dni
 
   useEffect(() => {
     fetchTodayWorkout();
@@ -141,6 +144,8 @@ export default function WorkoutPage() {
       
       if (response.workout) {
         setWorkout(response.workout);
+        setIsRestDay(false);
+        setShowDaySelector(false);
         // Inicjalizuj puste serie dla każdego ćwiczenia
         const initialSets = {};
         response.workout.exercises?.forEach(ex => {
@@ -152,6 +157,10 @@ export default function WorkoutPage() {
           }));
         });
         setLoggedSets(initialSets);
+      } else {
+        // Brak treningu na dziś - pobierz wszystkie dni z planu
+        setIsRestDay(true);
+        await fetchAllPlanDays();
       }
     } catch (error) {
       console.error('[WorkoutPage] Error fetching workout:', error);
@@ -159,6 +168,64 @@ export default function WorkoutPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchAllPlanDays = async () => {
+    try {
+      // Pobierz aktywny plan użytkownika
+      const activePlanResponse = await apiService.request('/api/recommendations/active-plan/');
+      
+      if (activePlanResponse.has_active_plan && activePlanResponse.plan) {
+        const planId = activePlanResponse.plan.planId || activePlanResponse.plan.id;
+        
+        // Pobierz szczegóły planu
+        const { RecommendationService } = await import('../services/recommendationService');
+        const recApi = new RecommendationService();
+        const planDetails = await recApi.getPlanDetailed(planId);
+        
+        const plan = planDetails.plan || planDetails;
+        if (plan.days && Array.isArray(plan.days)) {
+          setAllPlanDays(plan.days);
+        }
+      }
+    } catch (error) {
+      console.error('[WorkoutPage] Error fetching plan days:', error);
+    }
+  };
+
+  const selectWorkoutDay = async (dayIndex) => {
+    const selectedDay = allPlanDays[dayIndex];
+    if (!selectedDay) return;
+
+    // Stwórz workout z wybranego dnia
+    const activePlanResponse = await apiService.request('/api/recommendations/active-plan/');
+    const planId = activePlanResponse.plan?.planId || activePlanResponse.plan?.id;
+    const planName = activePlanResponse.plan?.name || 'Plan treningowy';
+
+    setWorkout({
+      plan_id: planId,
+      plan_name: planName,
+      day_id: selectedDay.id,
+      name: selectedDay.title || selectedDay.name || `Dzień ${dayIndex + 1}`,
+      day_order: selectedDay.day_order || dayIndex + 1,
+      weekday: 'Trening zastępczy',
+      exercises: selectedDay.exercises || []
+    });
+
+    // Inicjalizuj puste serie
+    const initialSets = {};
+    (selectedDay.exercises || []).forEach(ex => {
+      const targetSets = parseInt(ex.target_sets || ex.targetSets || ex.sets || 3);
+      initialSets[ex.id] = Array(targetSets).fill(null).map(() => ({
+        weight: '',
+        reps: '',
+        completed: false
+      }));
+    });
+    setLoggedSets(initialSets);
+    setIsRestDay(false);
+    setShowDaySelector(false);
+    setCurrentExerciseIndex(0);
   };
 
   const startSession = async () => {
@@ -268,6 +335,74 @@ export default function WorkoutPage() {
     );
   }
 
+  // Ekran wyboru treningu zastępczego (gdy dziś jest dzień odpoczynku)
+  if (isRestDay || (!workout && allPlanDays.length > 0)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
+        <GradientGridBg />
+        <div className="max-w-4xl mx-auto px-6 py-16">
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-6">📅</div>
+            <h1 className="text-4xl font-black text-white mb-4">Trening zastępczy</h1>
+            <p className="text-gray-400 mb-8">
+              Dzisiaj to dzień odpoczynku, ale możesz wybrać trening zastępczy z Twojego planu.
+            </p>
+          </div>
+
+          {/* Lista dni do wyboru */}
+          <div className="grid gap-4 mb-8">
+            {allPlanDays.map((day, index) => (
+              <button
+                key={day.id || index}
+                onClick={() => selectWorkoutDay(index)}
+                className="relative p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-400/50 hover:bg-white/10 transition-all duration-300 text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-400 font-bold">
+                        {day.day_order || index + 1}
+                      </div>
+                      <h3 className="text-xl font-bold text-white">
+                        {day.title || day.name || `Dzień ${index + 1}`}
+                      </h3>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-3">
+                      {day.exercises?.length || 0} ćwiczeń • 
+                      {day.exercises?.reduce((sum, ex) => sum + parseInt(ex.target_sets || ex.sets || 3), 0) || 0} serii
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {(day.exercises || []).slice(0, 3).map((ex, i) => (
+                        <span key={i} className="px-3 py-1 rounded-full bg-white/5 text-xs text-gray-300">
+                          {ex.name}
+                        </span>
+                      ))}
+                      {day.exercises?.length > 3 && (
+                        <span className="px-3 py-1 rounded-full bg-white/5 text-xs text-gray-400">
+                          +{day.exercises.length - 3} więcej
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ml-4 flex items-center text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-2xl">→</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex justify-center">
+            <SecondaryButton onClick={() => navigate('/dashboard')}>
+              ← Wróć do Dashboard
+            </SecondaryButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Ekran gdy nie ma aktywnego planu
   if (!workout || !workout.exercises || workout.exercises.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
@@ -275,9 +410,9 @@ export default function WorkoutPage() {
         <div className="max-w-4xl mx-auto px-6 py-16">
           <div className="text-center">
             <div className="text-6xl mb-6">😴</div>
-            <h1 className="text-4xl font-black text-white mb-4">Brak treningu na dziś</h1>
+            <h1 className="text-4xl font-black text-white mb-4">Brak aktywnego planu</h1>
             <p className="text-gray-400 mb-8">
-              Dzisiaj to dzień odpoczynku lub nie masz aktywnego planu treningowego.
+              Aby rozpocząć trening, najpierw aktywuj plan treningowy.
             </p>
             <SecondaryButton onClick={() => navigate('/dashboard')}>
               ← Wróć do Dashboard
@@ -312,6 +447,11 @@ export default function WorkoutPage() {
           
           <div className="flex items-center justify-between mb-4">
             <div>
+              {workout.weekday === 'Trening zastępczy' && (
+                <div className="inline-block px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 text-xs font-medium mb-2">
+                  📅 Trening zastępczy
+                </div>
+              )}
               <h1 className="text-4xl font-black text-white mb-2">
                 {workout.name || 'Dzisiejszy trening'}
               </h1>
@@ -384,7 +524,7 @@ export default function WorkoutPage() {
                       value={set.weight}
                       onChange={(e) => logSet(currentExercise.id, index, 'weight', e.target.value)}
                       disabled={set.completed}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-400/50 disabled:opacity-50"
+                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-400/50 disabled:opacity-50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                       placeholder="0"
                     />
                   </div>
@@ -395,7 +535,7 @@ export default function WorkoutPage() {
                       value={set.reps}
                       onChange={(e) => logSet(currentExercise.id, index, 'reps', e.target.value)}
                       disabled={set.completed}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-400/50 disabled:opacity-50"
+                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-400/50 disabled:opacity-50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                       placeholder="0"
                     />
                   </div>
