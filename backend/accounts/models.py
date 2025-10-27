@@ -112,6 +112,8 @@ class UserProfile(models.Model):
     # Dane podstawowe
     first_name = models.CharField(max_length=50, blank=True, null=True)
     date_of_birth = models.DateField(blank=True, null=True)
+    profile_picture = models.CharField(max_length=500, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
     
     # Parametry treningowe - WSZYSTKIE MOGĄ BYĆ NULL
     goal = models.CharField(

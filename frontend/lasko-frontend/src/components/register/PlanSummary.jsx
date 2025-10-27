@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { RecommendationService } from '../../services/recommendationService';
 import apiService from '../../services/api'; // katalog ćwiczeń + aktywacja
+import IconKit from '../ui/IconKit';
 
 // ---------- UI helpers ----------
 const GradientGridBg = () => (
@@ -277,6 +279,7 @@ export default function PlanSummary() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, getToken, debugAuth } = useAuth();
+  const { success, error } = useNotification();
 
   // Pobierz username z różnych źródeł (fallback)
   const getUserFromStorage = () => {
@@ -682,19 +685,19 @@ export default function PlanSummary() {
 
         {/* Stats Grid */}
         <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <StatCard label="Cel" value={goalLabels[goal] || goal} icon="🎯" />
-          <StatCard label="Poziom" value={levelLabels[level] || level} icon="📊" />
-          <StatCard label="Dni/tydzień" value={trainingDaysPerWeek} icon="📅" />
-          <StatCard label="Czas/sesja" value={`${timePerSession} min`} icon="⏱️" />
-          <StatCard label="Sprzęt" value={equipmentLabels[equipment] || equipment} icon="🏋️" />
+          <StatCard label="Cel" value={goalLabels[goal] || goal} icon={<IconKit.Target size="lg" />} />
+          <StatCard label="Poziom" value={levelLabels[level] || level} icon={<IconKit.ChartBar size="lg" />} />
+          <StatCard label="Dni/tydzień" value={trainingDaysPerWeek} icon={<IconKit.Calendar size="lg" />} />
+          <StatCard label="Czas/sesja" value={`${timePerSession} min`} icon={<IconKit.Clock size="lg" />} />
+          <StatCard label="Sprzęt" value={equipmentLabels[equipment] || equipment} icon={<IconKit.Dumbbell size="lg" />} />
         </div>
 
         {/* Tabs */}
         <div className="mb-8 flex gap-2 border-b border-white/10">
           {[
-            { id: 'overview', label: 'Przegląd', icon: '📋' },
-            { id: 'details', label: 'Szczegóły', icon: '📝' },
-            { id: 'schedule', label: 'Harmonogram', icon: '📅' },
+            { id: 'overview', label: 'Przegląd', icon: <IconKit.Document size="sm" /> },
+            { id: 'details', label: 'Szczegóły', icon: <IconKit.Notebook size="sm" /> },
+            { id: 'schedule', label: 'Harmonogram', icon: <IconKit.Calendar size="sm" /> },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1065,7 +1068,10 @@ export default function PlanSummary() {
             onClick={async () => {
               try {
                 const planId = planData?.recommendedPlan?.planId || planData?.recommendedPlan?.id;
-                if (!planId) return alert('Brak ID planu do aktywacji.');
+                if (!planId) {
+                  error('Brak ID planu do aktywacji.');
+                  return;
+                }
                 
                 console.log('[PlanSummary] Aktywuję plan:', planId);
                 
@@ -1088,6 +1094,8 @@ export default function PlanSummary() {
                 
                 console.log('[PlanSummary] Harmonogram zapisany, przekierowuję do Dashboard');
                 
+                success('Plan został aktywowany!');
+                
                 // KROK 3: Przekieruj do Dashboard
                 navigate('/dashboard', {
                   state: {
@@ -1101,9 +1109,9 @@ export default function PlanSummary() {
                     }
                   }
                 });
-              } catch (error) {
-                console.error('[PlanSummary] Failed to activate plan:', error);
-                alert('Nie udało się aktywować planu: ' + (error.message || 'Nieznany błąd'));
+              } catch (err) {
+                console.error('[PlanSummary] Failed to activate plan:', err);
+                error('Nie udało się aktywować planu: ' + (err.message || 'Nieznany błąd'));
               }
             }}
           >

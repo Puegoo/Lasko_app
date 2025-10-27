@@ -12,6 +12,9 @@ urlpatterns = [
     # Aktywacja planu  
     path('activate/', views.activate_plan, name='activate_plan'),
     
+    # Wszystkie plany treningowe
+    path('plans/', views.get_all_plans, name='get_all_plans'),
+    
     # Szczegóły planu i aktywacja przez ID (zgodność z frontendem)
     path('plans/<int:plan_id>/detailed/', views.plan_detailed, name='plan_detailed'),
     path('plans/<int:plan_id>/activate/', views.activate_plan_by_path, name='activate_plan_by_path'),
@@ -21,7 +24,13 @@ urlpatterns = [
     path('plans/<int:plan_id>/days/<int:day_id>/', views.update_plan_day, name='update_plan_day'),
     path('plans/<int:plan_id>/exercises/<int:exercise_id>/', views.update_plan_exercise, name='update_plan_exercise'),
     path('plans/<int:plan_id>/exercises/<int:exercise_id>/delete/', views.delete_plan_exercise, name='delete_plan_exercise'),
+    path('plans/<int:plan_id>/exercises/<int:plan_exercise_id>/replace/', views.replace_plan_exercise, name='replace_plan_exercise'),
     path('plans/<int:plan_id>/days/<int:day_id>/exercises/', views.add_plan_exercise, name='add_plan_exercise'),
+]
+
+# Exercise catalog URLs (mapped under /api/exercises/)
+exercise_urlpatterns = [
+    path('', views.get_exercises, name='get_exercises'),
 ]
 
 # Workout URLs (mapped under /api/workouts/)

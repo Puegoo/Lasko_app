@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotification } from '../../contexts/NotificationContext';
 import { isAuthenticated } from '../../services/authService';
 import saveUserProfile from '../../services/saveUserProfile';
 import AccountCard from './AccountCard';
@@ -13,6 +14,7 @@ import RegisterBackground from '../../assets/Photos/Register_background.png';
 const RegistrationContainer = () => {
   const navigate = useNavigate();
   const { register, login } = useAuth();
+  const notify = useNotification();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState('next');
@@ -206,15 +208,15 @@ const RegistrationContainer = () => {
         });
         setValidationErrors(mappedErrors);
 
-        const alertMsg = Object.entries(error.validationErrors)
+        const errorMsg = Object.entries(error.validationErrors)
           .map(([field, messages]) => {
             const fieldName = getFieldDisplayName(field);
             const list = Array.isArray(messages) ? messages : [messages];
             return `${fieldName}: ${list.join(', ')}`;
           })
-          .join('\n');
+          .join('; ');
 
-        alert(`Błędy rejestracji:\n${alertMsg}`);
+        notify.error(`Błędy rejestracji: ${errorMsg}`, 8000);
 
         if (mappedErrors.email || mappedErrors.password) setCurrentStep(0);
         else if (mappedErrors.first_name) setCurrentStep(1);
@@ -222,7 +224,7 @@ const RegistrationContainer = () => {
         else if (mappedErrors.username) setCurrentStep(3);
       } else {
         const errorMessage = error?.message || 'Nieoczekiwany błąd podczas rejestracji';
-        alert(`Błąd: ${errorMessage}. Spróbuj ponownie.`);
+        notify.error(`${errorMessage}. Spróbuj ponownie.`, 6000);
       }
     } finally {
       setIsSubmitting(false);

@@ -15,6 +15,14 @@ import LoginPage from './components/auth/LoginPage';
 import PlanSummary from './components/register/PlanSummary.jsx';
 import PlanDetailsPage from './components/PlanDetailsPage.jsx';
 import WorkoutPage from './components/WorkoutPage.jsx';
+import ExerciseCatalogPage from './components/ExerciseCatalogPage.jsx';
+import ProgressPage from './components/ProgressPage.jsx';
+import JournalPage from './components/JournalPage.jsx';
+import StatisticsPage from './components/StatisticsPage.jsx';
+import CommunityPage from './components/CommunityPage.jsx';
+import SettingsPage from './components/SettingsPage.jsx';
+import CalendarPage from './components/CalendarPage.jsx';
+import PlansPage from './components/PlansPage.jsx';
 
 // Assets
 import laskoHi from './assets/Lasko_pose/Lasko_Hi.png';
@@ -452,6 +460,78 @@ const App = () => {
         element={
           <ProtectedRoute>
             <WorkoutPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exercises"
+        element={
+          <ProtectedRoute>
+            <ExerciseCatalogPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/progress"
+        element={
+          <ProtectedRoute>
+            <ProgressPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/journal"
+        element={
+          <ProtectedRoute>
+            <JournalPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/statistics"
+        element={
+          <ProtectedRoute>
+            <StatisticsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community"
+        element={
+          <ProtectedRoute>
+            <CommunityPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <CalendarPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/plans"
+        element={
+          <ProtectedRoute>
+            <PlansPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/plan/:planId"
+        element={
+          <ProtectedRoute>
+            <PlanDetailsPage />
           </ProtectedRoute>
         }
       />

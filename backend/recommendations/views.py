@@ -1169,6 +1169,219 @@ def add_plan_exercise(request, plan_id: int, day_id: int):
 
 
 # ============================================================================
+# EXERCISE CATALOG ENDPOINTS
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_exercises(request):
+    """
+    GET /api/exercises/
+    Pobierz katalog wszystkich ćwiczeń z opcjonalnymi filtrami
+    Query params:
+        - muscle_group: str (optional) - filtruj po partii mięśniowej
+        - type: str (optional) - filtruj po typie ćwiczenia
+        - search: str (optional) - wyszukaj po nazwie
+        - page: int (optional) - numer strony (default: 1)
+        - limit: int (optional) - liczba wyników na stronę (default: 50)
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        logger.info(f"[GetExercises] Fetching exercises for user {user_id}")
+
+        # Get query parameters
+        muscle_group = request.query_params.get('muscle_group')
+        exercise_type = request.query_params.get('type')
+        search = request.query_params.get('search')
+        page = int(request.query_params.get('page', 1))
+        limit = int(request.query_params.get('limit', 50))
+        offset = (page - 1) * limit
+
+        with connection.cursor() as cursor:
+            # Build query dynamically
+            query = """
+                SELECT 
+                    e.id,
+                    e.name,
+                    e.description,
+                    e.muscle_group,
+                    e.type,
+                    e.video_url,
+                    e.image_url
+                FROM exercises e
+                WHERE 1=1
+            """
+            params = []
+
+            if muscle_group:
+                query += " AND LOWER(e.muscle_group) = LOWER(%s)"
+                params.append(muscle_group)
+
+            if exercise_type:
+                query += " AND LOWER(e.type) = LOWER(%s)"
+                params.append(exercise_type)
+
+            if search:
+                query += " AND (LOWER(e.name) LIKE LOWER(%s) OR LOWER(e.description) LIKE LOWER(%s))"
+                search_pattern = f"%{search}%"
+                params.append(search_pattern)
+                params.append(search_pattern)
+
+            # Get total count
+            count_query = f"SELECT COUNT(*) FROM ({query}) as filtered"
+            cursor.execute(count_query, params)
+            total_count = cursor.fetchone()[0]
+
+            # Add pagination
+            query += " ORDER BY e.name LIMIT %s OFFSET %s"
+            params.append(limit)
+            params.append(offset)
+
+            cursor.execute(query, params)
+            exercises = []
+            
+            for row in cursor.fetchall():
+                exercises.append({
+                    "id": row[0],
+                    "name": row[1],
+                    "description": row[2],
+                    "muscle_group": row[3],
+                    "type": row[4],
+                    "video_url": row[5],
+                    "image_url": row[6]
+                })
+
+            logger.info(f"[GetExercises] Found {len(exercises)} exercises (total: {total_count})")
+
+            return Response({
+                "success": True,
+                "exercises": exercises,
+                "pagination": {
+                    "page": page,
+                    "limit": limit,
+                    "total": total_count,
+                    "total_pages": (total_count + limit - 1) // limit
+                }
+            }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[GetExercises] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error fetching exercises",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def replace_plan_exercise(request, plan_id: int, plan_exercise_id: int):
+    """
+    POST /api/recommendations/plans/<plan_id>/exercises/<plan_exercise_id>/replace/
+    Zamień ćwiczenie w planie na inne
+    Body: {
+        "new_exercise_id": int (ID nowego ćwiczenia z tabeli exercises),
+        "target_sets": str (optional),
+        "target_reps": str (optional),
+        "rest_seconds": int (optional)
+    }
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        data = request.data
+        new_exercise_id = data.get('new_exercise_id')
+
+        if not new_exercise_id:
+            return Response({"error": "new_exercise_id is required", "code": "missing_exercise_id"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        logger.info(f"[ReplaceExercise] User {user_id} replacing exercise {plan_exercise_id} with {new_exercise_id} in plan {plan_id}")
+
+        with connection.cursor() as cursor:
+            # Check permissions
+            cursor.execute("""
+                SELECT tp.id, tp.auth_account_id, pe.plan_day_id, pe.target_sets, pe.target_reps, pe.rest_seconds
+                FROM training_plans tp
+                JOIN plan_days pd ON tp.id = pd.plan_id
+                JOIN plan_exercises pe ON pd.id = pe.plan_day_id
+                WHERE tp.id = %s AND pe.id = %s
+            """, [plan_id, plan_exercise_id])
+            row = cursor.fetchone()
+
+            if not row:
+                return Response({"error": "Exercise not found in plan", "code": "exercise_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+
+            plan_owner_id = row[1]
+            plan_day_id = row[2]
+            current_sets = row[3]
+            current_reps = row[4]
+            current_rest = row[5]
+
+            if plan_owner_id and plan_owner_id != user_id:
+                return Response({"error": "Permission denied", "code": "permission_denied"},
+                                status=status.HTTP_403_FORBIDDEN)
+
+            # Check if new exercise exists
+            cursor.execute("SELECT id, name FROM exercises WHERE id = %s", [new_exercise_id])
+            new_exercise_row = cursor.fetchone()
+            if not new_exercise_row:
+                return Response({"error": "New exercise not found", "code": "new_exercise_not_found"},
+                                status=status.HTTP_404_NOT_FOUND)
+
+            new_exercise_name = new_exercise_row[1]
+
+            # Update the plan_exercise record with new exercise_id
+            cursor.execute("""
+                UPDATE plan_exercises
+                SET exercise_id = %s,
+                    target_sets = %s,
+                    target_reps = %s,
+                    rest_seconds = %s
+                WHERE id = %s
+            """, [
+                new_exercise_id,
+                data.get('target_sets', current_sets),
+                data.get('target_reps', current_reps),
+                data.get('rest_seconds', current_rest),
+                plan_exercise_id
+            ])
+
+            logger.info(f"[ReplaceExercise] Exercise replaced successfully with {new_exercise_name}")
+
+            return Response({
+                "success": True,
+                "message": f"Exercise replaced with {new_exercise_name}",
+                "new_exercise_id": new_exercise_id,
+                "new_exercise_name": new_exercise_name
+            }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[ReplaceExercise] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error replacing exercise",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
 # WORKOUT ENDPOINTS
 # ============================================================================
 
@@ -1473,4 +1686,70 @@ def finish_workout_session(request, session_id: int):
             "error": "Server error finishing session",
             "message": str(e),
             "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# ALL PLANS - Wszystkie Plany Treningowe
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_plans(request):
+    """
+    GET /api/recommendations/plans/
+    Pobierz wszystkie plany treningowe z bazy danych
+    """
+    try:
+        user_id = request.auth.payload.get('user_id')
+        if not user_id:
+            return Response({"error": "Invalid token"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        with connection.cursor() as cursor:
+            # Fetch all training plans
+            cursor.execute("""
+                SELECT 
+                    id,
+                    name,
+                    description,
+                    goal_type,
+                    difficulty_level,
+                    training_days_per_week,
+                    equipment_required,
+                    auth_account_id,
+                    created_at
+                FROM training_plans
+                ORDER BY 
+                    CASE WHEN auth_account_id IS NULL THEN 0 ELSE 1 END,
+                    created_at DESC
+            """)
+            
+            plans = []
+            for row in cursor.fetchall():
+                plans.append({
+                    "id": row[0],
+                    "name": row[1],
+                    "description": row[2],
+                    "goal": row[3],
+                    "difficulty_level": row[4],
+                    "training_days_per_week": row[5],
+                    "equipment_required": row[6],
+                    "auth_account_id": row[7],
+                    "created_at": row[8].isoformat() if row[8] else None
+                })
+            
+            logger.info(f"[GetAllPlans] Found {len(plans)} plans for user {user_id}")
+            
+            return Response({
+                "success": True,
+                "plans": plans,
+                "total": len(plans)
+            }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[GetAllPlans] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error fetching plans",
+            "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

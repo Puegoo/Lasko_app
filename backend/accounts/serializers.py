@@ -271,7 +271,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'first_name', 'date_of_birth', 'age', 'goal', 'level',
             'training_days_per_week', 'equipment_preference',
             'preferred_session_duration', 'avoid_exercises',
-            'focus_areas', 'last_survey_date', 'recommendation_method'
+            'focus_areas', 'last_survey_date', 'recommendation_method',
+            'profile_picture', 'bio'
         ]
         
         extra_kwargs = {

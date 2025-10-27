@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 import apiService from '../services/api';
+import IconKit from './ui/IconKit';
 
 // ---------- UI helpers ----------
 const GradientGridBg = () => (
@@ -183,6 +185,7 @@ const ActionCard = ({ icon, title, description, onClick }) => (
 
 const PlanCard = ({ plan, isActive = false, onActivate, activePlanId = null }) => {
   const navigate = useNavigate();
+  const notify = useNotification();
   
   const findPlanId = (p) => {
     if (!p) return null;
@@ -230,7 +233,7 @@ const PlanCard = ({ plan, isActive = false, onActivate, activePlanId = null }) =
     
     if (!planId) {
       console.error('[PlanCard] ERROR: No valid planId found!', { plan });
-      alert('Błąd: Nie można otworzyć szczegółów planu (brak ID w danych planu).');
+      notify.error('Nie można otworzyć szczegółów planu (brak ID w danych planu).');
       return;
     }
     
@@ -336,7 +339,7 @@ const PlanCard = ({ plan, isActive = false, onActivate, activePlanId = null }) =
       ) : (
         <>
           <SecondaryButton 
-            onClick={() => onActivate ? onActivate(plan) : alert('Funkcja aktywacji nie jest dostępna')} 
+            onClick={() => onActivate ? onActivate(plan) : notify.warning('Funkcja aktywacji nie jest dostępna')} 
             className="flex-1"
           >
             Aktywuj plan
@@ -356,6 +359,7 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
+  const notify = useNotification();
   
   // Pobierz nazwę użytkownika z różnych źródeł (fallback)
   const username = user?.username || 
@@ -422,13 +426,13 @@ const DashboardPage = () => {
   };
 
   const handleCreateNewPlan = () => navigate('/enhanced-plan-creator');
-  const handleEditProfile = () => navigate('/profile/edit');
+  const handleEditProfile = () => navigate('/settings');
   
   const handleActivatePlan = async (plan) => {
     try {
-      const planId = plan?.planId || plan?.id;
+      const planId = plan?.planId || plan?.id;      
       if (!planId) {
-        alert('Brak ID planu do aktywacji');
+        notify.error('Brak ID planu do aktywacji');
         return;
       }
       // Wywołaj endpoint aktywacji
@@ -437,13 +441,13 @@ const DashboardPage = () => {
       });
       
       if (response.success) {
-        alert('Plan został aktywowany! 🎉');
+        notify.success('Plan został aktywowany! 🎉');
         // Odśwież dane Dashboard
         await fetchUserData();
       }
     } catch (error) {
       console.error('Błąd aktywacji planu:', error);
-      alert('Nie udało się aktywować planu: ' + error.message);
+      notify.error('Nie udało się aktywować planu: ' + error.message);
     }
   };
 
@@ -592,7 +596,7 @@ const DashboardPage = () => {
                 </div>
                 <div className="flex gap-3">
                   <PrimaryButton onClick={() => navigate('/workout/today')} className="flex-1">
-                    🏋️ Rozpocznij trening
+                    <IconKit.Dumbbell size="sm" className="inline" /> Rozpocznij trening
                   </PrimaryButton>
                   <SecondaryButton onClick={() => {
                     console.log('[Dashboard] Active plan - displayPlan:', displayPlan);
@@ -600,7 +604,7 @@ const DashboardPage = () => {
                     console.log('[Dashboard] displayPlan.id:', displayPlan?.id);
                     const planId = displayPlan?.planId || displayPlan?.id;
                     if (!planId) {
-                      alert('Brak ID aktywnego planu');
+                      notify.error('Brak ID aktywnego planu');
                       return;
                     }
                     navigate(`/plan-details/${planId}`);
@@ -666,7 +670,7 @@ const DashboardPage = () => {
                       console.log('[Dashboard] recoPrimary.id:', recoPrimary?.id);
                       const planId = recoPrimary?.planId || recoPrimary?.id;
                       if (!planId) {
-                        alert('Brak ID rekomendowanego planu');
+                        notify.error('Brak ID rekomendowanego planu');
                         return;
                       }
                       navigate(`/plan-details/${planId}`);
@@ -706,7 +710,7 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <PrimaryButton onClick={() => navigate('/workout/free')} className="w-full">
-                  ⚡ Nowa sesja
+                  <IconKit.Zap size="sm" className="inline" /> Nowa sesja
                 </PrimaryButton>
               </div>
             )}
@@ -716,40 +720,40 @@ const DashboardPage = () => {
               <h2 className="mb-4 text-xl font-bold text-white">Szybkie akcje</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <ActionCard
-                  icon="📊"
-                  title="Postępy"
-                  description="Śledź swoje wyniki"
-                  onClick={() => navigate('/progress')}
+                  icon={<IconKit.ChartBar size="xl" className="text-emerald-400" />}
+                  title="Statystyki"
+                  description="Dashboard analityczny"
+                  onClick={() => navigate('/statistics')}
                 />
                 <ActionCard
-                  icon="🏋️"
+                  icon={<IconKit.Dumbbell size="xl" className="text-blue-400" />}
                   title="Ćwiczenia"
                   description="Przeglądaj bibliotekę"
                   onClick={() => navigate('/exercises')}
                 />
                 <ActionCard
-                  icon="🎯"
-                  title="Cele"
-                  description="Zarządzaj celami"
-                  onClick={() => navigate('/goals')}
-                />
-                <ActionCard
-                  icon="📅"
+                  icon={<IconKit.Calendar size="xl" className="text-orange-400" />}
                   title="Kalendarz"
-                  description="Zaplanuj treningi"
+                  description="Historia treningów"
                   onClick={() => navigate('/calendar')}
                 />
                 <ActionCard
-                  icon="🏆"
-                  title="Wyzwania"
-                  description="Podejmij wyzwanie"
-                  onClick={() => navigate('/challenges')}
+                  icon={<IconKit.Star size="xl" className="text-yellow-400" />}
+                  title="Społeczność"
+                  description="Znajdź podobnych użytkowników"
+                  onClick={() => navigate('/community')}
                 />
                 <ActionCard
-                  icon="⚙️"
+                  icon={<IconKit.Document size="xl" className="text-purple-400" />}
+                  title="Plany"
+                  description="Wyszukaj plany treningowe"
+                  onClick={() => navigate('/plans')}
+                />
+                <ActionCard
+                  icon={<IconKit.Settings size="xl" className="text-gray-400" />}
                   title="Ustawienia"
                   description="Edytuj preferencje"
-                  onClick={() => navigate('/profile/edit')}
+                  onClick={() => navigate('/settings')}
                 />
               </div>
             </div>
@@ -782,13 +786,24 @@ const DashboardPage = () => {
             {/* User Profile Card */}
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
               <div className="mb-6 text-center">
-                <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 flex items-center justify-center">
-                  <span className="text-3xl font-black text-black">
-                    {username?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                </div>
+                {userProfile?.profile_picture ? (
+                  <img
+                    src={`http://localhost:8000${userProfile.profile_picture}`}
+                    alt={username}
+                    className="mx-auto mb-4 h-20 w-20 rounded-full object-cover border-4 border-emerald-400/20"
+                  />
+                ) : (
+                  <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 flex items-center justify-center">
+                    <span className="text-3xl font-black text-black">
+                      {username?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                )}
                 <h3 className="text-xl font-bold text-white">{username}</h3>
                 <p className="text-sm text-gray-400">{user?.email}</p>
+                {userProfile?.bio && (
+                  <p className="text-xs text-gray-500 mt-2 italic">{userProfile.bio}</p>
+                )}
               </div>
 
               {userProfile && (
@@ -879,19 +894,58 @@ const DashboardPage = () => {
               <StatCard
                 label="Treningi w tym miesiącu"
                 value={userProfile?.monthly_workouts || 0}
-                icon="📅"
+                icon={<IconKit.Calendar size="lg" className="text-emerald-400" />}
                 trend={userProfile?.monthly_trend}
               />
               <StatCard
                 label="Średni czas treningu"
                 value={`${userProfile?.avg_workout_time || 0}m`}
-                icon="⏱️"
+                icon={<IconKit.Clock size="lg" className="text-blue-400" />}
               />
               <StatCard
                 label="Ulubione ćwiczenie"
                 value={userProfile?.favorite_exercise || 'Brak danych'}
-                icon="⭐"
+                icon={<IconKit.Star size="lg" className="text-yellow-400" />}
               />
+            </div>
+
+            {/* Progress Tracker Card */}
+            <div className="rounded-3xl bg-gradient-to-br from-emerald-400/10 to-teal-400/10 border border-emerald-400/20 p-6">
+              <h3 className="mb-3 text-lg font-bold text-white flex items-center gap-2">
+                <IconKit.ChartUp size="md" /> Moje Postępy
+              </h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Śledź wagę, pomiary ciała, rekordy osobiste i metryki
+              </p>
+              <SecondaryButton onClick={() => navigate('/progress')}>
+                Zobacz postępy →
+              </SecondaryButton>
+            </div>
+
+            {/* Exercise Catalog Card */}
+            <div className="rounded-3xl bg-gradient-to-br from-blue-400/10 to-purple-400/10 border border-blue-400/20 p-6">
+              <h3 className="mb-3 text-lg font-bold text-white flex items-center gap-2">
+                <IconKit.Dumbbell size="md" /> Katalog Ćwiczeń
+              </h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Przeglądaj bazę ćwiczeń, filtruj po partiach mięśniowych i typach treningu
+              </p>
+              <SecondaryButton onClick={() => navigate('/exercises')}>
+                Zobacz katalog →
+              </SecondaryButton>
+            </div>
+
+            {/* Training Journal Card */}
+            <div className="rounded-3xl bg-gradient-to-br from-orange-400/10 to-yellow-400/10 border border-orange-400/20 p-6">
+              <h3 className="mb-3 text-lg font-bold text-white flex items-center gap-2">
+                <IconKit.Notebook size="md" /> Dziennik Treningowy
+              </h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Zapisuj notatki, obserwacje i refleksje po treningach
+              </p>
+              <SecondaryButton onClick={() => navigate('/journal')}>
+                Otwórz dziennik →
+              </SecondaryButton>
             </div>
 
             {/* Motivational card */}

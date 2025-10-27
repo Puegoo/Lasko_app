@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 import apiService from '../services/api';
+import RatePlanModal from './RatePlanModal';
+import ExerciseFeedbackModal from './ExerciseFeedbackModal';
+import IconKit from './ui/IconKit';
 
 // ---------- UI Components ----------
 const GradientGridBg = () => (
@@ -86,7 +90,9 @@ const RestTimer = ({ seconds, onComplete }) => {
   return (
     <div className="rounded-2xl bg-blue-400/10 border border-blue-400/20 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white">⏱️ Odpoczynek</h3>
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <IconKit.Clock size="md" /> Odpoczynek
+        </h3>
         <button
           onClick={() => setIsRunning(!isRunning)}
           className="px-3 py-1 rounded-lg bg-blue-400/20 text-blue-300 text-sm font-medium hover:bg-blue-400/30 transition-colors"
@@ -121,6 +127,7 @@ const RestTimer = ({ seconds, onComplete }) => {
 export default function WorkoutPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const notify = useNotification();
   const [loading, setLoading] = useState(true);
   const [workout, setWorkout] = useState(null);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
@@ -132,6 +139,11 @@ export default function WorkoutPage() {
   const [allPlanDays, setAllPlanDays] = useState([]); // Wszystkie dni z planu
   const [isRestDay, setIsRestDay] = useState(false); // Czy dziś jest dzień odpoczynku
   const [showDaySelector, setShowDaySelector] = useState(false); // Pokazuj selektor dni
+  const [showRatePlanModal, setShowRatePlanModal] = useState(false); // Modal oceny planu
+  const [showExerciseFeedbackModal, setShowExerciseFeedbackModal] = useState(false); // Modal feedbacku ćwiczenia
+  const [feedbackExercise, setFeedbackExercise] = useState(null); // Ćwiczenie do feedbacku
+  const [showJournalModal, setShowJournalModal] = useState(false); // Modal notatki treningowej
+  const [journalNote, setJournalNote] = useState('');
 
   useEffect(() => {
     fetchTodayWorkout();
@@ -164,7 +176,7 @@ export default function WorkoutPage() {
       }
     } catch (error) {
       console.error('[WorkoutPage] Error fetching workout:', error);
-      alert('Nie udało się pobrać dzisiejszego treningu');
+      notify.error('Nie udało się pobrać dzisiejszego treningu');
     } finally {
       setLoading(false);
     }
@@ -263,7 +275,7 @@ export default function WorkoutPage() {
   const completeSet = async (exerciseId, setIndex) => {
     const set = loggedSets[exerciseId]?.[setIndex];
     if (!set || !set.weight || !set.reps) {
-      alert('Wprowadź ciężar i powtórzenia');
+      notify.warning('Wprowadź ciężar i powtórzenia');
       return;
     }
 
@@ -279,6 +291,26 @@ export default function WorkoutPage() {
       return newSets;
     });
 
+    // Sprawdź czy to nowy rekord osobisty (PR)
+    try {
+      const prResponse = await apiService.request('/api/progress/personal-records/check/', {
+        method: 'POST',
+        body: JSON.stringify({
+          exercise_id: exerciseId,
+          reps: parseInt(set.reps),
+          weight_kg: parseFloat(set.weight)
+        })
+      });
+
+      if (prResponse.is_pr) {
+        const exercise = workout.exercises.find(ex => ex.id === exerciseId);
+        notify.success(`🏆 NOWY REKORD OSOBISTY! ${exercise?.name || 'Ćwiczenie'}: ${set.weight}kg × ${set.reps} powtórzeń`, 8000);
+      }
+    } catch (error) {
+      console.error('[WorkoutPage] Error checking PR:', error);
+      // Nie przerywaj treningu jeśli sprawdzenie PR się nie powiodło
+    }
+
     // Pokaż timer odpoczynku
     const exercise = workout.exercises.find(ex => ex.id === exerciseId);
     if (exercise && exercise.rest_seconds) {
@@ -287,9 +319,63 @@ export default function WorkoutPage() {
     }
   };
 
+  const saveJournalNote = async () => {
+    // Zapisz notatkę jeśli coś wpisano
+    if (journalNote.trim()) {
+      try {
+        await apiService.request('/api/journal/notes/add/', {
+          method: 'POST',
+          body: JSON.stringify({
+            content: journalNote.trim()
+          })
+        });
+        notify.success('Notatka została zapisana!');
+      } catch (error) {
+        console.error('[WorkoutPage] Error saving journal note:', error);
+        // Nie pokazujemy błędu - notatka nie jest krytyczna
+      }
+    }
+
+    // Zamknij modal notatki
+    setShowJournalModal(false);
+
+    // Sprawdź czy użytkownik powinien ocenić plan
+    try {
+      const checkResponse = await apiService.request('/api/feedback/check-plan-completion/');
+      if (checkResponse.should_rate) {
+        // Pokaż modal oceny
+        setTimeout(() => setShowRatePlanModal(true), 300);
+      } else {
+        // Przekieruj do dashboard
+        setTimeout(() => navigate('/dashboard'), 500);
+      }
+    } catch (err) {
+      // Jeśli sprawdzenie się nie powiodło, po prostu przekieruj
+      setTimeout(() => navigate('/dashboard'), 500);
+    }
+  };
+
+  const skipJournalNote = () => {
+    setShowJournalModal(false);
+    
+    // Sprawdź czy użytkownik powinien ocenić plan
+    setTimeout(async () => {
+      try {
+        const checkResponse = await apiService.request('/api/feedback/check-plan-completion/');
+        if (checkResponse.should_rate) {
+          setShowRatePlanModal(true);
+        } else {
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        navigate('/dashboard');
+      }
+    }, 300);
+  };
+
   const finishWorkout = async () => {
     if (!sessionId) {
-      alert('Nie rozpoczęto sesji treningowej');
+      notify.warning('Nie rozpoczęto sesji treningowej');
       return;
     }
 
@@ -319,11 +405,13 @@ export default function WorkoutPage() {
         })
       });
 
-      alert('🎉 Trening zakończony! Świetna robota!');
-      navigate('/dashboard');
+      notify.success('🎉 Trening zakończony! Świetna robota!');
+      
+      // Pokaż modal notatki treningowej
+      setTimeout(() => setShowJournalModal(true), 500);
     } catch (error) {
       console.error('[WorkoutPage] Error finishing workout:', error);
-      alert('Nie udało się zakończyć treningu');
+      notify.error('Nie udało się zakończyć treningu');
     }
   };
 
@@ -342,7 +430,7 @@ export default function WorkoutPage() {
         <GradientGridBg />
         <div className="max-w-4xl mx-auto px-6 py-16">
           <div className="text-center mb-8">
-            <div className="text-6xl mb-6">📅</div>
+            <IconKit.Calendar size="2xl" className="text-emerald-400 mx-auto mb-6" />
             <h1 className="text-4xl font-black text-white mb-4">Trening zastępczy</h1>
             <p className="text-gray-400 mb-8">
               Dzisiaj to dzień odpoczynku, ale możesz wybrać trening zastępczy z Twojego planu.
@@ -448,8 +536,8 @@ export default function WorkoutPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               {workout.weekday === 'Trening zastępczy' && (
-                <div className="inline-block px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 text-xs font-medium mb-2">
-                  📅 Trening zastępczy
+                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 text-xs font-medium mb-2">
+                  <IconKit.Calendar size="xs" /> Trening zastępczy
                 </div>
               )}
               <h1 className="text-4xl font-black text-white mb-2">
@@ -486,7 +574,7 @@ export default function WorkoutPage() {
               </h2>
               {currentExercise.muscle_group && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 px-3 py-1 text-sm text-emerald-300">
-                  💪 {currentExercise.muscle_group}
+                  <IconKit.Muscle size="sm" /> {currentExercise.muscle_group}
                 </span>
               )}
             </div>
@@ -586,11 +674,94 @@ export default function WorkoutPage() {
               onClick={finishWorkout}
               className="flex-1"
             >
-              🎉 Zakończ trening
+              <IconKit.Trophy size="sm" className="inline" /> Zakończ trening
             </PrimaryButton>
           )}
         </div>
+
+        {/* Przycisk feedbacku dla ćwiczenia (opcjonalny - po zakończeniu wszystkich serii) */}
+        {completedSets === totalSets && totalSets > 0 && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setFeedbackExercise(currentExercise);
+                setShowExerciseFeedbackModal(true);
+              }}
+              className="text-sm text-gray-400 hover:text-emerald-400 transition-colors"
+            >
+              💭 Dodaj feedback dla tego ćwiczenia
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Modale */}
+      {/* Journal Note Modal */}
+      {showJournalModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg mx-4 rounded-2xl bg-gradient-to-br from-gray-900 to-black border border-white/20 p-8 shadow-2xl">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                <IconKit.Notebook size="lg" /> Jak minął trening?
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Dodaj notatkę o treningu - jak się czułeś, co chcesz poprawić, co poszło dobrze
+              </p>
+            </div>
+
+            <textarea
+              value={journalNote}
+              onChange={(e) => setJournalNote(e.target.value)}
+              placeholder="Np. Świetny trening! Udało mi się podnieść więcej na wyciskaniu. Czuję się zmęczony, ale zadowolony. #PR #motywacja"
+              className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 resize-none mb-4"
+              rows="6"
+              autoFocus
+            />
+
+            <div className="text-xs text-gray-400 mb-4">
+              💡 Wskazówka: Możesz używać tagów jak #PR, #zmęczenie, #świetnytrening
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={skipJournalNote}
+                className="flex-1 px-6 py-3 rounded-xl border-2 border-white/20 text-gray-300 font-medium hover:bg-white/5 transition-colors"
+              >
+                Pomiń
+              </button>
+              <PrimaryButton onClick={saveJournalNote} className="flex-1">
+                <IconKit.Document size="sm" className="inline" /> Zapisz notatkę
+              </PrimaryButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <RatePlanModal 
+        isOpen={showRatePlanModal}
+        onClose={() => {
+          setShowRatePlanModal(false);
+          navigate('/dashboard');
+        }}
+        planName={workout?.plan_name || 'Twój plan'}
+        onRated={() => {
+          setShowRatePlanModal(false);
+          navigate('/dashboard');
+        }}
+      />
+
+      <ExerciseFeedbackModal 
+        isOpen={showExerciseFeedbackModal}
+        onClose={() => {
+          setShowExerciseFeedbackModal(false);
+          setFeedbackExercise(null);
+        }}
+        exercise={feedbackExercise}
+        onSubmitted={() => {
+          setShowExerciseFeedbackModal(false);
+          setFeedbackExercise(null);
+        }}
+      />
     </div>
   );
 }
