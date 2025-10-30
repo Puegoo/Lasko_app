@@ -372,12 +372,24 @@ const DashboardPage = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [activePlan, setActivePlan] = useState(null);
   const [error, setError] = useState(null);
+  const [showCongrats, setShowCongrats] = useState(false);
 
   // plany przekazane przez nawigację (po aktywacji) - tymczasowe
   const tempActivePlan = location.state?.activePlan;
   const displayPlan = activePlan || tempActivePlan;
 
   useEffect(() => {
+    // Sprawdź czy użytkownik dopiero aktywował plan
+    const justActivated = localStorage.getItem('plan_just_activated');
+    if (justActivated === 'true') {
+      setShowCongrats(true);
+      // Usuń flagę po 3 sekundach (użytkownik zobaczył gratulacje)
+      setTimeout(() => {
+        localStorage.removeItem('plan_just_activated');
+        setShowCongrats(false);
+      }, 3000);
+    }
+
     if (isAuthenticated()) {
       fetchUserData();
     } else {
@@ -441,6 +453,9 @@ const DashboardPage = () => {
       });
       
       if (response.success) {
+        // Ustaw flagę że plan został dopiero aktywowany
+        localStorage.setItem('plan_just_activated', 'true');
+        setShowCongrats(true);
         notify.success('Plan został aktywowany! 🎉');
         // Odśwież dane Dashboard
         await fetchUserData();
@@ -495,7 +510,7 @@ const DashboardPage = () => {
         <header className="mb-10">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
-              {hasActivePlan ? (
+              {hasActivePlan && showCongrats ? (
                 <>
                   <Kicker>Plan aktywowany!</Kicker>
                   <h1 className="mt-4 text-4xl font-black text-white md:text-5xl">
@@ -503,6 +518,16 @@ const DashboardPage = () => {
                   </h1>
                   <p className="mt-3 text-lg text-gray-300">
                     Możesz teraz rozpocząć treningi i śledzić swoje postępy
+                  </p>
+                </>
+              ) : hasActivePlan ? (
+                <>
+                  <Kicker>Twój aktywny plan</Kicker>
+                  <h1 className="mt-4 text-4xl font-black text-white md:text-5xl">
+                    Kontynuuj swój trening
+                  </h1>
+                  <p className="mt-3 text-lg text-gray-300">
+                    Śledź postępy i realizuj swoje cele treningowe
                   </p>
                 </>
               ) : hasReco ? (
