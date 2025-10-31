@@ -1205,7 +1205,7 @@ def get_exercises(request):
         offset = (page - 1) * limit
 
         with connection.cursor() as cursor:
-            # Build query dynamically
+            # Build query dynamically - dodajemy is_favorite i rating dla użytkownika
             query = """
                 SELECT 
                     e.id,
@@ -1214,11 +1214,14 @@ def get_exercises(request):
                     e.muscle_group,
                     e.type,
                     e.video_url,
-                    e.image_url
+                    e.image_url,
+                    COALESCE(ef.is_favorite, FALSE) as is_favorite,
+                    ef.rating
                 FROM exercises e
+                LEFT JOIN exercise_feedback ef ON ef.exercise_id = e.id AND ef.auth_account_id = %s
                 WHERE 1=1
             """
-            params = []
+            params = [user_id]
 
             if muscle_group:
                 query += " AND LOWER(e.muscle_group) = LOWER(%s)"
@@ -1255,7 +1258,9 @@ def get_exercises(request):
                     "muscle_group": row[3],
                     "type": row[4],
                     "video_url": row[5],
-                    "image_url": row[6]
+                    "image_url": row[6],
+                    "is_favorite": row[7] if row[7] is not None else False,
+                    "user_rating": row[8] if row[8] is not None else None
                 })
 
             logger.info(f"[GetExercises] Found {len(exercises)} exercises (total: {total_count})")

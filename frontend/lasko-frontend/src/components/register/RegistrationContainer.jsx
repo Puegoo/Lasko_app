@@ -193,8 +193,11 @@ const RegistrationContainer = () => {
       };
 
       if (formData.skipSurvey) {
-        navigate('/plan-creator', { state: { ...navigationState, mode: 'manual' } });
+        // Użytkownik wybrał "bez ankiety" - przekieruj bezpośrednio do dashboardu
+        notify.success('Rejestracja zakończona pomyślnie! Witaj w Lasko! 🎉', 3000);
+        navigate('/dashboard');
       } else {
+        // Użytkownik wybrał ankietę - przekieruj do kreatora z ankietą
         navigate('/enhanced-plan-creator', {
           state: { ...navigationState, skipBasicInfo: true, fromSurvey: true, mode: 'survey' },
         });
@@ -245,9 +248,9 @@ const RegistrationContainer = () => {
         style={{ mixBlendMode: 'multiply' }}
       />
 
-      <div className="absolute top-8 left-8 z-10">
-        <Link to="/">
-          <h1 className="text-[#1DCD9F] text-5xl font-bold">Lasko</h1>
+      <div className="absolute top-6 left-4 z-10">
+        <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+          Lasko
         </Link>
       </div>
 

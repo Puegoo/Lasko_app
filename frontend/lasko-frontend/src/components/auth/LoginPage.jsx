@@ -79,9 +79,9 @@ const LoginPage = () => {
       />
       
       {/* Logo w lewym górnym rogu */}
-      <div className="absolute top-8 left-8 z-10">
-        <Link to="/">
-          <h1 className="text-[#1DCD9F] text-5xl font-bold">Lasko</h1>
+      <div className="absolute top-6 left-4 z-10">
+        <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+          Lasko
         </Link>
       </div>
 

@@ -10,24 +10,25 @@ const SurveyChoiceCard = ({
 }) => {
   const [selected, setSelected] = useState(formData?.surveyChoice || null);
 
-  const chooseAndGo = (choice) => {
+  const handleSelect = (choice) => {
     if (isSubmitting) return;
     setSelected(choice);
     updateFormData('surveyChoice', choice);
     updateFormData('skipSurvey', choice === 'skip');
-    // auto-advance
+  };
+
+  const handleNext = () => {
+    if (!selected || isSubmitting) return;
+    // Kontynuuj do następnego kroku (rejestracja zostanie wykonana w RegistrationContainer)
     onNext?.();
   };
 
   const onKeyActivate = (e, choice) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      chooseAndGo(choice);
+      handleSelect(choice);
     }
   };
-
-  const baseOption =
-    'w-full rounded-2xl p-5 text-left transition-all border flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60';
 
   const isDisabled = isSubmitting;
 
@@ -45,7 +46,7 @@ const SurveyChoiceCard = ({
       <div
         role="radiogroup"
         aria-label="Wybór sposobu tworzenia planu"
-        className="flex flex-col gap-4"
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
       >
         {/* OPCJA 1: Wypełnij ankietę (zalecane) */}
         <button
@@ -54,39 +55,42 @@ const SurveyChoiceCard = ({
           tabIndex={0}
           aria-checked={selected === 'fill'}
           disabled={isDisabled}
-          onClick={() => chooseAndGo('fill')}
+          onClick={() => handleSelect('fill')}
           onKeyDown={(e) => onKeyActivate(e, 'fill')}
           className={[
-            baseOption,
+            'rounded-2xl p-6 transition-all border flex flex-col items-center justify-center text-center min-h-[240px]',
             'bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] text-white border-white/10',
             'hover:brightness-110 hover:shadow-[0_0_20px_rgba(29,205,159,0.6)]',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60',
             isDisabled ? 'opacity-50 cursor-not-allowed' : '',
             selected === 'fill' ? 'ring-2 ring-emerald-400/60' : '',
           ].join(' ')}
         >
-          <div className="flex items-center gap-4">
-            <span className="text-2xl">📝</span>
-            <div>
-              <div className="font-bold text-lg">Wypełnij szczegółową ankietę</div>
-              <div className="text-sm opacity-95">
-                Odpowiedz na pytania o swoje preferencje treningowe
-              </div>
-            </div>
-          </div>
-          <div className="relative">
-            <span className="absolute -top-7 right-0 bg-white/90 text-[#0a0a0a] text-[10px] px-2 py-0.5 rounded-full font-extrabold tracking-wide">
+          <div className="relative mb-2">
+            <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white/90 text-[#0a0a0a] text-[10px] px-2 py-0.5 rounded-full font-extrabold tracking-wide whitespace-nowrap">
               ZALECANE
             </span>
-            <span
-              aria-hidden="true"
-              className={[
-                'inline-flex h-6 w-6 items-center justify-center rounded-full border-2',
-                selected === 'fill' ? 'bg-white border-white' : 'border-white/70',
-              ].join(' ')}
-            >
-              {selected === 'fill' && <span className="block h-2 w-2 rounded-full bg-[#0D7A61]" />}
-            </span>
           </div>
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" className="text-white mb-4">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="10" y1="9" x2="8" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <div className="font-bold text-xl mb-2">Wypełnij szczegółową ankietę</div>
+          <div className="text-sm opacity-95">
+            Odpowiedz na pytania o swoje preferencje treningowe
+          </div>
+          <span
+            aria-hidden="true"
+            className={[
+              'inline-flex h-6 w-6 items-center justify-center rounded-full border-2 mt-4',
+              selected === 'fill' ? 'bg-white border-white' : 'border-white/70',
+            ].join(' ')}
+          >
+            {selected === 'fill' && <span className="block h-2 w-2 rounded-full bg-[#0D7A61]" />}
+          </span>
         </button>
 
         {/* OPCJA 2: Szybki kreator (pomiń ankietę) */}
@@ -96,28 +100,27 @@ const SurveyChoiceCard = ({
           tabIndex={0}
           aria-checked={selected === 'skip'}
           disabled={isDisabled}
-          onClick={() => chooseAndGo('skip')}
+          onClick={() => handleSelect('skip')}
           onKeyDown={(e) => onKeyActivate(e, 'skip')}
           className={[
-            baseOption,
+            'rounded-2xl p-6 transition-all border flex flex-col items-center justify-center text-center min-h-[240px]',
             'bg-[#131313] text-white border-white/10 hover:bg-[#171717]',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60',
             isDisabled ? 'opacity-50 cursor-not-allowed' : '',
             selected === 'skip' ? 'ring-2 ring-emerald-400/60' : '',
           ].join(' ')}
         >
-          <div className="flex items-center gap-4">
-            <span className="text-2xl">⚡</span>
-            <div>
-              <div className="font-bold text-lg">Przejdź do szybkiego kreatora</div>
-              <div className="text-sm opacity-90">
-                Stwórz plan na podstawie podstawowych informacji
-              </div>
-            </div>
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" className="text-yellow-400 mb-4">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="currentColor"/>
+          </svg>
+          <div className="font-bold text-xl mb-2">Przejdź bez ankiety</div>
+          <div className="text-sm opacity-90">
+            Zacznij treningi natychmiast z podstawowym planem
           </div>
           <span
             aria-hidden="true"
             className={[
-              'inline-flex h-6 w-6 items-center justify-center rounded-full border-2',
+              'inline-flex h-6 w-6 items-center justify-center rounded-full border-2 mt-4',
               selected === 'skip' ? 'bg-white border-white' : 'border-white/70',
             ].join(' ')}
           >
@@ -127,8 +130,11 @@ const SurveyChoiceCard = ({
       </div>
 
       {/* Info pod opcjami */}
-      <p className="text-center text-sm text-gray-400 mt-4">
-        💡 Zawsze możesz zmienić preferencje później w ustawieniach profilu.
+      <p className="text-center text-sm text-gray-400 mt-4 flex items-center justify-center gap-2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-yellow-400">
+          <path d="M9 21h6M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Zawsze możesz zmienić preferencje później w ustawieniach profilu.
       </p>
 
       {/* CTA (spójne z innymi kartami) */}
@@ -143,7 +149,7 @@ const SurveyChoiceCard = ({
         </button>
         <button
           type="button"
-          onClick={() => selected && chooseAndGo(selected)}
+          onClick={handleNext}
           disabled={!selected || isDisabled}
           className={[
             'py-4 rounded-full font-bold transition-all duration-300',

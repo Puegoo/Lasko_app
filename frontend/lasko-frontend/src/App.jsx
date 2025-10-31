@@ -122,8 +122,8 @@ const HomePage = () => {
 
       {/* Navbar */}
       <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link to="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+        <div className="flex items-center justify-between px-4 py-4">
+          <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
             Lasko
           </Link>
 
@@ -213,8 +213,8 @@ const HomePage = () => {
             <div className="mt-4 grid grid-cols-3 gap-4 max-w-lg">
               {[
                 { v: '10k+', l: 'użytkowników' },
-                { v: '1 200+', l: 'planów' },
-                { v: '600+', l: 'ćwiczeń' },
+                { v: '1 200', l: 'planów' },
+                { v: '46', l: 'ćwiczeń' },
               ].map((s, i) => (
                 <div key={i} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
                   <div className="text-xl font-extrabold text-white">{s.v}</div>
@@ -250,18 +250,42 @@ const HomePage = () => {
           />
           <div className="grid gap-6 md:grid-cols-3">
             {[
-              { t: 'Adaptacyjny progres', d: 'Obciążenia rosną, gdy rośnie forma – i cofają, gdy ciało potrzebuje luzu.', i: '📈' },
-              { t: 'Biblioteka ćwiczeń', d: 'Instrukcje i wideo do kluczowych ruchów – od przysiadu po mobilizację.', i: '🎥' },
-              { t: 'Śledzenie regeneracji', d: 'Sen, RPE, tętno. Dane pomagają trenować mądrzej, nie więcej.', i: '💤' },
-              { t: 'Integracje', d: 'Zgrywaj aktywności z zegarka/telefonu dla pełnego obrazu tygodnia.', i: '🔗' },
-              { t: 'Plan dnia', d: 'Gotowy rozkład serii, powtórzeń i przerw – zero zgadywania.', i: '🗓️' },
-              { t: 'Statystyki', d: 'PR-y, objętość, trendy. Progres widzisz czarno na białym.', i: '📊' },
+              { 
+                t: 'Inteligentne rekomendacje', 
+                d: 'System AI analizuje Twoje preferencje i tworzy spersonalizowany plan treningowy.', 
+                i: <svg width="40" height="40" viewBox="0 0 16 16" fill="none" className="text-emerald-400"><path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z" fill="currentColor"/></svg>
+              },
+              { 
+                t: 'Katalog ćwiczeń', 
+                d: 'Przeglądaj, oceniaj i dodawaj do ulubionych ćwiczenia z bazy 46 ćwiczeń.', 
+                i: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-blue-400"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/></svg>
+              },
+              { 
+                t: 'Śledzenie postępów', 
+                d: 'Rekordy osobiste, pomiary ciała, waga i zaawansowane statystyki treningowe.', 
+                i: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-purple-400"><path d="M3 3v18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="18 17 13 12 9 16 5 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" transform="rotate(180 11.5 14)"/></svg>
+              },
+              { 
+                t: 'Dziennik treningowy', 
+                d: 'Zapisuj notatki, refleksje i obserwacje z każdego treningu.', 
+                i: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-teal-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              },
+              { 
+                t: 'Kalendarz treningów', 
+                d: 'Harmonogram i historia treningów z wizualizacją aktywności.', 
+                i: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-yellow-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              },
+              { 
+                t: 'Statystyki i analizy', 
+                d: 'Objętość treningowa, częstotliwość partii mięśniowych i heat mapy aktywności.', 
+                i: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-emerald-400"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              },
             ].map((f, i) => (
               <div
                 key={i}
                 className="group relative rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition-colors hover:border-emerald-400/40"
               >
-                <div className="mb-3 text-3xl">{f.i}</div>
+                <div className="mb-3">{f.i}</div>
                 <h4 className="mb-2 text-lg font-bold text-white">{f.t}</h4>
                 <p className="text-gray-300">{f.d}</p>
                 <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 ring-1 ring-emerald-400/30 transition-opacity group-hover:opacity-100" />
@@ -281,12 +305,27 @@ const HomePage = () => {
           />
           <ol className="grid gap-6 md:grid-cols-3">
             {[
-              { step: '01', title: 'Krótka ankieta', desc: 'Cel, poziom, sprzęt, biometria (wiek/waga/wzrost).', icon: '📝' },
-              { step: '02', title: 'Analiza AI', desc: 'Algorytm wybiera objętość i intensywność, dopasowuje harmonogram.', icon: '🤖' },
-              { step: '03', title: 'Twój plan', desc: 'Spersonalizowany plan z progresją i wsparciem Lasko.', icon: '🎯' },
+              { 
+                step: '01', 
+                title: 'Krótka ankieta', 
+                desc: 'Cel, poziom, sprzęt, biometria (wiek/waga/wzrost).', 
+                icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-emerald-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              },
+              { 
+                step: '02', 
+                title: 'Analiza AI', 
+                desc: 'Algorytm wybiera objętość i intensywność, dopasowuje harmonogram.', 
+                icon: <svg width="48" height="48" viewBox="0 0 16 16" fill="none" className="text-blue-400"><path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z" fill="currentColor"/></svg>
+              },
+              { 
+                step: '03', 
+                title: 'Twój plan', 
+                desc: 'Spersonalizowany plan z progresją i wsparciem Lasko.', 
+                icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-yellow-400"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              },
             ].map((k, i) => (
               <li key={i} className="group relative rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-                <div className="mb-3 text-4xl">{k.icon}</div>
+                <div className="mb-3">{k.icon}</div>
                 <div className="text-xs font-bold tracking-widest text-emerald-300">KROK {k.step}</div>
                 <h5 className="mb-2 mt-1 text-lg font-bold text-white">{k.title}</h5>
                 <p className="text-gray-300">{k.desc}</p>
@@ -373,7 +412,7 @@ const HomePage = () => {
       <footer className="border-t border-white/5 px-6 py-10">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <Link to="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+            <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
               Lasko
             </Link>
             <div className="flex gap-6">

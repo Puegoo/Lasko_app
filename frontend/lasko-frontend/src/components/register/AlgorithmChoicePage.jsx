@@ -141,9 +141,9 @@ const AlgorithmChoicePage = () => {
       <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] to-[#0D7A61]/90 opacity-90 mix-blend-multiply" />
 
       {/* Logo */}
-      <div className="absolute top-8 left-8 z-10">
-        <Link to="/" aria-label="Strona główna">
-          <h1 className="text-[#1DCD9F] text-5xl font-bold">Lasko</h1>
+      <div className="absolute top-6 left-4 z-10">
+        <Link to="/" aria-label="Strona główna" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+          Lasko
         </Link>
       </div>
 

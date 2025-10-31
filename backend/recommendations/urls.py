@@ -1,6 +1,7 @@
 # backend/recommendations/urls.py
 from django.urls import path
 from . import views
+from . import exercises_views
 
 urlpatterns = [
     # Główny endpoint rekomendacji
@@ -31,6 +32,11 @@ urlpatterns = [
 # Exercise catalog URLs (mapped under /api/exercises/)
 exercise_urlpatterns = [
     path('', views.get_exercises, name='get_exercises'),
+    path('<int:exercise_id>/detail/', exercises_views.get_exercise_detail, name='get_exercise_detail'),
+    path('<int:exercise_id>/rate/', exercises_views.rate_exercise, name='rate_exercise'),
+    path('<int:exercise_id>/favorite/', exercises_views.toggle_favorite, name='toggle_favorite'),
+    path('<int:exercise_id>/statistics/', exercises_views.get_exercise_statistics, name='get_exercise_statistics'),
+    path('favorites/', exercises_views.get_favorite_exercises, name='get_favorite_exercises'),
 ]
 
 # Workout URLs (mapped under /api/workouts/)

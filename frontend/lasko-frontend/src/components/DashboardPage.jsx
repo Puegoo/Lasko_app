@@ -103,8 +103,8 @@ const Navbar = ({ username }) => {
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link to="/" className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+      <div className="flex items-center justify-between px-4 py-4">
+        <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
           Lasko
         </Link>
 
@@ -148,8 +148,13 @@ const Navbar = ({ username }) => {
 };
 
 // Komponenty kart
-const StatCard = ({ label, value, sublabel, icon, trend }) => (
-  <div className="group relative rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition-all hover:border-emerald-400/40">
+const StatCard = ({ label, value, sublabel, icon, trend, onClick }) => {
+  const Wrapper = onClick ? 'button' : 'div';
+  const clickProps = onClick ? { onClick, className: 'w-full text-left' } : {};
+  
+  return (
+    <Wrapper {...clickProps}>
+      <div className={`group relative rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition-all ${onClick ? 'hover:border-emerald-400/60 hover:bg-white/[0.08] cursor-pointer active:scale-[0.98]' : 'hover:border-emerald-400/40'}`}>
     <div className="flex items-start justify-between">
       <div>
         <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
@@ -167,7 +172,9 @@ const StatCard = ({ label, value, sublabel, icon, trend }) => (
     </div>
     <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 ring-1 ring-emerald-400/30 transition-opacity group-hover:opacity-100" />
   </div>
+    </Wrapper>
 );
+};
 
 const ActionCard = ({ icon, title, description, onClick }) => (
   <button
@@ -405,6 +412,28 @@ const DashboardPage = () => {
       const profileData = await apiService.fetchUserProfile?.();
       if (profileData?.profile) {
         setUserProfile(profileData.profile);
+      }
+      
+      // Pobierz ulubione ćwiczenia (dla kafelka "Ulubione ćwiczenie")
+      try {
+        const favoritesData = await apiService.request('/api/exercises/favorites/');
+        if (favoritesData?.success && favoritesData.favorites?.length > 0) {
+          // Ustaw pierwsze ulubione jako favorite_exercise
+          setUserProfile(prev => ({
+            ...prev,
+            favorite_exercise: favoritesData.favorites[0].name,
+            favorite_count: favoritesData.count
+          }));
+        } else {
+          // Brak ulubionych
+          setUserProfile(prev => ({
+            ...prev,
+            favorite_exercise: null,
+            favorite_count: 0
+          }));
+        }
+      } catch (err) {
+        console.error('[DashboardPage] Error fetching favorites:', err);
       }
       
       // Pobierz aktywny plan użytkownika
@@ -745,37 +774,37 @@ const DashboardPage = () => {
               <h2 className="mb-4 text-xl font-bold text-white">Szybkie akcje</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <ActionCard
-                  icon={<IconKit.ChartBar size="xl" className="text-emerald-400" />}
+                  icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-emerald-400"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>}
                   title="Statystyki"
                   description="Dashboard analityczny"
                   onClick={() => navigate('/statistics')}
                 />
                 <ActionCard
-                  icon={<IconKit.Dumbbell size="xl" className="text-blue-400" />}
+                  icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-blue-400"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/></svg>}
                   title="Ćwiczenia"
                   description="Przeglądaj bibliotekę"
                   onClick={() => navigate('/exercises')}
                 />
                 <ActionCard
-                  icon={<IconKit.Calendar size="xl" className="text-orange-400" />}
+                  icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-yellow-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>}
                   title="Kalendarz"
                   description="Historia treningów"
                   onClick={() => navigate('/calendar')}
                 />
                 <ActionCard
-                  icon={<IconKit.Star size="xl" className="text-yellow-400" />}
-                  title="Społeczność"
-                  description="Znajdź podobnych użytkowników"
-                  onClick={() => navigate('/community')}
+                  icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-teal-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  title="Dziennik"
+                  description="Notatki z treningów"
+                  onClick={() => navigate('/journal')}
                 />
                 <ActionCard
-                  icon={<IconKit.Document size="xl" className="text-purple-400" />}
+                  icon={<svg width="40" height="40" viewBox="0 0 16 16" fill="none" className="text-purple-400"><path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z" fill="currentColor"/></svg>}
                   title="Plany"
                   description="Wyszukaj plany treningowe"
                   onClick={() => navigate('/plans')}
                 />
                 <ActionCard
-                  icon={<IconKit.Settings size="xl" className="text-gray-400" />}
+                  icon={<svg width="40" height="40" viewBox="0 0 50 50" fill="none" className="text-gray-400"><path d="M 22.205078 2 A 1.0001 1.0001 0 0 0 21.21875 2.8378906 L 20.246094 8.7929688 C 19.076509 9.1331971 17.961243 9.5922728 16.910156 10.164062 L 11.996094 6.6542969 A 1.0001 1.0001 0 0 0 10.708984 6.7597656 L 6.8183594 10.646484 A 1.0001 1.0001 0 0 0 6.7070312 11.927734 L 10.164062 16.873047 C 9.583454 17.930271 9.1142098 19.051824 8.765625 20.232422 L 2.8359375 21.21875 A 1.0001 1.0001 0 0 0 2.0019531 22.205078 L 2.0019531 27.705078 A 1.0001 1.0001 0 0 0 2.8261719 28.691406 L 8.7597656 29.742188 C 9.1064607 30.920739 9.5727226 32.043065 10.154297 33.101562 L 6.6542969 37.998047 A 1.0001 1.0001 0 0 0 6.7597656 39.285156 L 10.648438 43.175781 A 1.0001 1.0001 0 0 0 11.927734 43.289062 L 16.882812 39.820312 C 17.936999 40.39548 19.054994 40.857928 20.228516 41.201172 L 21.21875 47.164062 A 1.0001 1.0001 0 0 0 22.205078 48 L 27.705078 48 A 1.0001 1.0001 0 0 0 28.691406 47.173828 L 29.751953 41.1875 C 30.920633 40.838997 32.033372 40.369697 33.082031 39.791016 L 38.070312 43.291016 A 1.0001 1.0001 0 0 0 39.351562 43.179688 L 43.240234 39.287109 A 1.0001 1.0001 0 0 0 43.34375 37.996094 L 39.787109 33.058594 C 40.355783 32.014958 40.813915 30.908875 41.154297 29.748047 L 47.171875 28.693359 A 1.0001 1.0001 0 0 0 47.998047 27.707031 L 47.998047 22.207031 A 1.0001 1.0001 0 0 0 47.160156 21.220703 L 41.152344 20.238281 C 40.80968 19.078827 40.350281 17.974723 39.78125 16.931641 L 43.289062 11.933594 A 1.0001 1.0001 0 0 0 43.177734 10.652344 L 39.287109 6.7636719 A 1.0001 1.0001 0 0 0 37.996094 6.6601562 L 33.072266 10.201172 C 32.023186 9.6248101 30.909713 9.1579916 29.738281 8.8125 L 28.691406 2.828125 A 1.0001 1.0001 0 0 0 27.705078 2 L 22.205078 2 z M 23.056641 4 L 26.865234 4 L 27.861328 9.6855469 A 1.0001 1.0001 0 0 0 28.603516 10.484375 C 30.066026 10.848832 31.439607 11.426549 32.693359 12.185547 A 1.0001 1.0001 0 0 0 33.794922 12.142578 L 38.474609 8.7792969 L 41.167969 11.472656 L 37.835938 16.220703 A 1.0001 1.0001 0 0 0 37.796875 17.310547 C 38.548366 18.561471 39.118333 19.926379 39.482422 21.380859 A 1.0001 1.0001 0 0 0 40.291016 22.125 L 45.998047 23.058594 L 45.998047 26.867188 L 40.279297 27.871094 A 1.0001 1.0001 0 0 0 39.482422 28.617188 C 39.122545 30.069817 38.552234 31.434687 37.800781 32.685547 A 1.0001 1.0001 0 0 0 37.845703 33.785156 L 41.224609 38.474609 L 38.53125 41.169922 L 33.791016 37.84375 A 1.0001 1.0001 0 0 0 32.697266 37.808594 C 31.44975 38.567585 30.074755 39.148028 28.617188 39.517578 A 1.0001 1.0001 0 0 0 27.876953 40.3125 L 26.867188 46 L 23.052734 46 L 22.111328 40.337891 A 1.0001 1.0001 0 0 0 21.365234 39.53125 C 19.90185 39.170557 18.522094 38.59371 17.259766 37.835938 A 1.0001 1.0001 0 0 0 16.171875 37.875 L 11.46875 41.169922 L 8.7734375 38.470703 L 12.097656 33.824219 A 1.0001 1.0001 0 0 0 12.138672 32.724609 C 11.372652 31.458855 10.793319 30.079213 10.427734 28.609375 A 1.0001 1.0001 0 0 0 9.6328125 27.867188 L 4.0019531 26.867188 L 4.0019531 23.052734 L 9.6289062 22.117188 A 1.0001 1.0001 0 0 0 10.435547 21.373047 C 10.804273 19.898143 11.383325 18.518729 12.146484 17.255859 A 1.0001 1.0001 0 0 0 12.111328 16.164062 L 8.8261719 11.46875 L 11.523438 8.7734375 L 16.185547 12.105469 A 1.0001 1.0001 0 0 0 17.28125 12.148438 C 18.536908 11.394293 19.919867 10.822081 21.384766 10.462891 A 1.0001 1.0001 0 0 0 22.132812 9.6523438 L 23.056641 4 z M 25 17 C 20.593567 17 17 20.593567 17 25 C 17 29.406433 20.593567 33 25 33 C 29.406433 33 33 29.406433 33 25 C 33 20.593567 29.406433 17 25 17 z M 25 19 C 28.325553 19 31 21.674447 31 25 C 31 28.325553 28.325553 31 25 31 C 21.674447 31 19 28.325553 19 25 C 19 21.674447 21.674447 19 25 19 z" fill="currentColor"/></svg>}
                   title="Ustawienia"
                   description="Edytuj preferencje"
                   onClick={() => navigate('/settings')}
@@ -928,9 +957,19 @@ const DashboardPage = () => {
                 icon={<IconKit.Clock size="lg" className="text-blue-400" />}
               />
               <StatCard
-                label="Ulubione ćwiczenie"
-                value={userProfile?.favorite_exercise || 'Brak danych'}
-                icon={<IconKit.Star size="lg" className="text-yellow-400" />}
+                label="Ulubione ćwiczenia"
+                value={userProfile?.favorite_count || 0}
+                sublabel={
+                  userProfile?.favorite_count > 0
+                    ? 'polubionych ćwiczeń'
+                    : 'Kliknij aby dodać'
+                }
+                icon={
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-red-500">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/>
+                  </svg>
+                }
+                onClick={() => navigate('/exercises?favorites=true')}
               />
             </div>
 
@@ -975,7 +1014,12 @@ const DashboardPage = () => {
 
             {/* Motivational card */}
             <div className="rounded-3xl bg-gradient-to-br from-emerald-400/10 to-teal-400/10 border border-emerald-400/20 p-6">
-              <h3 className="mb-3 text-lg font-bold text-white">💡 Wskazówka dnia</h3>
+              <h3 className="mb-3 text-lg font-bold text-white flex items-center gap-2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-yellow-400">
+                  <path d="M9 21h6M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Wskazówka dnia
+              </h3>
               <p className="text-sm text-gray-300">
                 Regularność jest kluczem do sukcesu. Nawet krótki trening jest lepszy niż żaden!
               </p>
