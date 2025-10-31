@@ -20,20 +20,9 @@ const AlgorithmChoicePage = () => {
 
   const algorithmOptions = [
     {
-      value: 'hybrydowo',
-      name: 'Hybrydowy (Zalecany)',
-      icon: '🎯',
-      description:
-        'Łączy dopasowanie do Twojej ankiety z popularnością wśród podobnych użytkowników.',
-      pros: ['Najlepsze dopasowanie', 'Sprawdzone przez innych', 'Balans preferencji'],
-      badge: 'NAJLEPSZY',
-      details:
-        'Analiza ankiety + wybory użytkowników o zbliżonym profilu (cel, poziom, dni, sprzęt).',
-    },
-    {
       value: 'produkt',
       name: 'Na podstawie ankiety',
-      icon: '📋',
+      icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-blue-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
       description:
         'Dokładne dopasowanie wyłącznie do Twoich odpowiedzi w ankiecie.',
       pros: ['100% spersonalizowane', 'Oparte na preferencjach', 'Precyzyjne dopasowanie'],
@@ -41,9 +30,20 @@ const AlgorithmChoicePage = () => {
       details: 'Uwzględnia tylko Twoje odpowiedzi: cel, poziom, dni, sprzęt.',
     },
     {
+      value: 'hybrydowo',
+      name: 'Hybrydowy (Zalecany)',
+      icon: <svg width="40" height="40" viewBox="0 0 16 16" fill="none" className="text-emerald-400"><path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z" fill="currentColor"/></svg>,
+      description:
+        'Łączy dopasowanie do Twojej ankiety z popularnością wśród podobnych użytkowników.',
+      pros: ['Najlepsze dopasowanie', 'Sprawdzone przez innych', 'Balans preferencji'],
+      badge: 'NAJLEPSZY',
+      details:
+        'Analiza ankiety + wybory użytkowników o zbliżonym profilu (cel, poziom, dni, sprzęt). Wagi dostosowują się dynamicznie (50-90% ankieta, 10-50% społeczność).',
+    },
+    {
       value: 'klient',
       name: 'Popularne wśród podobnych',
-      icon: '👥',
+      icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-purple-400"><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="17" cy="7" r="3" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a3 3 0 0 0-3-3h-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
       description:
         'Plany wybierane najczęściej przez osoby o podobnym profilu treningowym.',
       pros: ['Społeczne rekomendacje', 'Popularne wybory', 'Zweryfikowane w praktyce'],
@@ -57,7 +57,7 @@ const AlgorithmChoicePage = () => {
     {
       value: 'ai',
       name: 'AI dobierze plan',
-      icon: '🤖',
+      icon: <svg width="40" height="40" viewBox="0 0 16 16" fill="none" className="text-emerald-400"><path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z" fill="currentColor"/></svg>,
       description: 'System automatycznie wybierze najlepsze plany z bazy.',
       action: 'Zobacz rekomendacje AI',
       subtitle: 'Szybko i efektywnie',
@@ -65,7 +65,7 @@ const AlgorithmChoicePage = () => {
     {
       value: 'creator',
       name: 'Stworzę własny plan',
-      icon: '🛠️',
+      icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-orange-400"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="2 17 12 22 22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="2 12 12 17 22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
       description: 'Użyj kreatora do zbudowania planu od podstaw.',
       action: 'Przejdź do kreatora',
       subtitle: 'Pełna kontrola',
@@ -246,8 +246,10 @@ const AlgorithmChoicePage = () => {
           {/* Trzy algorytmy AI – pionowo */}
           {selectedPath === 'ai' && (
             <div className="mb-8">
-              <h3 className="text-white text-xl font-bold mb-4 flex items-center">
-                <span className="mr-3">🤖</span>
+              <h3 className="text-white text-xl font-bold mb-4 flex items-center gap-3">
+                <svg width="32" height="32" viewBox="0 0 16 16" fill="none" className="text-emerald-400">
+                  <path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z" fill="currentColor"/>
+                </svg>
                 Wybierz algorytm AI:
               </h3>
 

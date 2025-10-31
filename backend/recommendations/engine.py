@@ -55,6 +55,95 @@ def fetch_user_profile(auth_account_id: int) -> Dict:
     return profile
 
 
+def get_default_profile_for_new_user(goal=None, level=None, equipment=None) -> Dict:
+    """
+    🆕 COLD START SOLUTION: Stwórz sensowny profil domyślny dla nowego użytkownika
+    na podstawie statystyk najpopularniejszych kombinacji.
+    """
+    logger.info(f"[ColdStart] Getting default profile for: goal={goal}, level={level}, equipment={equipment}")
+    
+    with connection.cursor() as cursor:
+        # Znajdź najpopularniejsze kombinacje dla danego celu i poziomu
+        cursor.execute("""
+            SELECT 
+                training_days_per_week,
+                equipment_preference,
+                COUNT(*) as popularity
+            FROM user_profiles
+            WHERE 1=1
+                AND (%s IS NULL OR goal = %s)
+                AND (%s IS NULL OR level = %s)
+                AND training_days_per_week IS NOT NULL
+                AND equipment_preference IS NOT NULL
+            GROUP BY training_days_per_week, equipment_preference
+            ORDER BY popularity DESC
+            LIMIT 1
+        """, [goal, goal, level, level])
+        
+        result = cursor.fetchone()
+        
+        if result:
+            default_profile = {
+                'days': result[0],
+                'equipment': _norm(result[1]),
+                'confidence': 'medium',  # oznacz poziom pewności
+                'source': 'statistics'
+            }
+            logger.info(f"[ColdStart] Found popular combination: days={result[0]}, equipment={result[1]}, popularity={result[2]} users")
+            return default_profile
+        
+        # Fallback - najbezpieczniejsze wartości dla początkujących
+        logger.info(f"[ColdStart] No statistics found, using safe defaults")
+        return {
+            'days': 3,
+            'equipment': 'silownia',
+            'confidence': 'low',
+            'source': 'hardcoded_safe'
+        }
+
+
+def calculate_profile_completeness(user: Dict) -> float:
+    """
+    🆕 Oblicz kompletność profilu użytkownika (0.0 - 1.0)
+    """
+    required_fields = ['goal', 'level', 'days', 'equipment']
+    filled_fields = sum(1 for field in required_fields if user.get(field))
+    completeness = filled_fields / len(required_fields)
+    return completeness
+
+
+def enhance_profile_with_defaults(user: Dict) -> Dict:
+    """
+    🆕 COLD START SOLUTION: Uzupełnij niepełny profil domyślnymi wartościami
+    """
+    # Sprawdź kompletność profilu
+    completeness = calculate_profile_completeness(user)
+    
+    if completeness >= 0.75:  # 3/4 pól wypełnionych
+        logger.info(f"[ColdStart] Profile complete ({completeness:.0%}), no enhancement needed")
+        return user
+    
+    logger.warning(f"[ColdStart] Profile incomplete ({completeness:.0%}), enhancing with defaults...")
+    
+    # Pobierz domyślne wartości na podstawie tego co mamy
+    defaults = get_default_profile_for_new_user(
+        goal=user.get('goal'), 
+        level=user.get('level'),
+        equipment=user.get('equipment')
+    )
+    
+    # Uzupełnij brakujące pola (user ma priorytet nad defaults)
+    enhanced_profile = {**defaults, **user}
+    
+    # Dodaj metadane o uzupełnieniu
+    enhanced_profile['was_enhanced'] = True
+    enhanced_profile['original_completeness'] = completeness
+    
+    logger.info(f"[ColdStart] Profile enhanced: {enhanced_profile}")
+    
+    return enhanced_profile
+
+
 def _content_candidates() -> List[Tuple]:
     """Get all active training plans with popularity stats."""
     q = """
@@ -151,7 +240,11 @@ def _popularity_boost(total_users, avg_rating):
 
 
 def content_based(user: Dict) -> List[Dict]:
-    """Content-based recommendation algorithm."""
+    """Content-based recommendation algorithm with COLD START support."""
+    
+    # 🆕 COLD START: Uzupełnij niepełny profil domyślnymi wartościami
+    user = enhance_profile_with_defaults(user)
+    
     rows = _content_candidates()
     results = []
     logger.info(f"[Engine] User profile for matching: {user}")
@@ -166,40 +259,67 @@ def content_based(user: Dict) -> List[Dict]:
         eq = _norm(equip)
         score = 0.0
         match_details = []
+        score_breakdown = {}  # 🆕 Szczegółowy rozkład punktów
 
         # Goal
         user_goal = _norm(user.get('goal'))
+        goal_points = 0
         if user_goal and g:
             if user_goal == g:
+                goal_points = 15
                 score += 15
                 match_details.append(f"Goal match: {user_goal}")
+        score_breakdown['goal'] = {'points': goal_points, 'max': 15, 'matched': goal_points > 0}
 
         # Level
         user_level = _norm(user.get('level'))
+        level_points = 0
         if user_level and lv:
             if user_level == lv:
+                level_points = 10
                 score += 10
                 match_details.append(f"Level match: {user_level}")
             elif user_level == 'sredniozaawansowany' and lv in ('poczatkujacy', 'zaawansowany'):
+                level_points = 5
                 score += 5
+        score_breakdown['level'] = {'points': level_points, 'max': 10, 'matched': level_points > 0}
 
         # Days
         days_score = _score_days(user.get('days'), days)
         score += days_score
         if days_score > 8:
             match_details.append(f"Days match: {user.get('days')} vs {days}")
+        score_breakdown['days'] = {
+            'points': days_score, 
+            'max': 12, 
+            'matched': days_score > 0,
+            'user_value': user.get('days'),
+            'plan_value': days,
+            'difference': abs((user.get('days') or 0) - (days or 0))
+        }
 
         # Equipment – miękka kara za brak zgodności
         user_equip = _norm(user.get('equipment'))
+        equipment_points = 0
         if user_equip and eq:
             if user_equip == eq:
+                equipment_points = 8
                 score += 8
                 match_details.append(f"Equipment match: {user_equip}")
             else:
+                equipment_points = -2
                 score -= 2
+        score_breakdown['equipment'] = {'points': equipment_points, 'max': 8, 'matched': equipment_points > 0}
 
         # Popularity
-        score += _popularity_boost(total_users, avg_rating)
+        popularity_points = _popularity_boost(total_users, avg_rating)
+        score += popularity_points
+        score_breakdown['popularity'] = {
+            'points': round(popularity_points, 2), 
+            'max': 6, 
+            'total_users': total_users,
+            'avg_rating': float(avg_rating) if avg_rating is not None else None
+        }
 
         # wynik
         if score > 0:
@@ -215,10 +335,21 @@ def content_based(user: Dict) -> List[Dict]:
                     'equipment': equip,
                     'total_users': total_users,
                     'avg_rating': float(avg_rating) if avg_rating is not None else None,
+                    'score_breakdown': score_breakdown,  # 🆕 Szczegółowy breakdown
                 }
             })
 
     results.sort(key=lambda x: x['score'], reverse=True)
+    
+    # 🆕 COLD START: Dodaj informację o uzupełnieniu profilu do metadanych
+    if user.get('was_enhanced'):
+        for result in results:
+            if 'meta' not in result:
+                result['meta'] = {}
+            result['meta']['profile_enhanced'] = True
+            result['meta']['profile_completeness'] = user.get('original_completeness', 0)
+            result['meta']['enhancement_source'] = user.get('source', 'unknown')
+    
     logger.info(f"[Engine] Content-based returning {len(results)} recommendations")
     return results
 
@@ -294,8 +425,70 @@ def _minmax_norm(items: List[Dict]) -> Dict[int, float]:
     return {i['plan_id']: ((i['score'] - mn) / (mx - mn)) * 100.0 for i in items}
 
 
+def calculate_adaptive_weights(user_id: int, user: Dict) -> Tuple[float, float]:
+    """
+    🆕 ML-INSPIRED ADAPTIVE WEIGHTS
+    Oblicz optymalne wagi Content-Based vs Collaborative na podstawie:
+    1. Kompletności profilu użytkownika (więcej CB gdy pełny profil)
+    2. Liczby podobnych użytkowników (więcej CF gdy dużo podobnych)
+    3. Historii aktywacji (więcej CF gdy doświadczony użytkownik)
+    
+    Returns: (cb_weight, cf_weight) gdzie suma = 1.0
+    """
+    
+    # 1. KOMPLETNOŚĆ PROFILU (0.0 - 1.0)
+    profile_score = calculate_profile_completeness(user)
+    
+    # 2. LICZBA PODOBNYCH UŻYTKOWNIKÓW (0.0 - 1.0)
+    similar_users = _similar_user_ids(user_id)
+    # Normalizacja: 0 podobnych = 0.0, 20+ podobnych = 1.0
+    similarity_score = min(1.0, len(similar_users) / 20.0)
+    
+    # 3. HISTORIA AKTYWACJI (0.0 - 1.0)
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT COUNT(*) FROM user_active_plans WHERE auth_account_id = %s
+        """, [user_id])
+        history_count = cursor.fetchone()[0] or 0
+    # Normalizacja: 0 planów = 0.0, 3+ planów = 1.0
+    history_score = min(1.0, history_count / 3.0)
+    
+    # 4. OBLICZ WAGI (ADAPTIVE FORMULA)
+    # Logika:
+    # - Wysoki profile_score → więcej CB (znamy preferencje)
+    # - Wysoki similarity_score → więcej CF (mamy podobnych)
+    # - Wysoki history_score → więcej CF (ufamy społeczności)
+    
+    # Bazowa waga CB: 0.5 (50%)
+    cb_weight = 0.5
+    
+    # Dodaj za kompletność profilu (max +0.3)
+    cb_weight += 0.3 * profile_score
+    
+    # Odejmij za podobieństwo (max -0.2)
+    cb_weight -= 0.2 * similarity_score
+    
+    # Odejmij za historię (max -0.1)
+    cb_weight -= 0.1 * history_score
+    
+    # Ogranicz do sensownych zakresów: 50-90% CB, 10-50% CF
+    cb_weight = max(0.5, min(0.9, cb_weight))
+    cf_weight = 1.0 - cb_weight
+    
+    logger.info(f"[AdaptiveWeights] User {user_id}:")
+    logger.info(f"  Profile completeness: {profile_score:.2%}")
+    logger.info(f"  Similar users: {len(similar_users)} ({similarity_score:.2%})")
+    logger.info(f"  History: {history_count} plans ({history_score:.2%})")
+    logger.info(f"  → Weights: CB={cb_weight:.2%}, CF={cf_weight:.2%}")
+    
+    return cb_weight, cf_weight
+
+
 def hybrid(user_id: int, user: Dict) -> List[Dict]:
-    """Hybrid recommendation: treść 75%, CF 25%, CF tylko na planach zgodnych treściowo."""
+    """
+    🆕 ADAPTIVE HYBRID: Dynamiczne wagi CB/CF zamiast statycznych 75/25
+    Wagi dostosowują się do profilu użytkownika i kontekstu społecznego.
+    """
     cb = content_based(user)
     cf = collaborative(user_id)
 
@@ -309,28 +502,38 @@ def hybrid(user_id: int, user: Dict) -> List[Dict]:
 
     # Jeśli CB puste (nie powinno), albo CF po filtrze puste – zwracamy CB
     if not cb or not cf:
+        logger.info("[Engine] Only one algorithm has results, returning available")
         return cb
 
     cbn = _minmax_norm(cb)
     cfn = _minmax_norm(cf)
+
+    # 🆕 ADAPTIVE WEIGHTS: Oblicz dynamiczne wagi zamiast statycznych 75/25
+    cb_weight, cf_weight = calculate_adaptive_weights(user_id, user)
 
     all_plan_ids = set(cbn.keys()) | set(cfn.keys())
     out: List[Dict] = []
     for pid in all_plan_ids:
         cb_score = cbn.get(pid, 0.0)
         cf_score = cfn.get(pid, 0.0)
-        combined_score = 0.75 * cb_score + 0.25 * cf_score
+        
+        # 🆕 Użyj adaptacyjnych wag zamiast hardkodowanych
+        combined_score = cb_weight * cb_score + cf_weight * cf_score
 
         meta = {}
         for item in cb:
             if item['plan_id'] == pid:
                 meta = item.get('meta', {})
                 break
+        
+        # 🆕 Dodaj metadane o wagach
+        meta['cb_weight'] = round(cb_weight, 3)
+        meta['cf_weight'] = round(cf_weight, 3)
 
         out.append({'plan_id': pid, 'score': combined_score, 'meta': meta})
 
     out.sort(key=lambda x: x['score'], reverse=True)
-    logger.info(f"[Engine] Hybrid returning {len(out)} recommendations")
+    logger.info(f"[Engine] Adaptive Hybrid returning {len(out)} recommendations (CB: {cb_weight:.0%}, CF: {cf_weight:.0%})")
     return out
 
 
@@ -512,4 +715,8 @@ __all__ = [
     "hybrid",
     "plan_details",
     "explain_match",
+    "get_default_profile_for_new_user",
+    "calculate_profile_completeness",
+    "enhance_profile_with_defaults",
+    "calculate_adaptive_weights",
 ]

@@ -110,7 +110,27 @@ def _generate_with_engine(user_id, mode, top, preferences):
     try:
         # Fetch user profile
         profile = fetch_user_profile(user_id)
-        if not profile:
+        
+        # 🆕 Sprawdź czy użytkownik pominął ankietę
+        try:
+            user_profile_obj = UserProfile.objects.get(auth_account_id=user_id)
+            # Jeśli profil jest całkowicie pusty (wszystkie NULL), to znaczy że pominął ankietę
+            profile_empty = not any([
+                user_profile_obj.goal,
+                user_profile_obj.level,
+                user_profile_obj.training_days_per_week,
+                user_profile_obj.equipment_preference
+            ])
+            
+            if profile_empty and not preferences:
+                logger.warning(f"[Recommendations] User {user_id} has empty profile (skipped survey)")
+                return Response({
+                    "error": "Profile incomplete. Please complete the survey first.",
+                    "code": "empty_profile",
+                    "suggestion": "Complete the survey to get personalized recommendations",
+                    "action_url": "/enhanced-plan-creator"
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except UserProfile.DoesNotExist:
             logger.error(f"[Recommendations] No profile for user_id: {user_id}")
             return Response({
                 "error": "No user profile found. Please complete the survey.",
@@ -174,6 +194,26 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 meta.get('total_users'),
                 meta.get('avg_rating')
             )
+            
+            # 🆕 COLD START: Dodaj informację jeśli profil był uzupełniony
+            if meta.get('profile_enhanced'):
+                completeness_pct = int(meta.get('profile_completeness', 0) * 100)
+                source = meta.get('enhancement_source', 'unknown')
+                if source == 'statistics':
+                    match_reasons.append(f"✨ Rekomendacja oparta na popularnych wyborach (profil {completeness_pct}% kompletny)")
+                else:
+                    match_reasons.append(f"✨ Rekomendacja oparta na bezpiecznych wartościach (profil {completeness_pct}% kompletny)")
+            
+            # 🆕 ADAPTIVE WEIGHTS: Dodaj informację o wagach algorytmów (jeśli hybrid)
+            if mode == 'hybrid' and meta.get('cb_weight') is not None:
+                cb_pct = int(meta.get('cb_weight', 0.75) * 100)
+                cf_pct = int(meta.get('cf_weight', 0.25) * 100)
+                if cb_pct >= 70:
+                    match_reasons.append(f"🎯 Bazuje głównie na Twoich preferencjach ({cb_pct}% treść, {cf_pct}% społeczność)")
+                elif cf_pct >= 40:
+                    match_reasons.append(f"👥 Bazuje na społeczności i preferencjach ({cb_pct}% treść, {cf_pct}% społeczność)")
+                else:
+                    match_reasons.append(f"⚖️ Równowaga między treścią a społecznością ({cb_pct}/{cf_pct})")
 
             # Użyj nazwy z ankiety jeśli dostępna, w przeciwnym razie nazwa z bazy
             plan_name = preferences.get('plan_name') or plan_detail['name']
@@ -187,7 +227,10 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 "trainingDaysPerWeek": plan_detail['training_days_per_week'],
                 "equipmentRequired": plan_detail['equipment_required'],
                 "score": round(float(recommendation['score']), 2),
-                "matchReasons": match_reasons
+                "matchReasons": match_reasons,
+                "scoreBreakdown": meta.get('score_breakdown'),  # 🆕 Szczegółowy breakdown punktów
+                "cbWeight": meta.get('cb_weight'),  # 🆕 Wagi dla modalu
+                "cfWeight": meta.get('cf_weight'),
             }
             
             logger.info(f"[Recommendations] Enriched recommendation #{len(enriched_recommendations)}: planId={plan_id}, keys={list(enriched_recommendation.keys())}")

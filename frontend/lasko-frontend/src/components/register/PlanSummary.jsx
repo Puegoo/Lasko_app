@@ -71,7 +71,7 @@ const SecondaryButton = ({ onClick, to, children, className = '' }) => {
 
 // Navbar
 const Navbar = () => {
-  const { user, logout, isAuthenticated, getToken, debugAuth } = useAuth();
+  const { user, isAuthenticated, getToken, debugAuth } = useAuth();
   const looksAuthed =
     (typeof isAuthenticated === 'function' && isAuthenticated()) ||
     (typeof getToken === 'function' && !!getToken());
@@ -117,15 +117,9 @@ const Navbar = () => {
         </Link>
         <div className="hidden items-center gap-3 md:flex">
           {looksAuthed ? (
-            <>
-              <span className="hidden text-sm text-gray-300 lg:inline">
-                Witaj, <span className="font-semibold text-white">{navbarName}</span>!
-              </span>
-              <PrimaryButton to="/dashboard">Dashboard</PrimaryButton>
-              <button onClick={logout} className="text-sm text-gray-300 hover:text-white">
-                Wyloguj
-              </button>
-            </>
+            <span className="text-sm text-gray-300">
+              Witaj, <span className="font-semibold text-white">{navbarName}</span>!
+            </span>
           ) : (
             <>
               <SecondaryButton to="/login">Mam konto</SecondaryButton>
@@ -148,14 +142,9 @@ const Navbar = () => {
         <div className="md:hidden border-t border-white/5 bg-black/80 px-6 py-3">
           <div className="flex flex-col gap-2">
             {looksAuthed ? (
-              <>
-                <Link to="/dashboard" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
-                  Dashboard
-                </Link>
-                <button onClick={logout} className="rounded-lg px-3 py-2 text-left text-gray-200 hover:bg-white/5">
-                  Wyloguj
-                </button>
-              </>
+              <div className="px-3 py-2 text-gray-300">
+                Witaj, <span className="font-semibold text-white">{navbarName}</span>!
+              </div>
             ) : (
               <>
                 <Link to="/login" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
@@ -325,6 +314,7 @@ export default function PlanSummary() {
   const [detailsError, setDetailsError] = useState(null);
   const [fetchedPlanIds, setFetchedPlanIds] = useState(new Set());
   const [schedule, setSchedule] = useState([]);
+  const [recoDetailsModal, setRecoDetailsModal] = useState({ open: false, plan: null }); // 🆕 Modal szczegółów rekomendacji
   const recApi = useMemo(() => new RecommendationService(), []);
 
   // Dni tygodnia
@@ -663,9 +653,252 @@ export default function PlanSummary() {
     'zaawansowany': 'Zaawansowany',
   };
 
+  // 🆕 Modal szczegółów rekomendacji
+  const RecommendationDetailsModal = ({ open, plan, onClose }) => {
+    if (!open || !plan) return null;
+    
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+        <div className="relative max-w-2xl w-full bg-[#0b0b0b] rounded-3xl border border-white/10 p-6 max-h-[80vh] overflow-y-auto scrollbar-hide" onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-1">{plan.name}</h2>
+              <p className="text-gray-400 text-sm">Szczegóły rekomendacji AI</p>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+          
+          {/* Score */}
+          <div className="mb-6 p-4 rounded-2xl bg-emerald-400/10 border border-emerald-400/20">
+            <div className="flex items-center justify-between">
+              <span className="text-white font-semibold">Score dopasowania</span>
+              <span className="text-3xl font-bold text-emerald-400">
+                {plan.score ? `${Math.round(plan.score)}%` : 'N/A'}
+              </span>
+            </div>
+          </div>
+          
+          {/* Match Reasons */}
+          {plan.matchReasons && plan.matchReasons.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-white mb-3">Dlaczego ten plan?</h3>
+              <div className="space-y-2">
+                {plan.matchReasons.map((reason, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-gray-300 p-3 rounded-xl bg-white/5">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-emerald-400 flex-shrink-0 mt-0.5">
+                      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>{reason}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Metadane algorytmu */}
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-white mb-3">Parametry algorytmu</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-xs text-gray-400 mb-1">Cel treningowy</p>
+                <p className="text-white font-semibold">{plan.goalType || 'N/A'}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-xs text-gray-400 mb-1">Poziom</p>
+                <p className="text-white font-semibold">{plan.difficultyLevel || 'N/A'}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-xs text-gray-400 mb-1">Dni treningowe</p>
+                <p className="text-white font-semibold">{plan.trainingDaysPerWeek || plan.days?.length || 'N/A'} dni/tydzień</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-xs text-gray-400 mb-1">Sprzęt</p>
+                <p className="text-white font-semibold">{plan.equipmentRequired || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* 🆕 Szczegółowy breakdown punktów */}
+          {plan.scoreBreakdown && (
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-yellow-400">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
+                </svg>
+                Szczegółowa punktacja
+              </h3>
+              
+              {/* 🆕 Suma punktów (wycentrowana) */}
+              <div className="mb-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-400/20 to-teal-400/20 border-2 border-emerald-400/40">
+                <div className="text-center">
+                  <p className="text-sm text-gray-300 mb-1">Łączna punktacja</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-4xl font-black text-white">
+                      {(() => {
+                        const total = 
+                          (plan.scoreBreakdown.goal?.points || 0) +
+                          (plan.scoreBreakdown.level?.points || 0) +
+                          (plan.scoreBreakdown.days?.points || 0) +
+                          (plan.scoreBreakdown.equipment?.points || 0) +
+                          (plan.scoreBreakdown.popularity?.points || 0);
+                        return total.toFixed(1);
+                      })()}
+                    </span>
+                    <span className="text-2xl text-gray-400">/</span>
+                    <span className="text-2xl font-bold text-gray-400">51</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">maksymalnie możliwych punktów</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                {/* Goal */}
+                {plan.scoreBreakdown.goal && (
+                  <div className="p-3 rounded-xl bg-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-semibold">Cel treningowy</span>
+                      <span className={`font-bold ${plan.scoreBreakdown.goal.matched ? 'text-emerald-400' : 'text-gray-400'}`}>
+                        {plan.scoreBreakdown.goal.points > 0 ? '+' : ''}{plan.scoreBreakdown.goal.points} / {plan.scoreBreakdown.goal.max} pkt
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div className="bg-emerald-400 h-2 rounded-full transition-all" style={{ width: `${(plan.scoreBreakdown.goal.points / plan.scoreBreakdown.goal.max) * 100}%` }}/>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Level */}
+                {plan.scoreBreakdown.level && (
+                  <div className="p-3 rounded-xl bg-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-semibold">Poziom zaawansowania</span>
+                      <span className={`font-bold ${plan.scoreBreakdown.level.matched ? 'text-emerald-400' : 'text-gray-400'}`}>
+                        {plan.scoreBreakdown.level.points > 0 ? '+' : ''}{plan.scoreBreakdown.level.points} / {plan.scoreBreakdown.level.max} pkt
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div className="bg-blue-400 h-2 rounded-full transition-all" style={{ width: `${(plan.scoreBreakdown.level.points / plan.scoreBreakdown.level.max) * 100}%` }}/>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">Dokładne: +10 pkt, Średnio: +5 pkt</p>
+                  </div>
+                )}
+                
+                {/* Days */}
+                {plan.scoreBreakdown.days && (
+                  <div className="p-3 rounded-xl bg-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-semibold">Liczba dni treningowych</span>
+                      <span className={`font-bold ${plan.scoreBreakdown.days.matched ? 'text-emerald-400' : 'text-gray-400'}`}>
+                        {plan.scoreBreakdown.days.points > 0 ? '+' : ''}{plan.scoreBreakdown.days.points} / {plan.scoreBreakdown.days.max} pkt
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div className="bg-purple-400 h-2 rounded-full transition-all" style={{ width: `${(plan.scoreBreakdown.days.points / plan.scoreBreakdown.days.max) * 100}%` }}/>
+                    </div>
+                    {plan.scoreBreakdown.days.difference !== undefined && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        Różnica: {plan.scoreBreakdown.days.difference} dni ({plan.scoreBreakdown.days.user_value} → {plan.scoreBreakdown.days.plan_value})
+                        • 0 dni: +12, 1 dzień: +8, 2 dni: +4
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                {/* Equipment */}
+                {plan.scoreBreakdown.equipment && (
+                  <div className="p-3 rounded-xl bg-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-semibold">Sprzęt</span>
+                      <span className={`font-bold ${plan.scoreBreakdown.equipment.points > 0 ? 'text-emerald-400' : plan.scoreBreakdown.equipment.points < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                        {plan.scoreBreakdown.equipment.points > 0 ? '+' : ''}{plan.scoreBreakdown.equipment.points} / {plan.scoreBreakdown.equipment.max} pkt
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div className={`h-2 rounded-full transition-all ${plan.scoreBreakdown.equipment.points > 0 ? 'bg-emerald-400' : 'bg-red-400'}`} style={{ width: `${Math.abs(plan.scoreBreakdown.equipment.points / plan.scoreBreakdown.equipment.max) * 100}%` }}/>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">Dopasowanie: +8 pkt, Brak: -2 pkt</p>
+                  </div>
+                )}
+                
+                {/* Popularity */}
+                {plan.scoreBreakdown.popularity && (
+                  <div className="p-3 rounded-xl bg-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-semibold">Popularność</span>
+                      <span className="font-bold text-yellow-400">
+                        +{plan.scoreBreakdown.popularity.points} / {plan.scoreBreakdown.popularity.max} pkt
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div className="bg-yellow-400 h-2 rounded-full transition-all" style={{ width: `${(plan.scoreBreakdown.popularity.points / plan.scoreBreakdown.popularity.max) * 100}%` }}/>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {plan.scoreBreakdown.popularity.total_users} użytkowników
+                      {plan.scoreBreakdown.popularity.avg_rating && ` • Ocena: ${plan.scoreBreakdown.popularity.avg_rating.toFixed(1)}/5`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Wagi algorytmu (jeśli dostępne) */}
+          {(plan.cbWeight || plan.cfWeight) && (
+            <div className="mb-6 p-4 rounded-2xl bg-blue-400/10 border border-blue-400/20">
+              <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-blue-400">
+                  <path d="M3 3v18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M18 17l-5-5-4 4-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Wagi algorytmu (Adaptive Hybrid)
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-300">Content-Based (Twoje preferencje)</span>
+                  <span className="text-white font-bold">{Math.round((plan.cbWeight || 0) * 100)}%</span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2">
+                  <div className="bg-blue-400 h-2 rounded-full transition-all" style={{ width: `${(plan.cbWeight || 0) * 100}%` }}/>
+                </div>
+                
+                <div className="flex items-center justify-between text-sm mt-3">
+                  <span className="text-gray-300">Collaborative (Społeczność)</span>
+                  <span className="text-white font-bold">{Math.round((plan.cfWeight || 0) * 100)}%</span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-2">
+                  <div className="bg-purple-400 h-2 rounded-full transition-all" style={{ width: `${(plan.cfWeight || 0) * 100}%` }}/>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors"
+          >
+            Zamknij
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
       <GradientGridBg />
+      
+      {/* 🆕 Modal szczegółów rekomendacji */}
+      <RecommendationDetailsModal 
+        open={recoDetailsModal.open} 
+        plan={recoDetailsModal.plan} 
+        onClose={() => setRecoDetailsModal({ open: false, plan: null })} 
+      />
       <GlowOrb className="left-[20%] top-40 h-64 w-64 bg-emerald-400/20" />
       <GlowOrb className="right-[10%] bottom-32 h-52 w-52 bg-teal-400/20" />
 
@@ -685,19 +918,81 @@ export default function PlanSummary() {
 
         {/* Stats Grid */}
         <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <StatCard label="Cel" value={goalLabels[goal] || goal} icon={<IconKit.Target size="lg" />} />
-          <StatCard label="Poziom" value={levelLabels[level] || level} icon={<IconKit.ChartBar size="lg" />} />
-          <StatCard label="Dni/tydzień" value={trainingDaysPerWeek} icon={<IconKit.Calendar size="lg" />} />
-          <StatCard label="Czas/sesja" value={`${timePerSession} min`} icon={<IconKit.Clock size="lg" />} />
-          <StatCard label="Sprzęt" value={equipmentLabels[equipment] || equipment} icon={<IconKit.Dumbbell size="lg" />} />
+          <StatCard 
+            label="Cel" 
+            value={goalLabels[goal] || goal} 
+            icon={
+              <svg width="32" height="32" viewBox="0 0 16 16" fill="none" className="text-emerald-400">
+                <path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z" fill="currentColor"/>
+              </svg>
+            } 
+          />
+          <StatCard 
+            label="Poziom" 
+            value={levelLabels[level] || level} 
+            icon={
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-blue-400">
+                <line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            } 
+          />
+          <StatCard 
+            label="Dni/tydzień" 
+            value={trainingDaysPerWeek} 
+            icon={
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-yellow-400">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            } 
+          />
+          <StatCard 
+            label="Czas/sesja" 
+            value={`${timePerSession} min`} 
+            icon={
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-purple-400">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            } 
+          />
+          <StatCard 
+            label="Sprzęt" 
+            value={equipmentLabels[equipment] || equipment} 
+            icon={
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-orange-400">
+                <rect x="2" y="10" width="4" height="4" stroke="currentColor" strokeWidth="2"/>
+                <rect x="18" y="10" width="4" height="4" stroke="currentColor" strokeWidth="2"/>
+                <line x1="6" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="9" cy="12" r="2" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="15" cy="12" r="2" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+            } 
+          />
         </div>
 
         {/* Tabs */}
         <div className="mb-8 flex gap-2 border-b border-white/10">
           {[
-            { id: 'overview', label: 'Przegląd', icon: <IconKit.Document size="sm" /> },
-            { id: 'details', label: 'Szczegóły', icon: <IconKit.Notebook size="sm" /> },
-            { id: 'schedule', label: 'Harmonogram', icon: <IconKit.Calendar size="sm" /> },
+            { 
+              id: 'overview', 
+              label: 'Przegląd', 
+              icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M18 17l-5-5-4 4-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            },
+            { 
+              id: 'details', 
+              label: 'Szczegóły', 
+              icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            },
+            { 
+              id: 'schedule', 
+              label: 'Harmonogram', 
+              icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            },
           ].map(tab => (
             <button
               key={tab.id}
@@ -789,12 +1084,27 @@ export default function PlanSummary() {
 
               {/* Score planu */}
               <div>
-                <h3 className="mb-4 text-lg font-bold text-white">Dopasowanie planu</h3>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-white">Dopasowanie planu</h3>
+                  {/* 🆕 Przycisk szczegółów rekomendacji */}
+                  <button
+                    onClick={() => setRecoDetailsModal({ open: true, plan: recommendedPlan })}
+                    className="w-8 h-8 rounded-full bg-blue-400/20 hover:bg-blue-400/30 transition-colors flex items-center justify-center"
+                    title="Szczegóły rekomendacji"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-blue-400">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
                 <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="mb-2 flex items-center gap-2">
-                        <span className="text-emerald-400">⭐</span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-emerald-400">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"/>
+                        </svg>
                         <span className="font-semibold text-white">Score dopasowania</span>
                       </div>
                       <p className="text-sm text-gray-300">
@@ -804,7 +1114,7 @@ export default function PlanSummary() {
                     <div className="text-right">
                       <div className="text-3xl font-bold text-emerald-400">
                         {recommendedPlan?.score 
-                          ? `${Math.min(Math.round(recommendedPlan.score * 100), 100)}%` 
+                          ? `${Math.round(recommendedPlan.score)}%` 
                           : '85%'}
                       </div>
                       <div className="text-xs text-gray-400">dopasowanie</div>
@@ -857,12 +1167,32 @@ export default function PlanSummary() {
                   <h3 className="mb-3 text-lg font-bold text-white">Inne propozycje</h3>
                   <div className="grid gap-4 md:grid-cols-2">
                     {altPlans.map((p, idx) => (
-                      <div key={idx} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                        <div className="mb-2 flex items-center justify-between">
+                      <div key={idx} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 relative">
+                        {/* 🆕 Przycisk info (szczegóły rekomendacji) */}
+                        <button
+                          onClick={() => setRecoDetailsModal({ open: true, plan: p })}
+                          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-blue-400/20 hover:bg-blue-400/30 transition-colors flex items-center justify-center group"
+                          title="Szczegóły rekomendacji"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-blue-400">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                            <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                        </button>
+                        
+                        <div className="mb-2 flex items-center justify-between pr-10">
                           <h4 className="text-white font-semibold">{p.name || `Plan #${idx + 2}`}</h4>
-                          <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-xs text-emerald-300">
-                            {p.days?.length || 0} dni
-                          </span>
+                          <div className="flex flex-col items-end gap-1">
+                            {/* 🆕 Score */}
+                            {p.score && (
+                              <span className="text-emerald-400 font-bold text-sm">
+                                {Math.round(p.score)}% dopasowanie
+                              </span>
+                            )}
+                            <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-xs text-emerald-300">
+                              {p.days?.length || 0} dni
+                            </span>
+                          </div>
                         </div>
                         {p.description && (
                           <p className="mb-4 line-clamp-3 text-sm text-gray-400">{p.description}</p>
@@ -878,19 +1208,10 @@ export default function PlanSummary() {
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }
                             }}
-                            className="group relative inline-flex items-center justify-center rounded-full px-5 py-2 text-xs font-bold text-white"
+                            className="group relative inline-flex items-center justify-center rounded-full px-5 py-2 text-xs font-bold text-white flex-1"
                           >
                             <span className="absolute inset-0 rounded-full bg-gradient-to-r from-[#0D7A61] to-[#1DCD9F] opacity-90 transition-opacity group-hover:opacity-100" />
                             <span className="relative">Użyj tego planu</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('details');
-                              setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
-                            }}
-                            className="rounded-full border-2 border-emerald-400/60 px-5 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-400/10 transition-colors"
-                          >
-                            Zobacz szczegóły
                           </button>
                         </div>
                       </div>

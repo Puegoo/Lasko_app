@@ -202,30 +202,83 @@ const Navbar = () => {
 // DANE KONFIGURACYJNE
 // ============================================================================
 const methodOptions = [
-  { value: 'user', label: 'Na podstawie klienta', description: 'Rekomendacje oparte na podobnych użytkownikach', icon: '👥' },
-  { value: 'product', label: 'Na podstawie produktu', description: 'Plany dobrane według charakterystyki planów', icon: '📋' },
-  { value: 'hybrid', label: 'Podejście hybrydowe', description: 'Kombinacja obydwu metod – najbardziej precyzyjne', icon: '🤖' },
+  { 
+    value: 'user', 
+    label: 'Na podstawie klienta', 
+    description: 'Rekomendacje oparte na podobnych użytkownikach', 
+    icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-purple-400"><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="17" cy="7" r="3" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a3 3 0 0 0-3-3h-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+  },
+  { 
+    value: 'hybrid', 
+    label: 'Podejście hybrydowe', 
+    description: 'Kombinacja obydwu metod – najbardziej precyzyjne', 
+    icon: <svg width="32" height="32" viewBox="0 0 16 16" fill="none" className="text-emerald-400"><path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z" fill="currentColor"/></svg>,
+    badge: 'ZALECANE'
+  },
+  { 
+    value: 'product', 
+    label: 'Na podstawie produktu', 
+    description: 'Plany dobrane według charakterystyki planów', 
+    icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-blue-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+  },
 ];
 
 const goalOptions = [
-  { value: 'masa', label: 'Masa mięśniowa', icon: '💪' },
-  { value: 'sila', label: 'Siła', icon: '🏋️' },
-  { value: 'spalanie', label: 'Redukcja tkanki tłuszczowej', icon: '🔥' },
-  { value: 'wytrzymalosc', label: 'Wytrzymałość', icon: '🏃' },
-  { value: 'zdrowie', label: 'Zdrowie ogólne', icon: '❤️' },
+  { 
+    value: 'masa', 
+    label: 'Masa mięśniowa', 
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-orange-400"><path d="M6 6l-1.5 1.5M18 6l1.5 1.5M6 18l-1.5-1.5M18 18l1.5-1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="9" cy="12" r="3" stroke="currentColor" strokeWidth="2"/><circle cx="15" cy="12" r="3" stroke="currentColor" strokeWidth="2"/><path d="M9 9h6M9 15h6" stroke="currentColor" strokeWidth="2"/></svg>
+  },
+  { 
+    value: 'sila', 
+    label: 'Siła', 
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-red-400"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="currentColor"/></svg>
+  },
+  { 
+    value: 'wytrzymalosc', 
+    label: 'Wytrzymałość', 
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-green-400"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="18" cy="5" r="2" stroke="currentColor" strokeWidth="2"/></svg>
+  },
+  { 
+    value: 'zdrowie', 
+    label: 'Zdrowie ogólne', 
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-pink-400"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="2" fill="currentColor"/></svg>
+  },
+  { 
+    value: 'spalanie', 
+    label: 'Redukcja tkanki tłuszczowej', 
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-yellow-400"><path d="M12 2c.5 1.5-.5 3-1 4s-2 2-2 4 1 3 2 4 1.5 2.5 1 4c4-2 7-5 7-9 0-5-4-7-7-7z" stroke="currentColor" strokeWidth="2" fill="currentColor"/></svg>,
+    colspan: 'sm:col-span-2 lg:col-span-2'  // 🆕 Szerokość 2 kafelków
+  },
 ];
 
 const levelOptions = [
   { value: 'poczatkujacy', label: 'Początkujący', description: '0–1 rok doświadczenia' },
-  { value: 'sredniozaawansowany', label: 'Średniozaawansowany', description: '1–3 lata doświadczenia' },
+  { value: 'sredniozaawansowany', label: 'Średnio­zaawansowany', description: '1–3 lata doświadczenia' },
   { value: 'zaawansowany', label: 'Zaawansowany', description: '3+ lata doświadczenia' },
 ];
 
 const equipmentOptions = [
-  { value: 'silownia', label: 'Pełna siłownia', icon: '🏟️' },
-  { value: 'dom_podstawowy', label: 'Dom (hantle + ławka)', icon: '🏠' },
-  { value: 'masa_ciala', label: 'Dom (masa własna)', icon: '🤸' },
-  { value: 'minimalne', label: 'Minimalne wyposażenie', icon: '⚡' },
+  { 
+    value: 'silownia', 
+    label: 'Pełna siłownia', 
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-gray-300"><rect x="2" y="10" width="4" height="4" stroke="currentColor" strokeWidth="2"/><rect x="18" y="10" width="4" height="4" stroke="currentColor" strokeWidth="2"/><line x1="6" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="2"/><circle cx="9" cy="12" r="2" stroke="currentColor" strokeWidth="2"/><circle cx="15" cy="12" r="2" stroke="currentColor" strokeWidth="2"/></svg>
+  },
+  { 
+    value: 'dom_podstawowy', 
+    label: 'Dom (hantle + ławka)', 
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-blue-400"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+  },
+  { 
+    value: 'masa_ciala', 
+    label: 'Dom (masa własna)', 
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-green-400"><circle cx="12" cy="8" r="5" stroke="currentColor" strokeWidth="2"/><path d="M12 13v8m-4 0h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+  },
+  { 
+    value: 'minimalne', 
+    label: 'Minimalne wyposażenie', 
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-yellow-400"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="currentColor"/></svg>
+  },
 ];
 
 const EnhancedPlanCreator = () => {
@@ -286,6 +339,19 @@ const EnhancedPlanCreator = () => {
   const [apiError, setApiError] = useState(null);
   const [errors, setErrors] = useState({});
 
+  // Funkcja obliczania wieku z daty urodzenia (musi być PRZED useState)
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return '';
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const [planData, setPlanData] = useState({
     recommendationMethod: initialData.recommendationMethod || 'hybrid',
     goal: initialData.goal || '',
@@ -296,8 +362,8 @@ const EnhancedPlanCreator = () => {
     focusAreas: initialData.focusAreas || [],
     avoidances: initialData.avoidances || [],
     body: {
-      dateOfBirth: initialData.dateOfBirth || '',
-      age: initialData.age || (initialData.dateOfBirth ? calculateAge(initialData.dateOfBirth) : ''),
+      dateOfBirth: initialData.dateOfBirth || initialData.birthDate || '',
+      age: initialData.age || (initialData.dateOfBirth ? calculateAge(initialData.dateOfBirth) : (initialData.birthDate ? calculateAge(initialData.birthDate) : '')),
       weightKg: initialData.weightKg || '',
       heightCm: initialData.heightCm || '',
       activityLevel: initialData.activityLevel || 'średnia',
@@ -306,6 +372,25 @@ const EnhancedPlanCreator = () => {
     recommendedPlan: null,
     altPlans: [],
   });
+  
+  // 🆕 Automatycznie oblicz wiek gdy użytkownik wraca z rejestracji z datą urodzenia
+  useEffect(() => {
+    const birthDate = initialData.birthDate || initialData.dateOfBirth;
+    if (birthDate && !planData.body.age) {
+      const calculatedAge = calculateAge(birthDate);
+      if (calculatedAge && calculatedAge !== planData.body.age) {
+        setPlanData(p => ({
+          ...p,
+          body: {
+            ...p.body,
+            dateOfBirth: birthDate,
+            age: calculatedAge
+          }
+        }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData.birthDate, initialData.dateOfBirth]);
 
   // ============================================================================
   // WALIDACJA KROKÓW
@@ -328,19 +413,6 @@ const EnhancedPlanCreator = () => {
     }
     return errs;
   }, [planData.equipment, planData.timePerSession]);
-
-  // Funkcja obliczania wieku z daty urodzenia
-  const calculateAge = (dateOfBirth) => {
-    if (!dateOfBirth) return '';
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
 
   const validateBody = useMemo(() => {
     const errs = {};
@@ -566,7 +638,7 @@ const generateRecommendedPlan = async () => {
   // ============================================================================
   // RENDER KROKÓW
   // ============================================================================
-  const OptionCard = ({ active, onClick, children, disabled = false }) => (
+  const OptionCard = ({ active, onClick, children, disabled = false, className = '' }) => (
     <div
       onClick={disabled ? undefined : onClick}
       className={[
@@ -575,6 +647,7 @@ const generateRecommendedPlan = async () => {
           ? 'border-emerald-400/60 bg-emerald-400/10 ring-1 ring-emerald-400/30'
           : 'border-white/10 bg-white/[0.04] hover:border-emerald-400/40',
         disabled ? 'opacity-50 cursor-not-allowed' : '',
+        className,
       ].join(' ')}
     >
       {children}
@@ -655,8 +728,16 @@ const generateRecommendedPlan = async () => {
             active={planData.recommendationMethod === m.value} 
             onClick={() => setPlanData((p) => ({ ...p, recommendationMethod: m.value }))}
           >
-            <div className="text-center space-y-3">
-              <div className="text-4xl mb-3">{m.icon}</div>
+            <div className="text-center space-y-3 relative pt-6">
+              {/* 🆕 Badge ZALECANE */}
+              {m.badge && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="inline-block bg-yellow-500 text-black px-3 py-1 rounded-full text-xs font-bold">
+                    {m.badge}
+                  </span>
+                </div>
+              )}
+              <div className="mb-3 flex justify-center">{m.icon}</div>
               <h3 className="text-lg font-bold text-white">{m.label}</h3>
               <p className="text-sm text-gray-400">{m.description}</p>
               {planData.recommendationMethod === m.value && (
@@ -695,8 +776,9 @@ const generateRecommendedPlan = async () => {
               key={g.value} 
               active={planData.goal === g.value} 
               onClick={() => setPlanData((p) => ({ ...p, goal: g.value }))}
+              className={g.colspan || ''}
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 justify-center">
                 <span className="text-3xl">{g.icon}</span>
                 <span className="text-white font-semibold">{g.label}</span>
               </div>
@@ -718,16 +800,23 @@ const generateRecommendedPlan = async () => {
         <label className="mb-4 block text-sm font-semibold uppercase tracking-wide text-gray-400">
           Jaki jest Twój poziom zaawansowania? *
         </label>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="flex flex-col gap-3">
           {levelOptions.map((l) => (
             <OptionCard 
               key={l.value} 
               active={planData.level === l.value} 
               onClick={() => setPlanData((p) => ({ ...p, level: l.value }))}
             >
-              <div className="space-y-2">
-                <h4 className="text-white font-bold">{l.label}</h4>
-                <p className="text-sm text-gray-400">{l.description}</p>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h4 className="text-white font-bold">{l.label}</h4>
+                  <p className="text-sm text-gray-400">{l.description}</p>
+                </div>
+                {planData.level === l.value && (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-emerald-400 flex-shrink-0">
+                    <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
               </div>
             </OptionCard>
           ))}
@@ -797,9 +886,9 @@ const generateRecommendedPlan = async () => {
               active={planData.equipment === e.value} 
               onClick={() => setPlanData((p) => ({ ...p, equipment: e.value }))}
             >
-              <div className="text-center space-y-2">
-                <span className="text-3xl">{e.icon}</span>
-                <p className="text-sm text-white font-medium">{e.label}</p>
+              <div className="flex flex-col items-center space-y-2">
+                <div className="flex justify-center">{e.icon}</div>
+                <p className="text-sm text-white font-medium text-center">{e.label}</p>
               </div>
             </OptionCard>
           ))}

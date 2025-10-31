@@ -12,9 +12,17 @@ const BirthdateCard = ({
   const [focused, setFocused] = useState({ birthDate: false });
 
   const MIN_AGE = 16; // wymagane: użytkownik musi mieć > 16 lat
+  const MAX_AGE = 120; // maksymalny sensowny wiek
 
   // Dzisiejsza data w ISO (YYYY-MM-DD)
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  
+  // Minimalna data (MAX_AGE lat temu)
+  const minDateIso = useMemo(() => {
+    const minDate = new Date();
+    minDate.setFullYear(minDate.getFullYear() - MAX_AGE);
+    return minDate.toISOString().slice(0, 10);
+  }, []);
 
   // Oblicz wiek na podstawie daty urodzenia (ISO)
   const getAge = (isoDate) => {
@@ -32,9 +40,10 @@ const BirthdateCard = ({
   const hasValue = Boolean(birthDate);
   const isParsable = hasValue && !Number.isNaN(Date.parse(birthDate));
   const notInFuture = isParsable ? birthDate <= todayIso : false;
+  const notTooOld = isParsable ? birthDate >= minDateIso : false;
   const age = isParsable ? getAge(birthDate) : null;
-  const ageOk = typeof age === 'number' ? age >= MIN_AGE : false;
-  const isFormValid = hasValue && isParsable && notInFuture && ageOk && !isSubmitting;
+  const ageOk = typeof age === 'number' ? age >= MIN_AGE && age <= MAX_AGE : false;
+  const isFormValid = hasValue && isParsable && notInFuture && notTooOld && ageOk && !isSubmitting;
 
   // Aktualizacja modelu formularza
   const handleChange = (e) => updateFormData(e.target.name, e.target.value);
@@ -53,7 +62,7 @@ const BirthdateCard = ({
     onNext();
   };
 
-  const birthHasError = hasValue && (!isParsable || !notInFuture || !ageOk);
+  const birthHasError = hasValue && (!isParsable || !notInFuture || !notTooOld || !ageOk);
 
   return (
     <div className="bg-[#0b0b0b]/95 rounded-3xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] p-6 md:p-8 w-full">
@@ -74,6 +83,7 @@ const BirthdateCard = ({
             onChange={handleChange}
             onFocus={() => handleFocus('birthDate')}
             onBlur={() => handleBlur('birthDate')}
+            min={minDateIso}
             max={todayIso}
             className={[
               'peer w-full rounded-2xl py-4 px-5 text-base md:text-lg outline-none transition-all',
@@ -121,7 +131,12 @@ const BirthdateCard = ({
                 Data nie może być z przyszłości.
               </p>
             )}
-            {!validationErrors.date_of_birth && isParsable && notInFuture && !ageOk && (
+            {!validationErrors.date_of_birth && isParsable && !notTooOld && (
+              <p id={`${birthId}-error`} className="text-red-400">
+                Data jest nieprawidłowa. Sprawdź wprowadzony rok.
+              </p>
+            )}
+            {!validationErrors.date_of_birth && isParsable && notInFuture && notTooOld && !ageOk && (
               <p id={`${birthId}-error`} className="text-red-400">
                 Musisz mieć co najmniej {MIN_AGE} lat{typeof age === 'number' ? ` (masz ${age})` : ''}.
               </p>
