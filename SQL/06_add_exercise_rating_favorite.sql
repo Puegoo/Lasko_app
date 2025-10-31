@@ -29,3 +29,4 @@ WHERE rating IS NOT NULL;
 COMMENT ON COLUMN exercise_feedback.rating IS 'Ocena gwiazdkowa ćwiczenia (1-5)';
 COMMENT ON COLUMN exercise_feedback.is_favorite IS 'Czy ćwiczenie jest w ulubionych użytkownika';
 
+
