@@ -266,6 +266,12 @@ const PlanCard = ({ plan, isActive = false, onActivate, activePlanId = null }) =
       <div className="mb-4 flex items-start justify-between">
         <div>
           <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+          {/* 🆕 Pokaż oryginalną nazwę jeśli ma alias */}
+          {plan.customName && plan.originalName && plan.customName !== plan.originalName && (
+            <p className="mt-0.5 text-xs text-gray-500 italic">
+              Oryginał: {plan.originalName}
+            </p>
+          )}
           {plan.description && (
             <p className="mt-1 text-sm text-gray-400 line-clamp-2">{plan.description}</p>
           )}

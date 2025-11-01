@@ -20,6 +20,10 @@ urlpatterns = [
     path('plans/<int:plan_id>/detailed/', views.plan_detailed, name='plan_detailed'),
     path('plans/<int:plan_id>/activate/', views.activate_plan_by_path, name='activate_plan_by_path'),
     
+    # Aliasy planów (niestandardowe nazwy)
+    path('plans/<int:plan_id>/alias/', views.manage_plan_alias, name='manage_plan_alias'),
+    path('plans/aliases/', views.get_user_plan_aliases, name='get_user_plan_aliases'),
+    
     # Edycja planów
     path('plans/<int:plan_id>/', views.update_plan, name='update_plan'),
     path('plans/<int:plan_id>/days/<int:day_id>/', views.update_plan_day, name='update_plan_day'),

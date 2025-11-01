@@ -171,6 +171,9 @@ export default function PlanDetailsPage() {
   const [exerciseFilters, setExerciseFilters] = useState({ muscle_group: '', search: '' });
   const [showRatePlanModal, setShowRatePlanModal] = useState(false); // Modal oceny planu
   const [planRating, setPlanRating] = useState(null); // Obecna ocena planu
+  const [editNameModal, setEditNameModal] = useState(false); // 🆕 Modal edycji nazwy
+  const [customPlanName, setCustomPlanName] = useState(''); // 🆕 Niestandardowa nazwa
+  const [savingAlias, setSavingAlias] = useState(false); // 🆕 Stan zapisywania aliasu
   const recApi = useMemo(() => new RecommendationService(), []);
 
   // Dni tygodnia
@@ -320,16 +323,89 @@ export default function PlanDetailsPage() {
     String(activePlanId) === String(plan.id)
   );
 
-  const handleCopyAndEdit = () => {
-    // Przekieruj do buildera z danymi planu
-    navigate('/plan-builder', {
-      state: { basePlan: plan }
-    });
+  const handleCopyAndEdit = async () => {
+    try {
+      // 🆕 Skopiuj plan systemowy do własnej wersji użytkownika
+      notify.info('Kopiuję plan... Będziesz mógł go edytować.');
+      
+      // Pobierz pełne szczegóły planu
+      let fullPlan = plan;
+      if (!plan.days || plan.days.length === 0) {
+        const detailsResponse = await recApi.getPlanDetailed(plan.id);
+        fullPlan = detailsResponse.plan || detailsResponse;
+      }
+      
+      // Przekieruj do PlanSummary z planDatan jako szablon do edycji
+      const planData = {
+        recommendedPlan: {
+          ...fullPlan,
+          name: `Kopia - ${fullPlan.name}`,
+          auth_account_id: null, // Nowy plan (będzie skopiowany)
+        },
+        name: `Kopia - ${fullPlan.name}`,
+        goal: fullPlan.goal_type || fullPlan.goalType,
+        level: fullPlan.difficulty_level || fullPlan.difficultyLevel,
+        trainingDaysPerWeek: fullPlan.training_days_per_week || fullPlan.trainingDaysPerWeek,
+        equipment: fullPlan.equipment_required || fullPlan.equipmentRequired,
+        timePerSession: 60,
+        altPlans: [],
+      };
+      
+      navigate('/plan-summary', {
+        state: { 
+          planData,
+          fromCopy: true,
+          originalPlanId: plan.id
+        }
+      });
+    } catch (error) {
+      console.error('[PlanDetailsPage] Error copying plan:', error);
+      notify.error('Nie udało się skopiować planu: ' + (error.message || 'Nieznany błąd'));
+    }
   };
 
   const handleReportProblem = () => {
     notify.info('Funkcja zgłaszania problemów będzie dostępna wkrótce');
     // TODO: Dodać modal z formularzem feedback
+  };
+
+  // 🆕 Zapisz alias (niestandardową nazwę planu)
+  const handleSaveAlias = async () => {
+    if (!plan || !plan.id) {
+      notify.error('Nie można zapisać nazwy - brak ID planu');
+      return;
+    }
+    
+    if (!customPlanName.trim()) {
+      notify.error('Podaj nazwę planu');
+      return;
+    }
+
+    setSavingAlias(true);
+    try {
+      const response = await apiService.request(`/api/plans/${plan.id}/alias/`, {
+        method: 'POST',
+        body: JSON.stringify({ custom_name: customPlanName.trim() })
+      });
+
+      if (response.success) {
+        notify.success('Nazwa planu została zapisana! 🎉');
+        // Zaktualizuj lokalnie nazwę w planie
+        setPlan(prev => ({
+          ...prev,
+          name: customPlanName.trim(),
+          customName: customPlanName.trim()
+        }));
+        setEditNameModal(false);
+      } else {
+        throw new Error(response.error || 'Nie udało się zapisać nazwy');
+      }
+    } catch (err) {
+      console.error('[PlanDetailsPage] Error saving alias:', err);
+      notify.error(err.message || 'Nie udało się zapisać nazwy planu');
+    } finally {
+      setSavingAlias(false);
+    }
   };
 
   const saveSchedule = async () => {
@@ -661,7 +737,13 @@ export default function PlanDetailsPage() {
                 </div>
               ) : (
                 <>
-                  <h1 className="mt-4 text-4xl md:text-5xl font-black text-white mb-4">{plan.name}</h1>
+                  <h1 className="mt-4 text-4xl md:text-5xl font-black text-white mb-2">{plan.name}</h1>
+                  {/* 🆕 Pokaż oryginalną nazwę jeśli ma alias */}
+                  {plan.customName && plan.originalName && plan.customName !== plan.originalName && (
+                    <p className="text-sm text-gray-500 italic mb-2">
+                      Oryginalna nazwa: {plan.originalName}
+                    </p>
+                  )}
                   {plan.description && (
                     <p className="text-lg text-gray-300 max-w-3xl">{plan.description}</p>
                   )}
@@ -729,6 +811,20 @@ export default function PlanDetailsPage() {
                       <IconKit.Copy size="sm" className="inline" /> Skopiuj i edytuj
                     </SecondaryButton>
                   )}
+                  {/* 🆕 Przycisk edycji nazwy planu */}
+                  <SecondaryButton 
+                    onClick={() => {
+                      setCustomPlanName(plan?.name || '');
+                      setEditNameModal(true);
+                    }}
+                    className="w-full"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="inline mr-2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Zmień nazwę
+                  </SecondaryButton>
                   <GhostButton onClick={handleReportProblem} className="w-full">
                     ⚠️ Zgłoś problem
                   </GhostButton>
@@ -1309,6 +1405,95 @@ export default function PlanDetailsPage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Modal edycji nazwy planu */}
+      {editNameModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setEditNameModal(false)}
+        >
+          <div 
+            className="relative max-w-md w-full bg-[#0b0b0b] rounded-3xl border border-white/10 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-white">Zmień nazwę planu</h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  Oryginalna nazwa: <span className="text-gray-300">{plan?.originalName || plan?.name}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setEditNameModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Input */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Nowa nazwa planu
+                </label>
+                <input
+                  type="text"
+                  value={customPlanName}
+                  onChange={(e) => setCustomPlanName(e.target.value)}
+                  placeholder="np. Mój letni plan FBW"
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                  maxLength={200}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !savingAlias) {
+                      handleSaveAlias();
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {customPlanName.length}/200 znaków
+                </p>
+              </div>
+
+              {/* Info */}
+              <div className="p-3 rounded-xl bg-blue-400/10 border border-blue-400/20">
+                <p className="text-xs text-blue-300">
+                  💡 Twoja nazwa będzie widoczna tylko dla Ciebie. Inni użytkownicy nadal zobaczą oryginalną nazwę planu.
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEditNameModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium transition-colors"
+                  disabled={savingAlias}
+                >
+                  Anuluj
+                </button>
+                <button
+                  onClick={handleSaveAlias}
+                  disabled={savingAlias || !customPlanName.trim()}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {savingAlias ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Zapisywanie...
+                    </>
+                  ) : (
+                    'Zapisz nazwę'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

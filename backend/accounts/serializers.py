@@ -259,6 +259,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer do profilu użytkownika"""
     
     age = serializers.SerializerMethodField()
+    total_workouts = serializers.SerializerMethodField()
+    weekly_progress = serializers.SerializerMethodField()
+    weekly_goal = serializers.SerializerMethodField()
+    current_streak = serializers.SerializerMethodField()
     
     goal = serializers.ChoiceField(choices=GOAL_CHOICES, required=False, allow_null=True)
     level = serializers.ChoiceField(choices=LEVEL_CHOICES, required=False, allow_null=True)
@@ -272,7 +276,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'training_days_per_week', 'equipment_preference',
             'preferred_session_duration', 'avoid_exercises',
             'focus_areas', 'last_survey_date', 'recommendation_method',
-            'profile_picture', 'bio'
+            'profile_picture', 'bio', 
+            'total_workouts', 'weekly_progress', 'weekly_goal', 'current_streak'
         ]
         
         extra_kwargs = {
@@ -290,6 +295,66 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 (today.month, today.day) < (obj.date_of_birth.month, obj.date_of_birth.day)
             )
         return None
+    
+    def get_total_workouts(self, obj):
+        """Oblicz całkowitą liczbę treningów"""
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT COUNT(DISTINCT id)
+                FROM training_sessions
+                WHERE auth_account_id = %s
+            """, [obj.auth_account_id])
+            result = cursor.fetchone()
+            return result[0] if result else 0
+    
+    def get_weekly_progress(self, obj):
+        """Oblicz liczbę treningów w tym tygodniu"""
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT COUNT(DISTINCT DATE(session_date))
+                FROM training_sessions
+                WHERE auth_account_id = %s
+                  AND session_date >= DATE_TRUNC('week', CURRENT_DATE)
+                  AND session_date < DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '1 week'
+            """, [obj.auth_account_id])
+            result = cursor.fetchone()
+            return result[0] if result else 0
+    
+    def get_weekly_goal(self, obj):
+        """Cel tygodniowy (z training_days_per_week)"""
+        return obj.training_days_per_week or 3
+    
+    def get_current_streak(self, obj):
+        """Oblicz obecny ciąg treningowy (dni pod rząd)"""
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                WITH RECURSIVE training_dates AS (
+                    SELECT DISTINCT DATE(session_date) as training_date
+                    FROM training_sessions
+                    WHERE auth_account_id = %s
+                    ORDER BY training_date DESC
+                ),
+                streak_calc AS (
+                    SELECT 
+                        training_date,
+                        ROW_NUMBER() OVER (ORDER BY training_date DESC) as rn,
+                        training_date - (ROW_NUMBER() OVER (ORDER BY training_date DESC) * INTERVAL '1 day') as streak_group
+                    FROM training_dates
+                )
+                SELECT COUNT(*) as streak_length
+                FROM streak_calc
+                WHERE streak_group = (
+                    SELECT streak_group 
+                    FROM streak_calc 
+                    WHERE training_date = (SELECT MAX(training_date) FROM training_dates)
+                    LIMIT 1
+                )
+            """, [obj.auth_account_id])
+            result = cursor.fetchone()
+            return result[0] if result else 0
     
     def validate_training_days_per_week(self, value):
         """Walidacja dni treningowych"""

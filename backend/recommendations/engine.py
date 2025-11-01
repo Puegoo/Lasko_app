@@ -415,7 +415,10 @@ def collaborative(user_id: int) -> List[Dict]:
 
 
 def _minmax_norm(items: List[Dict]) -> Dict[int, float]:
-    """Normalize scores using min-max normalization."""
+    """
+    ⚠️ DEPRECATED - używane tylko dla CF
+    Normalize scores using min-max normalization (relative to current set).
+    """
     if not items:
         return {}
     vals = [i['score'] for i in items]
@@ -423,6 +426,29 @@ def _minmax_norm(items: List[Dict]) -> Dict[int, float]:
     if mx == mn:
         return {i['plan_id']: 100.0 for i in items}
     return {i['plan_id']: ((i['score'] - mn) / (mx - mn)) * 100.0 for i in items}
+
+
+def _absolute_norm_cb(items: List[Dict]) -> Dict[int, float]:
+    """
+    🆕 ABSOLUTE NORMALIZATION for Content-Based
+    Normalizacja do teoretycznego maksimum (51 pkt):
+    - Goal: 15 pkt
+    - Level: 10 pkt  
+    - Days: 12 pkt
+    - Equipment: 8 pkt
+    - Popularity: 6 pkt
+    Total: 51 pkt → 100%
+    """
+    MAX_CB_SCORE = 51.0
+    result = {}
+    for item in items:
+        score = item['score']
+        # Normalizuj do 0-100 na podstawie maksymalnego możliwego wyniku
+        normalized = (score / MAX_CB_SCORE) * 100.0
+        # Ogranicz do 0-100 (na wypadek przekroczenia)
+        normalized = max(0.0, min(100.0, normalized))
+        result[item['plan_id']] = normalized
+    return result
 
 
 def calculate_adaptive_weights(user_id: int, user: Dict) -> Tuple[float, float]:
@@ -503,9 +529,15 @@ def hybrid(user_id: int, user: Dict) -> List[Dict]:
     # Jeśli CB puste (nie powinno), albo CF po filtrze puste – zwracamy CB
     if not cb or not cf:
         logger.info("[Engine] Only one algorithm has results, returning available")
+        # 🆕 Dla samego CB, normalizuj absolutnie
+        if cb:
+            cbn_abs = _absolute_norm_cb(cb)
+            for item in cb:
+                item['score'] = cbn_abs[item['plan_id']]
         return cb
 
-    cbn = _minmax_norm(cb)
+    # 🆕 Użyj ABSOLUTE normalizacji dla CB, min-max dla CF
+    cbn = _absolute_norm_cb(cb)
     cfn = _minmax_norm(cf)
 
     # 🆕 ADAPTIVE WEIGHTS: Oblicz dynamiczne wagi zamiast statycznych 75/25

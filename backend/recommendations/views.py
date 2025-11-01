@@ -476,11 +476,13 @@ def get_active_plan(request):
                 SELECT 
                     tp.id, tp.name, tp.description, tp.goal_type, 
                     tp.difficulty_level, tp.training_days_per_week, tp.equipment_required,
-                    uap.start_date, uap.rating
+                    uap.start_date, uap.rating,
+                    upa.custom_name
                 FROM user_active_plans uap
                 JOIN training_plans tp ON uap.plan_id = tp.id
+                LEFT JOIN user_plan_aliases upa ON (tp.id = upa.plan_id AND upa.auth_account_id = %s)
                 WHERE uap.auth_account_id = %s
-            """, [user_id])
+            """, [user_id, user_id])
             row = cursor.fetchone()
 
             if not row:
@@ -490,10 +492,15 @@ def get_active_plan(request):
                     "plan": None
                 }, status=status.HTTP_200_OK)
 
+            custom_name = row[9]  # Alias użytkownika
+            display_name = custom_name if custom_name else row[1]  # Priorytet: alias > oryginalna nazwa
+
             plan_data = {
                 "planId": row[0],
                 "id": row[0],
-                "name": row[1],
+                "name": display_name,  # 🆕 Wyświetl alias jeśli istnieje
+                "originalName": row[1],  # 🆕 Oryginalna nazwa (zawsze dostępna)
+                "customName": custom_name,  # 🆕 Alias (może być null)
                 "description": row[2],
                 "goalType": row[3],
                 "difficultyLevel": row[4],
@@ -1717,6 +1724,27 @@ def finish_workout_session(request, session_id: int):
                     set_data.get('reps'),
                     set_data.get('notes', '')
                 ])
+            
+            # 🆕 Aktualizuj statystyki użytkownika w user_profiles
+            # Oblicz liczbę treningów w tym tygodniu
+            cursor.execute("""
+                SELECT COUNT(DISTINCT DATE(session_date))
+                FROM training_sessions
+                WHERE auth_account_id = %s
+                  AND session_date >= DATE_TRUNC('week', CURRENT_DATE)
+                  AND session_date < DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '1 week'
+            """, [user_id])
+            weekly_count = cursor.fetchone()[0] or 0
+            
+            # Oblicz całkowitą liczbę treningów
+            cursor.execute("""
+                SELECT COUNT(DISTINCT id)
+                FROM training_sessions
+                WHERE auth_account_id = %s
+            """, [user_id])
+            total_count = cursor.fetchone()[0] or 0
+            
+            logger.info(f"[FinishSession] User {user_id} stats: {total_count} total workouts, {weekly_count} this week")
 
             logger.info(f"[FinishSession] Session {session_id} completed with {len(sets)} sets")
 
@@ -1724,7 +1752,11 @@ def finish_workout_session(request, session_id: int):
                 "success": True,
                 "message": "Workout session completed successfully",
                 "session_id": session_id,
-                "total_sets": len(sets)
+                "total_sets": len(sets),
+                "stats": {
+                    "total_workouts": total_count,
+                    "weekly_progress": weekly_count
+                }
             }, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -1799,5 +1831,162 @@ def get_all_plans(request):
         logger.error(traceback.format_exc())
         return Response({
             "error": "Server error fetching plans",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# PLAN ALIASES - Niestandardowe Nazwy Planów
+# ============================================================================
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def manage_plan_alias(request, plan_id: int):
+    """
+    POST /api/plans/<plan_id>/alias/ - Ustaw niestandardową nazwę (alias)
+    DELETE /api/plans/<plan_id>/alias/ - Usuń alias
+    Body (POST): { "custom_name": "Moja własna nazwa" }
+    """
+    try:
+        user_id = request.auth.payload.get('user_id')
+        if not user_id:
+            return Response({"error": "Invalid token"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if request.method == 'POST':
+            # SET ALIAS
+            custom_name = request.data.get('custom_name', '').strip()
+            if not custom_name:
+                return Response({
+                    "error": "Custom name is required",
+                    "code": "missing_name"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Walidacja długości nazwy
+            if len(custom_name) > 200:
+                return Response({
+                    "error": "Custom name is too long (max 200 characters)",
+                    "code": "name_too_long"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            with connection.cursor() as cursor:
+                # Sprawdź czy plan istnieje
+                cursor.execute("SELECT id FROM training_plans WHERE id = %s", [plan_id])
+                if not cursor.fetchone():
+                    return Response({
+                        "error": "Plan not found",
+                        "code": "plan_not_found"
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+                # Wstaw lub zaktualizuj alias (ON CONFLICT DO UPDATE)
+                cursor.execute("""
+                    INSERT INTO user_plan_aliases (auth_account_id, plan_id, custom_name)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (auth_account_id, plan_id)
+                    DO UPDATE SET 
+                        custom_name = EXCLUDED.custom_name,
+                        updated_at = CURRENT_TIMESTAMP
+                    RETURNING id, custom_name, created_at, updated_at
+                """, [user_id, plan_id, custom_name])
+                
+                row = cursor.fetchone()
+                alias_id, name, created_at, updated_at = row
+
+                logger.info(f"[ManagePlanAlias] User {user_id} set alias for plan {plan_id}: '{custom_name}'")
+
+                return Response({
+                    "success": True,
+                    "alias": {
+                        "id": alias_id,
+                        "plan_id": plan_id,
+                        "custom_name": name,
+                        "created_at": created_at.isoformat(),
+                        "updated_at": updated_at.isoformat()
+                    },
+                    "message": "Alias saved successfully"
+                }, status=status.HTTP_200_OK)
+
+        elif request.method == 'DELETE':
+            # DELETE ALIAS
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    DELETE FROM user_plan_aliases
+                    WHERE auth_account_id = %s AND plan_id = %s
+                    RETURNING id
+                """, [user_id, plan_id])
+                
+                deleted_row = cursor.fetchone()
+                if not deleted_row:
+                    return Response({
+                        "error": "Alias not found",
+                        "code": "alias_not_found"
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+                logger.info(f"[ManagePlanAlias] User {user_id} deleted alias for plan {plan_id}")
+
+                return Response({
+                    "success": True,
+                    "message": "Alias deleted successfully"
+                }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[ManagePlanAlias] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error managing alias",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_plan_aliases(request):
+    """
+    GET /api/plans/aliases/
+    Pobierz wszystkie aliasy użytkownika
+    """
+    try:
+        user_id = request.auth.payload.get('user_id')
+        if not user_id:
+            return Response({"error": "Invalid token"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT 
+                    upa.id,
+                    upa.plan_id,
+                    upa.custom_name,
+                    upa.created_at,
+                    upa.updated_at,
+                    tp.name AS original_name
+                FROM user_plan_aliases upa
+                JOIN training_plans tp ON upa.plan_id = tp.id
+                WHERE upa.auth_account_id = %s
+                ORDER BY upa.updated_at DESC
+            """, [user_id])
+            
+            aliases = []
+            for row in cursor.fetchall():
+                aliases.append({
+                    "id": row[0],
+                    "plan_id": row[1],
+                    "custom_name": row[2],
+                    "created_at": row[3].isoformat(),
+                    "updated_at": row[4].isoformat(),
+                    "original_name": row[5]
+                })
+
+            logger.info(f"[GetUserPlanAliases] Found {len(aliases)} aliases for user {user_id}")
+
+            return Response({
+                "success": True,
+                "aliases": aliases,
+                "total": len(aliases)
+            }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[GetUserPlanAliases] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error fetching aliases",
             "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

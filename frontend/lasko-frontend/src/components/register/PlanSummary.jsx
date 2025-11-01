@@ -69,9 +69,27 @@ const SecondaryButton = ({ onClick, to, children, className = '' }) => {
   );
 };
 
+const GhostButton = ({ onClick, to, children, className = '' }) => {
+  const Comp = to ? Link : 'button';
+  const props = to ? { to } : { onClick };
+  return (
+    <Comp
+      {...props}
+      className={[
+        'inline-flex items-center justify-center rounded-full px-7 py-3 text-sm font-bold text-gray-300',
+        'hover:text-white hover:bg-white/5 transition-colors',
+        className,
+      ].join(' ')}
+    >
+      {children}
+    </Comp>
+  );
+};
+
 // Navbar
-const Navbar = () => {
-  const { user, isAuthenticated, getToken, debugAuth } = useAuth();
+const Navbar = ({ showActions = false }) => {
+  const { user, isAuthenticated, getToken, logout, debugAuth } = useAuth();
+  const navigate = useNavigate();
   const looksAuthed =
     (typeof isAuthenticated === 'function' && isAuthenticated()) ||
     (typeof getToken === 'function' && !!getToken());
@@ -90,7 +108,7 @@ const Navbar = () => {
     return null;
   };
 
-  const navbarName =
+  const navbarName = 
     user?.username || 
     user?.first_name ||
     sessionStorage.getItem('lasko_username') || 
@@ -109,17 +127,34 @@ const Navbar = () => {
 
   const [open, setOpen] = useState(false);
 
+  const handleLogout = () => {
+    if (typeof logout === 'function') {
+      logout();
+    }
+    navigate('/login');
+  };
+
   return (
     <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">
       <div className="flex items-center justify-between px-4 py-4">
-        <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+        <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 px-4">
           Lasko
         </Link>
         <div className="hidden items-center gap-3 md:flex">
           {looksAuthed ? (
-            <span className="text-sm text-gray-300">
-              Witaj, <span className="font-semibold text-white">{navbarName}</span>!
-            </span>
+            showActions ? (
+              <>
+                <span className="text-sm text-gray-300">
+                  Witaj, <span className="font-semibold text-white">{navbarName}</span>!
+                </span>
+                <SecondaryButton onClick={() => navigate('/dashboard')}>Dashboard</SecondaryButton>
+                <GhostButton onClick={handleLogout}>Wyloguj</GhostButton>
+              </>
+            ) : (
+              <span className="text-sm text-gray-300">
+                Witaj, <span className="font-semibold text-white">{navbarName}</span>!
+              </span>
+            )
           ) : (
             <>
               <SecondaryButton to="/login">Mam konto</SecondaryButton>
@@ -142,9 +177,23 @@ const Navbar = () => {
         <div className="md:hidden border-t border-white/5 bg-black/80 px-6 py-3">
           <div className="flex flex-col gap-2">
             {looksAuthed ? (
-              <div className="px-3 py-2 text-gray-300">
-                Witaj, <span className="font-semibold text-white">{navbarName}</span>!
-              </div>
+              showActions ? (
+                <>
+                  <div className="px-3 py-2 text-gray-300 border-b border-white/10 mb-2">
+                    Witaj, <span className="font-semibold text-white">{navbarName}</span>!
+                  </div>
+                  <Link to="/dashboard" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
+                    Dashboard
+                  </Link>
+                  <button onClick={handleLogout} className="rounded-lg px-3 py-2 text-left text-gray-200 hover:bg-white/5">
+                    Wyloguj
+                  </button>
+                </>
+              ) : (
+                <div className="px-3 py-2 text-gray-300">
+                  Witaj, <span className="font-semibold text-white">{navbarName}</span>!
+                </div>
+              )
             ) : (
               <>
                 <Link to="/login" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
@@ -291,6 +340,9 @@ export default function PlanSummary() {
     sessionStorage.getItem('lasko_username') ||
     getUserFromStorage() ||
     null;
+  
+  // 🆕 Sprawdź czy plan jest kopiowany
+  const fromCopy = state?.fromCopy === true;
 
   // jeżeli authed, ale user nie dohydratowany – dohydratacja
   useEffect(() => {
@@ -315,6 +367,9 @@ export default function PlanSummary() {
   const [fetchedPlanIds, setFetchedPlanIds] = useState(new Set());
   const [schedule, setSchedule] = useState([]);
   const [recoDetailsModal, setRecoDetailsModal] = useState({ open: false, plan: null }); // 🆕 Modal szczegółów rekomendacji
+  const [editNameModal, setEditNameModal] = useState(false);
+  const [customPlanName, setCustomPlanName] = useState('');
+  const [savingAlias, setSavingAlias] = useState(false);
   const recApi = useMemo(() => new RecommendationService(), []);
 
   // Dni tygodnia
@@ -531,10 +586,6 @@ export default function PlanSummary() {
     ...planData,
     equipment: planData?.equipment ?? planData?.equipment_preference,
   };
-  
-  console.log('[PlanSummary] planData.name:', planData?.name);
-  console.log('[PlanSummary] extracted name:', name);
-  console.log('[PlanSummary] recommendedPlan.name:', recommendedPlan?.name);
 
   // agregaty
   const allExercises = useMemo(() => extractAllExercises(recommendedPlan), [recommendedPlan]);
@@ -563,6 +614,68 @@ export default function PlanSummary() {
 
   const openSwap = (dayIdx, exercise) => setSwapModal({ open: true, dayIdx, oldExercise: exercise, q: '' });
   const closeSwap = () => setSwapModal({ open: false, dayIdx: null, oldExercise: null, q: '' });
+
+  // 🆕 Zapisz alias (niestandardową nazwę planu)
+  const handleSaveAlias = async () => {
+    if (!customPlanName.trim()) {
+      error('Podaj nazwę planu');
+      return;
+    }
+
+    // 🆕 Dla skopiowanych planów (bez ID) - zapisz tylko lokalnie
+    if (fromCopy || !recommendedPlan?.id) {
+      success('Nazwa zapisana! Zostanie użyta po aktywacji planu.');
+      setPlanData(prev => ({
+        ...prev,
+        name: customPlanName.trim(),
+        recommendedPlan: {
+          ...prev.recommendedPlan,
+          name: customPlanName.trim()
+        }
+      }));
+      sessionStorage.setItem('lasko_plan_draft', JSON.stringify({
+        ...planData,
+        name: customPlanName.trim(),
+        recommendedPlan: {
+          ...planData.recommendedPlan,
+          name: customPlanName.trim()
+        }
+      }));
+      setEditNameModal(false);
+      return;
+    }
+
+    // Dla planów z ID - zapisz do API
+    const planId = recommendedPlan.planId || recommendedPlan.id;
+    setSavingAlias(true);
+    try {
+      const response = await apiService.request(`/api/plans/${planId}/alias/`, {
+        method: 'POST',
+        body: JSON.stringify({ custom_name: customPlanName.trim() })
+      });
+
+      if (response.success) {
+        success('Nazwa planu została zapisana! 🎉');
+        // Zaktualizuj lokalnie nazwę w planData
+        setPlanData(prev => ({
+          ...prev,
+          name: customPlanName.trim(),
+          recommendedPlan: {
+            ...prev.recommendedPlan,
+            customName: customPlanName.trim()
+          }
+        }));
+        setEditNameModal(false);
+      } else {
+        throw new Error(response.error || 'Nie udało się zapisać nazwy');
+      }
+    } catch (err) {
+      console.error('[PlanSummary] Error saving alias:', err);
+      error(err.message || 'Nie udało się zapisać nazwy planu');
+    } finally {
+      setSavingAlias(false);
+    }
+  };
 
   const confirmSwap = (newExercise) => {
     const { dayIdx, oldExercise } = swapModal;
@@ -601,7 +714,7 @@ export default function PlanSummary() {
     return (
       <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
         <GradientGridBg />
-        <Navbar />
+        <Navbar showActions={fromCopy} />
         <div className="grid min-h-screen place-items-center px-6 pt-20">
           <div className="w-full max-w-md">
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center">
@@ -902,17 +1015,37 @@ export default function PlanSummary() {
       <GlowOrb className="left-[20%] top-40 h-64 w-64 bg-emerald-400/20" />
       <GlowOrb className="right-[10%] bottom-32 h-52 w-52 bg-teal-400/20" />
 
-      <Navbar />
+      <Navbar showActions={fromCopy} />
 
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-16">
         {/* Header */}
         <header className="mb-10">
           <Kicker>Podsumowanie planu treningowego</Kicker>
-          <h1 className="mt-4 text-4xl font-black text-white md:text-5xl">
-            {name || 'Twój spersonalizowany plan'}
-          </h1>
+          <div className="flex items-center gap-4 mt-4">
+            <h1 className="text-4xl font-black text-white md:text-5xl">
+              {name || 'Twój spersonalizowany plan'}
+            </h1>
+            {/* 🆕 Ikona edycji nazwy (minimalistyczna, bez tła) */}
+            <button
+              onClick={() => {
+                setCustomPlanName(name || recommendedPlan?.name || '');
+                setEditNameModal(true);
+              }}
+              className="p-2 text-gray-400 hover:text-white transition-colors"
+              title="Zmień nazwę planu"
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-current">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
           <p className="mt-3 text-lg text-gray-300">
-            Przygotowany specjalnie dla {username || 'Ciebie'}
+            {fromCopy ? (
+              <>Dostosuj plan do swoich potrzeb i aktywuj</>
+            ) : (
+              <>Przygotowany specjalnie dla {username || 'Ciebie'}</>
+            )}
           </p>
         </header>
 
@@ -1086,17 +1219,19 @@ export default function PlanSummary() {
               <div>
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-lg font-bold text-white">Dopasowanie planu</h3>
-                  {/* 🆕 Przycisk szczegółów rekomendacji */}
-                  <button
-                    onClick={() => setRecoDetailsModal({ open: true, plan: recommendedPlan })}
-                    className="w-8 h-8 rounded-full bg-blue-400/20 hover:bg-blue-400/30 transition-colors flex items-center justify-center"
-                    title="Szczegóły rekomendacji"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-blue-400">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                  </button>
+                  {/* 🆕 Przycisk szczegółów rekomendacji (ukryty dla skopiowanych planów) */}
+                  {!fromCopy && (
+                    <button
+                      onClick={() => setRecoDetailsModal({ open: true, plan: recommendedPlan })}
+                      className="w-8 h-8 rounded-full bg-blue-400/20 hover:bg-blue-400/30 transition-colors flex items-center justify-center"
+                      title="Szczegóły rekomendacji"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-blue-400">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-6">
                   <div className="flex items-center justify-between">
@@ -1168,19 +1303,21 @@ export default function PlanSummary() {
                   <div className="grid gap-4 md:grid-cols-2">
                     {altPlans.map((p, idx) => (
                       <div key={idx} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 relative">
-                        {/* 🆕 Przycisk info (szczegóły rekomendacji) */}
-                        <button
-                          onClick={() => setRecoDetailsModal({ open: true, plan: p })}
-                          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-blue-400/20 hover:bg-blue-400/30 transition-colors flex items-center justify-center group"
-                          title="Szczegóły rekomendacji"
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-blue-400">
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                            <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                          </svg>
-                        </button>
+                        {/* 🆕 Przycisk info (szczegóły rekomendacji) - ukryty dla skopiowanych planów */}
+                        {!fromCopy && (
+                          <button
+                            onClick={() => setRecoDetailsModal({ open: true, plan: p })}
+                            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-blue-400/20 hover:bg-blue-400/30 transition-colors flex items-center justify-center group"
+                            title="Szczegóły rekomendacji"
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-blue-400">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                              <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                          </button>
+                        )}
                         
-                        <div className="mb-2 flex items-center justify-between pr-10">
+                        <div className={`mb-2 flex items-center justify-between ${!fromCopy ? 'pr-10' : ''}`}>
                           <h4 className="text-white font-semibold">{p.name || `Plan #${idx + 2}`}</h4>
                           <div className="flex flex-col items-end gap-1">
                             {/* 🆕 Score */}
@@ -1189,9 +1326,9 @@ export default function PlanSummary() {
                                 {Math.round(p.score)}% dopasowanie
                               </span>
                             )}
-                            <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-xs text-emerald-300">
-                              {p.days?.length || 0} dni
-                            </span>
+                          <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-xs text-emerald-300">
+                            {p.days?.length || 0} dni
+                          </span>
                           </div>
                         </div>
                         {p.description && (
@@ -1486,6 +1623,105 @@ export default function PlanSummary() {
                     </div>
                   </button>
                 ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Modal edycji nazwy planu */}
+      {editNameModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setEditNameModal(false)}
+        >
+          <div 
+            className="relative max-w-md w-full bg-[#0b0b0b] rounded-3xl border border-white/10 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-white">
+                  {fromCopy ? 'Nadaj nazwę planowi' : 'Zmień nazwę planu'}
+                </h3>
+                {!fromCopy && (
+                  <p className="text-sm text-gray-400 mt-1">
+                    Oryginalna nazwa: <span className="text-gray-300">{recommendedPlan?.originalName || recommendedPlan?.name || name}</span>
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setEditNameModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Input */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Nowa nazwa planu
+                </label>
+                <input
+                  type="text"
+                  value={customPlanName}
+                  onChange={(e) => setCustomPlanName(e.target.value)}
+                  placeholder="np. Mój letni plan FBW"
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                  maxLength={200}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !savingAlias) {
+                      handleSaveAlias();
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {customPlanName.length}/200 znaków
+                </p>
+              </div>
+
+              {/* Info */}
+              <div className="p-3 rounded-xl bg-blue-400/10 border border-blue-400/20">
+                <p className="text-xs text-blue-300">
+                  {fromCopy ? (
+                    <>💡 Nazwa zostanie zapisana lokalnie i użyta po aktywacji planu.</>
+                  ) : (
+                    <>💡 Twoja nazwa będzie widoczna tylko dla Ciebie. Inni użytkownicy nadal zobaczą oryginalną nazwę planu.</>
+                  )}
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEditNameModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium transition-colors"
+                  disabled={savingAlias}
+                >
+                  Anuluj
+                </button>
+                <button
+                  onClick={handleSaveAlias}
+                  disabled={savingAlias || !customPlanName.trim()}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {savingAlias ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Zapisywanie...
+                    </>
+                  ) : fromCopy ? (
+                    'Zapisz'
+                  ) : (
+                    'Zapisz nazwę'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

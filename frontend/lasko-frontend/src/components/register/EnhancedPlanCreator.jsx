@@ -373,24 +373,46 @@ const EnhancedPlanCreator = () => {
     altPlans: [],
   });
   
-  // 🆕 Automatycznie oblicz wiek gdy użytkownik wraca z rejestracji z datą urodzenia
+  // 🆕 Pobierz profil użytkownika i automatycznie wypełnij dane
   useEffect(() => {
-    const birthDate = initialData.birthDate || initialData.dateOfBirth;
-    if (birthDate && !planData.body.age) {
-      const calculatedAge = calculateAge(birthDate);
-      if (calculatedAge && calculatedAge !== planData.body.age) {
-        setPlanData(p => ({
-          ...p,
-          body: {
-            ...p.body,
-            dateOfBirth: birthDate,
-            age: calculatedAge
+    const fetchUserProfile = async () => {
+      if (!isAuthenticated || typeof isAuthenticated !== 'function' || !isAuthenticated()) return;
+      
+      try {
+        const { default: apiService } = await import('../../services/api');
+        const profileData = await apiService.fetchUserProfile();
+        
+        if (profileData?.profile) {
+          const profile = profileData.profile;
+          
+          // Oblicz wiek z date_of_birth jeśli dostępne
+          let calculatedAge = '';
+          if (profile.date_of_birth) {
+            calculatedAge = calculateAge(profile.date_of_birth);
           }
-        }));
+          
+          // Uzupełnij dane tylko jeśli nie są już wypełnione
+          setPlanData(prev => ({
+            ...prev,
+            body: {
+              ...prev.body,
+              dateOfBirth: prev.body.dateOfBirth || profile.date_of_birth || '',
+              age: prev.body.age || calculatedAge || '',
+              weightKg: prev.body.weightKg || profile.weight_kg || '',
+              heightCm: prev.body.heightCm || profile.height_cm || '',
+            }
+          }));
+          
+          console.log('[EnhancedPlanCreator] Profile loaded, age calculated:', calculatedAge);
+        }
+      } catch (error) {
+        console.error('[EnhancedPlanCreator] Error fetching profile:', error);
       }
-    }
+    };
+    
+    fetchUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData.birthDate, initialData.dateOfBirth]);
+  }, []);
 
   // ============================================================================
   // WALIDACJA KROKÓW
