@@ -166,6 +166,40 @@ class UserProfile(models.Model):
         blank=True
     )
     
+    # 🆕 Health data (dodane w migracji 08)
+    weight_kg = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text="Waga w kilogramach"
+    )
+    height_cm = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Wzrost w centymetrach"
+    )
+    # BMI jest GENERATED COLUMN w PostgreSQL
+    # NIE DODAWAĆ DO MODELU - Django próbuje go zapisać co powoduje błąd
+    # BMI będzie dostępne tylko przez raw SQL queries lub przez serializery (SerializerMethodField)
+    injuries = models.JSONField(
+        blank=True,
+        null=True,
+        default=list,
+        help_text="Lista kontuzji: ['knee', 'lower_back', ...]"
+    )
+    health_conditions = models.JSONField(
+        blank=True,
+        null=True,
+        default=list,
+        help_text="Lista schorzeń: ['hypertension', 'asthma', ...]"
+    )
+    health_notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Dodatkowe informacje zdrowotne"
+    )
+    
     # Metadata - tylko last_survey_date bo istnieje w bazie
     last_survey_date = models.DateTimeField(default=timezone.now)
     

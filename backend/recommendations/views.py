@@ -147,11 +147,16 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 'goal': 'goal',
                 'level': 'level',
                 'equipment_preference': 'equipment',
-                'training_days_per_week': 'days'
+                'training_days_per_week': 'days',
+                'weight_kg': 'weight_kg',  # 🆕
+                'height_cm': 'height_cm',  # 🆕
+                'bmi': 'bmi',  # 🆕
+                'injuries': 'injuries',  # 🆕
+                'health_conditions': 'health_conditions',  # 🆕
             }
             
             for frontend_key, backend_key in pref_mapping.items():
-                if frontend_key in preferences and preferences[frontend_key]:
+                if frontend_key in preferences and preferences[frontend_key] is not None:
                     profile[backend_key] = preferences[frontend_key]
             
             logger.info(f"[Recommendations] Profile after preferences: {profile}")
@@ -226,11 +231,14 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 "difficultyLevel": plan_detail['difficulty_level'],
                 "trainingDaysPerWeek": plan_detail['training_days_per_week'],
                 "equipmentRequired": plan_detail['equipment_required'],
+                "intensityLevel": meta.get('intensity'),  # 🆕 Intensity
+                "planType": meta.get('plan_type'),  # 🆕 Plan type
                 "score": round(float(recommendation['score']), 2),
                 "matchReasons": match_reasons,
                 "scoreBreakdown": meta.get('score_breakdown'),  # 🆕 Szczegółowy breakdown punktów
                 "cbWeight": meta.get('cb_weight'),  # 🆕 Wagi dla modalu
                 "cfWeight": meta.get('cf_weight'),
+                "healthWarnings": meta.get('health_warnings', []),  # 🆕 Health warnings
             }
             
             logger.info(f"[Recommendations] Enriched recommendation #{len(enriched_recommendations)}: planId={plan_id}, keys={list(enriched_recommendation.keys())}")

@@ -6,6 +6,62 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# HEALTH & SAFETY - Mapowania kontuzji i schorzeń
+# ============================================================================
+
+# Mapowanie kontuzji → tagi ćwiczeń do unikania
+INJURY_EXERCISE_BLACKLIST = {
+    'knee': ['squat', 'przysiady', 'wypady', 'lunge', 'leg_press', 'running', 'bieganie'],
+    'knee_left': ['squat', 'przysiady', 'wypady', 'lunge', 'leg_press'],
+    'knee_right': ['squat', 'przysiady', 'wypady', 'lunge', 'leg_press'],
+    'lower_back': ['deadlift', 'martwy', 'squat', 'przysiady', 'overhead', 'wyciskanie nad głową', 'rowing', 'wiosłowanie'],
+    'shoulder': ['overhead', 'nad głową', 'bench_press', 'wyciskanie', 'dips', 'pompki na poręczach'],
+    'shoulder_left': ['overhead', 'nad głową', 'bench_press', 'wyciskanie', 'dips'],
+    'shoulder_right': ['overhead', 'nad głową', 'bench_press', 'wyciskanie', 'dips'],
+    'elbow': ['tricep', 'triceps', 'curl', 'biceps', 'dips', 'pompki'],
+    'wrist': ['plank', 'deska', 'pushup', 'pompki', 'bench_press', 'wyciskanie'],
+    'neck': ['overhead', 'shrug', 'wznosy barków', 'deadlift'],
+    'ankle': ['running', 'bieganie', 'jump', 'skoki', 'lunge', 'wypady'],
+}
+
+# Mapowanie schorzeń → ograniczenia intensywności i typów planów
+HEALTH_CONDITION_RULES = {
+    'hypertension': {  # Nadciśnienie
+        'max_intensity': 'umiarkowana',
+        'avoid_types': ['hiit', 'crossfit'],
+        'warning': 'Unikaj wysokiej intensywności (nadciśnienie)'
+    },
+    'asthma': {  # Astma
+        'max_intensity': 'umiarkowana',
+        'avoid_types': ['hiit', 'cardio_intensive'],
+        'warning': 'Unikaj intensywnego cardio (astma)'
+    },
+    'diabetes': {  # Cukrzyca
+        'prefer_types': ['strength', 'hybrid'],
+        'warning': 'Preferuj trening siłowy (cukrzyca - stabilizacja glukozy)'
+    },
+    'heart_condition': {  # Problemy z sercem
+        'max_intensity': 'niska',
+        'avoid_types': ['hiit', 'crossfit', 'plyo'],
+        'warning': 'TYLKO niska intensywność (problemy z sercem)'
+    },
+    'arthritis': {  # Artretyzm
+        'max_intensity': 'umiarkowana',
+        'avoid_types': ['hiit', 'plyo'],
+        'warning': 'Unikaj high-impact (artretyzm)'
+    },
+}
+
+# Mapowanie poziomów intensywności na liczby (do porównywania)
+INTENSITY_LEVELS = {
+    'niska': 1,
+    'umiarkowana': 2,
+    'wysoka': 3,
+    'bardzo_wysoka': 4,
+    'hiit': 5,
+}
+
 # ---------- helpers ----------
 
 def _norm(s):
@@ -33,9 +89,11 @@ def _norm(s):
 
 
 def fetch_user_profile(auth_account_id: int) -> Dict:
-    """Fetch user profile from database (plural table name)."""
+    """Fetch user profile from database including health data."""
     q = """
-    SELECT goal, level, training_days_per_week, equipment_preference
+    SELECT 
+        goal, level, training_days_per_week, equipment_preference,
+        weight_kg, height_cm, bmi, injuries, health_conditions
     FROM user_profiles
     WHERE auth_account_id = %s
     """
@@ -45,11 +103,30 @@ def fetch_user_profile(auth_account_id: int) -> Dict:
         if not row:
             logger.warning(f"[Engine] No profile found for user_id: {auth_account_id}")
             return {}
+    # 🔧 Parse JSONB fields (mogą być stringami lub już listami)
+    import json
+    def parse_jsonb(value):
+        if not value:
+            return []
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except:
+                return []
+        if isinstance(value, list):
+            return value
+        return []
+    
     profile = {
         'goal': _norm(row[0]),
         'level': _norm(row[1]),
         'days': row[2],
         'equipment': _norm(row[3]),
+        'weight_kg': float(row[4]) if row[4] else None,  # 🆕
+        'height_cm': int(row[5]) if row[5] else None,  # 🆕
+        'bmi': float(row[6]) if row[6] else None,  # 🆕
+        'injuries': parse_jsonb(row[7]),  # 🔧 Parse JSONB correctly
+        'health_conditions': parse_jsonb(row[8]),  # 🔧 Parse JSONB correctly
     }
     logger.info(f"[Engine] Fetched profile for user {auth_account_id}: {profile}")
     return profile
@@ -145,7 +222,7 @@ def enhance_profile_with_defaults(user: Dict) -> Dict:
 
 
 def _content_candidates() -> List[Tuple]:
-    """Get all active training plans with popularity stats."""
+    """Get all active training plans with popularity stats + health data (intensity, type)."""
     q = """
     SELECT
         tp.id AS plan_id,
@@ -156,14 +233,17 @@ def _content_candidates() -> List[Tuple]:
         tp.training_days_per_week,
         tp.equipment_required,
         COUNT(DISTINCT uap.auth_account_id) AS total_users,
-        ROUND(AVG(uap.rating)::numeric, 2) AS avg_rating
+        ROUND(AVG(uap.rating)::numeric, 2) AS avg_rating,
+        COALESCE(tp.intensity_level, 'umiarkowana') AS intensity_level,
+        COALESCE(tp.plan_type, 'hybrid') AS plan_type
     FROM training_plans tp
     LEFT JOIN user_active_plans uap ON uap.plan_id = tp.id
     WHERE COALESCE(tp.is_active, TRUE) = TRUE
       AND tp.name <> 'Demo'
     GROUP BY
         tp.id, tp.name, tp.description, tp.goal_type,
-        tp.difficulty_level, tp.training_days_per_week, tp.equipment_required
+        tp.difficulty_level, tp.training_days_per_week, tp.equipment_required,
+        tp.intensity_level, tp.plan_type
     ORDER BY
         COUNT(DISTINCT uap.auth_account_id) DESC,
         AVG(uap.rating) DESC NULLS LAST
@@ -239,6 +319,183 @@ def _popularity_boost(total_users, avg_rating):
     return min(6.0, (log(1 + tu) * 1.2) + (ar - 3.0) * 1.0)
 
 
+# ============================================================================
+# HEALTH FILTERING - BMI, Injuries, Health Conditions
+# ============================================================================
+
+def _get_intensity_level(intensity_str: str) -> int:
+    """Zamień intensity string na poziom liczbowy"""
+    return INTENSITY_LEVELS.get(intensity_str, 2)  # Default: umiarkowana
+
+
+def _bmi_gate_and_score(user_bmi: float, plan_intensity: str, plan_goal: str) -> Tuple[bool, float]:
+    """
+    🆕 BMI-based filtering & scoring
+    
+    BMI Categories (WHO):
+    - < 18.5: Niedowaga → BLOKUJ HIIT, preferuj masę
+    - 18.5-24.9: Norma → wszystkie plany OK + bonus
+    - 25-29.9: Nadwaga → preferuj spalanie, unikaj bardzo wysokiej intensywności
+    - 30+: Otyłość → BLOKUJ high-impact, TYLKO low/moderate
+    
+    Returns: (pass_gate, score_points)
+    """
+    if not user_bmi or user_bmi <= 0:
+        return True, 0.0  # Brak BMI → nie filtruj, brak punktów
+    
+    intensity_level = _get_intensity_level(plan_intensity)
+    
+    # ========== HARD GATES (BLOKUJ niebezpieczne plany) ==========
+    
+    if user_bmi < 18.5:  # Niedowaga
+        if intensity_level >= 4:  # bardzo_wysoka lub hiit
+            logger.info(f"[BMI Gate] BLOKUJ plan (niedowaga BMI {user_bmi}, intensywność {plan_intensity})")
+            return False, 0.0
+    
+    elif user_bmi >= 30:  # Otyłość
+        if intensity_level >= 4:  # bardzo_wysoka lub hiit
+            logger.info(f"[BMI Gate] BLOKUJ plan (otyłość BMI {user_bmi}, intensywność {plan_intensity})")
+            return False, 0.0
+    
+    # ========== SCORING (punkty za dopasowanie) ==========
+    score = 0.0
+    
+    if user_bmi < 18.5:  # Niedowaga
+        if intensity_level <= 2:  # niska/umiarkowana
+            score += 5  # Preferuj łagodne budowanie
+        if plan_goal == 'masa':
+            score += 3  # Bonus za cel "masa"
+    
+    elif 18.5 <= user_bmi < 25:  # Norma (zdrowy zakres)
+        score += 6  # Bonus za zdrowy BMI - wszystkie plany OK
+    
+    elif 25 <= user_bmi < 30:  # Nadwaga
+        if plan_goal == 'spalanie':
+            score += 5  # Preferuj redukcję
+        if intensity_level == 2:  # umiarkowana
+            score += 3  # Preferuj umiarkowaną (bezpieczniej)
+    
+    elif user_bmi >= 30:  # Otyłość
+        if plan_goal == 'spalanie':
+            score += 6  # Priorytet: redukcja
+        if intensity_level <= 2:  # niska/umiarkowana
+            score += 2  # Bezpieczna intensywność
+    
+    logger.info(f"[BMI Score] BMI {user_bmi} → plan {plan_intensity}/{plan_goal} → +{score} pkt")
+    return True, score
+
+
+def _get_plan_exercise_tags(plan_id: int) -> List[str]:
+    """
+    Pobierz tagi ćwiczeń z planu (nazwy + opisy ćwiczeń)
+    Używane do sprawdzania czy plan zawiera niebezpieczne ćwiczenia
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT DISTINCT LOWER(e.name), LOWER(e.description), LOWER(e.type)
+                FROM plan_exercises pe
+                JOIN plan_days pd ON pe.plan_day_id = pd.id
+                JOIN exercises e ON pe.exercise_id = e.id
+                WHERE pd.plan_id = %s
+            """, [plan_id])
+            
+            tags = []
+            for row in cursor.fetchall():
+                name, desc, ex_type = row[0] or '', row[1] or '', row[2] or ''
+                tags.extend([name, desc, ex_type])
+            
+            return [t for t in tags if t]  # Usuń puste
+    except Exception as e:
+        logger.error(f"[Engine] Error getting exercise tags for plan {plan_id}: {e}")
+        return []
+
+
+def _injury_filter(user_injuries: List[str], plan_id: int) -> Tuple[bool, str]:
+    """
+    🆕 Injury-based filtering
+    Sprawdź czy plan zawiera ćwiczenia niebezpieczne dla kontuzjowanych
+    
+    Returns: (is_safe, warning_message)
+    """
+    if not user_injuries or user_injuries == [] or user_injuries == ['none']:
+        return True, None
+    
+    # Pobierz tagi ćwiczeń z planu
+    exercise_tags = _get_plan_exercise_tags(plan_id)
+    if not exercise_tags:
+        return True, None  # Brak danych → przepuść
+    
+    # Połącz wszystkie tagi w jeden string do szybszego wyszukiwania
+    all_tags_str = ' '.join(exercise_tags).lower()
+    
+    dangerous_found = []
+    for injury in user_injuries:
+        if injury == 'none':
+            continue
+        
+        blacklist = INJURY_EXERCISE_BLACKLIST.get(injury, [])
+        for blocked_term in blacklist:
+            if blocked_term.lower() in all_tags_str:
+                dangerous_found.append((injury, blocked_term))
+                break  # Wystarczy jeden match dla tej kontuzji
+    
+    if dangerous_found:
+        injury_names = {i[0] for i in dangerous_found}
+        injury_labels = {
+            'knee': 'kolano', 'knee_left': 'lewe kolano', 'knee_right': 'prawe kolano',
+            'lower_back': 'dolny odcinek kręgosłupa', 'shoulder': 'bark',
+            'shoulder_left': 'lewy bark', 'shoulder_right': 'prawy bark',
+            'elbow': 'łokieć', 'wrist': 'nadgarstek', 'neck': 'szyja', 'ankle': 'kostka'
+        }
+        readable_injuries = ', '.join(injury_labels.get(i, i) for i in injury_names)
+        warning = f"Plan zawiera ćwiczenia niebezpieczne dla: {readable_injuries}"
+        logger.info(f"[Injury Filter] BLOKUJ plan {plan_id} (kontuzja: {readable_injuries})")
+        return False, warning
+    
+    return True, None
+
+
+def _health_gate(user_conditions: List[str], plan_type: str, plan_intensity: str) -> Tuple[bool, List[str]]:
+    """
+    🆕 Health conditions filtering
+    Filtruj plany na podstawie schorzeń (nadciśnienie, astma, etc.)
+    
+    Returns: (pass_gate, warnings_list)
+    """
+    if not user_conditions or user_conditions == [] or user_conditions == ['none']:
+        return True, []
+    
+    warnings = []
+    intensity_level = _get_intensity_level(plan_intensity)
+    
+    for condition in user_conditions:
+        if condition == 'none':
+            continue
+        
+        rules = HEALTH_CONDITION_RULES.get(condition)
+        if not rules:
+            continue
+        
+        # Sprawdź max intensywność (HARD GATE)
+        if 'max_intensity' in rules:
+            max_allowed = _get_intensity_level(rules['max_intensity'])
+            if intensity_level > max_allowed:
+                logger.info(f"[Health Gate] BLOKUJ plan (schorzenie: {condition}, intensywność {plan_intensity} > {rules['max_intensity']})")
+                return False, [rules['warning']]
+        
+        # Sprawdź avoid types (HARD GATE)
+        if 'avoid_types' in rules and plan_type in rules['avoid_types']:
+            logger.info(f"[Health Gate] BLOKUJ plan (schorzenie: {condition}, typ {plan_type} w avoid list)")
+            return False, [rules['warning']]
+        
+        # Dodaj soft warning (ale przepuść plan)
+        if 'prefer_types' in rules and plan_type not in rules['prefer_types']:
+            warnings.append(rules['warning'])
+    
+    return True, warnings
+
+
 def content_based(user: Dict) -> List[Dict]:
     """Content-based recommendation algorithm with COLD START support."""
     
@@ -248,11 +505,31 @@ def content_based(user: Dict) -> List[Dict]:
     rows = _content_candidates()
     results = []
     logger.info(f"[Engine] User profile for matching: {user}")
+    
+    # 🆕 Pobierz health data użytkownika
+    user_bmi = user.get('bmi')
+    user_injuries = user.get('injuries', [])
+    user_conditions = user.get('health_conditions', [])
 
-    for (pid, name, desc, goal, level, days, equip, total_users, avg_rating) in rows:
+    for (pid, name, desc, goal, level, days, equip, total_users, avg_rating, intensity, plan_type) in rows:
         # TWARDY GATE – wstępna selekcja jakości
         if not _hard_gate(user, goal, level, days, equip):
             continue
+        
+        # 🆕 HEALTH GATE 1: BMI
+        bmi_pass, bmi_score = _bmi_gate_and_score(user_bmi, intensity, goal)
+        if not bmi_pass:
+            continue  # BLOKUJ plan niebezpieczny dla BMI
+        
+        # 🆕 HEALTH GATE 2: Injuries
+        injury_safe, injury_warning = _injury_filter(user_injuries, pid)
+        if not injury_safe:
+            continue  # BLOKUJ plan z niebezpiecznymi ćwiczeniami
+        
+        # 🆕 HEALTH GATE 3: Health Conditions
+        health_pass, health_warnings = _health_gate(user_conditions, plan_type, intensity)
+        if not health_pass:
+            continue  # BLOKUJ plan niebezpieczny dla schorzenia
 
         g = _norm(goal)
         lv = _norm(level)
@@ -320,9 +597,37 @@ def content_based(user: Dict) -> List[Dict]:
             'total_users': total_users,
             'avg_rating': float(avg_rating) if avg_rating is not None else None
         }
+        
+        # 🆕 BMI Score (już obliczone w gate, teraz dodajemy do breakdown)
+        score += bmi_score
+        score_breakdown['bmi'] = {
+            'points': round(bmi_score, 2),
+            'max': 8,
+            'user_bmi': user_bmi,
+            'matched': bmi_score > 0
+        }
+        
+        # 🆕 Health Safety Bonus (brak warnings = bezpieczny plan)
+        health_bonus = 0
+        if not health_warnings and not injury_warning:
+            health_bonus = 5
+            score += health_bonus
+        score_breakdown['health_safety'] = {
+            'points': health_bonus,
+            'max': 5,
+            'matched': health_bonus > 0,
+            'has_warnings': bool(health_warnings or injury_warning)
+        }
 
         # wynik
         if score > 0:
+            # 🆕 Zbierz wszystkie health warnings
+            all_health_warnings = []
+            if health_warnings:
+                all_health_warnings.extend(health_warnings)
+            if injury_warning:
+                all_health_warnings.append(injury_warning)
+            
             results.append({
                 'plan_id': pid,
                 'score': float(score),
@@ -333,9 +638,12 @@ def content_based(user: Dict) -> List[Dict]:
                     'goal': goal,
                     'level': level,
                     'equipment': equip,
+                    'intensity': intensity,  # 🆕 Intensity level
+                    'plan_type': plan_type,  # 🆕 Plan type
                     'total_users': total_users,
                     'avg_rating': float(avg_rating) if avg_rating is not None else None,
                     'score_breakdown': score_breakdown,  # 🆕 Szczegółowy breakdown
+                    'health_warnings': all_health_warnings,  # 🆕 Health warnings
                 }
             })
 
@@ -431,15 +739,17 @@ def _minmax_norm(items: List[Dict]) -> Dict[int, float]:
 def _absolute_norm_cb(items: List[Dict]) -> Dict[int, float]:
     """
     🆕 ABSOLUTE NORMALIZATION for Content-Based
-    Normalizacja do teoretycznego maksimum (51 pkt):
+    Normalizacja do teoretycznego maksimum (64 pkt):
     - Goal: 15 pkt
     - Level: 10 pkt  
     - Days: 12 pkt
     - Equipment: 8 pkt
     - Popularity: 6 pkt
-    Total: 51 pkt → 100%
+    - BMI: 8 pkt (🆕)
+    - Health Safety: 5 pkt (🆕)
+    Total: 64 pkt → 100%
     """
-    MAX_CB_SCORE = 51.0
+    MAX_CB_SCORE = 64.0  # 🆕 Zaktualizowano z 51 na 64
     result = {}
     for item in items:
         score = item['score']

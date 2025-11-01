@@ -858,14 +858,16 @@ export default function PlanSummary() {
                           (plan.scoreBreakdown.level?.points || 0) +
                           (plan.scoreBreakdown.days?.points || 0) +
                           (plan.scoreBreakdown.equipment?.points || 0) +
-                          (plan.scoreBreakdown.popularity?.points || 0);
+                          (plan.scoreBreakdown.popularity?.points || 0) +
+                          (plan.scoreBreakdown.bmi?.points || 0) +
+                          (plan.scoreBreakdown.health_safety?.points || 0);
                         return total.toFixed(1);
                       })()}
                     </span>
                     <span className="text-2xl text-gray-400">/</span>
-                    <span className="text-2xl font-bold text-gray-400">51</span>
+                    <span className="text-2xl font-bold text-gray-400">64</span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">maksymalnie możliwych punktów</p>
+                  <p className="text-xs text-gray-400 mt-1">maksymalnie możliwych punktów (z BMI + zdrowie)</p>
                 </div>
               </div>
               
@@ -953,6 +955,46 @@ export default function PlanSummary() {
                     <p className="text-xs text-gray-400 mt-1">
                       {plan.scoreBreakdown.popularity.total_users} użytkowników
                       {plan.scoreBreakdown.popularity.avg_rating && ` • Ocena: ${plan.scoreBreakdown.popularity.avg_rating.toFixed(1)}/5`}
+                    </p>
+                  </div>
+                )}
+                
+                {/* 🆕 BMI */}
+                {plan.scoreBreakdown.bmi && (
+                  <div className="p-3 rounded-xl bg-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-semibold">BMI</span>
+                      <span className={`font-bold ${plan.scoreBreakdown.bmi.matched ? 'text-orange-400' : 'text-gray-400'}`}>
+                        +{plan.scoreBreakdown.bmi.points} / {plan.scoreBreakdown.bmi.max} pkt
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div className="bg-orange-400 h-2 rounded-full transition-all" style={{ width: `${(plan.scoreBreakdown.bmi.points / plan.scoreBreakdown.bmi.max) * 100}%` }}/>
+                    </div>
+                    {plan.scoreBreakdown.bmi.user_bmi && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        Twoje BMI: {plan.scoreBreakdown.bmi.user_bmi.toFixed(1)} • Plan dostosowany do Twojego BMI
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                {/* 🆕 Health Safety */}
+                {plan.scoreBreakdown.health_safety && (
+                  <div className="p-3 rounded-xl bg-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-semibold">Bezpieczeństwo zdrowotne</span>
+                      <span className={`font-bold ${plan.scoreBreakdown.health_safety.matched ? 'text-teal-400' : 'text-gray-400'}`}>
+                        +{plan.scoreBreakdown.health_safety.points} / {plan.scoreBreakdown.health_safety.max} pkt
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div className="bg-teal-400 h-2 rounded-full transition-all" style={{ width: `${(plan.scoreBreakdown.health_safety.points / plan.scoreBreakdown.health_safety.max) * 100}%` }}/>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {plan.scoreBreakdown.health_safety.has_warnings 
+                        ? 'Plan zawiera ostrzeżenia zdrowotne (sprawdź poniżej)' 
+                        : 'Brak przeciwwskazań dla Twojego profilu zdrowotnego'}
                     </p>
                   </div>
                 )}
@@ -1198,6 +1240,35 @@ export default function PlanSummary() {
                   </p>
                 )}
               </div>
+
+              {/* 🆕 Health Warnings */}
+              {recommendedPlan.healthWarnings && recommendedPlan.healthWarnings.length > 0 && (
+                <div className="rounded-xl bg-yellow-400/10 border border-yellow-400/30 p-5">
+                  <div className="flex items-start gap-3">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-yellow-400 flex-shrink-0 mt-0.5">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-yellow-300 mb-2">
+                        ⚕️ Uwaga zdrowotna - rozważ konsultację z lekarzem
+                      </h4>
+                      <ul className="text-sm text-yellow-200 space-y-1.5">
+                        {recommendedPlan.healthWarnings.map((warning, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-yellow-400 mt-0.5">•</span>
+                            <span>{warning}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-xs text-yellow-300/70 mt-3 italic">
+                        Te informacje mają charakter pomocniczy i nie zastępują porady medycznej.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* szybkie statystyki planu */}
               <div className="grid gap-4 sm:grid-cols-3">

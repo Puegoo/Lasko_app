@@ -368,6 +368,11 @@ const EnhancedPlanCreator = () => {
       heightCm: initialData.heightCm || '',
       activityLevel: initialData.activityLevel || 'średnia',
     },
+    health: {
+      injuries: initialData.injuries || [],
+      healthConditions: initialData.healthConditions || [],
+      healthNotes: initialData.healthNotes || '',
+    },
     name: initialData.name || (currentUser?.first_name ? `Plan dla ${currentUser.first_name}` : (currentUser?.username ? `Plan dla ${currentUser.username}` : 'Plan Użytkownik')),
     recommendedPlan: null,
     altPlans: [],
@@ -461,7 +466,8 @@ const EnhancedPlanCreator = () => {
     if (stepIndex === 1) return Object.keys(validateBasics).length === 0;
     if (stepIndex === 2) return Object.keys(validatePreferences).length === 0;
     if (stepIndex === 3) return Object.keys(validateBody).length === 0;
-    if (stepIndex === 4) return !!planData.name?.trim();
+    if (stepIndex === 4) return true;  // Krok "Zdrowie" jest OPCJONALNY - zawsze valid
+    if (stepIndex === 5) return !!planData.name?.trim();
     return true;
   };
 
@@ -478,7 +484,7 @@ const EnhancedPlanCreator = () => {
       return;
     }
     setErrors({});
-    setCurrentStep((prev) => Math.min(prev + 1, 4));
+    setCurrentStep((prev) => Math.min(prev + 1, 5));  // 🆕 Zmieniono z 4 na 5 (6 kroków: 0-5)
   };
 
   const handlePrev = () => {
@@ -542,6 +548,12 @@ const generateRecommendedPlan = async () => {
         avoid_exercises: planData.avoidances || [],
         // Metoda rekomendacji - WAŻNE: mapuj wartości frontendu na backend
         recommendation_method: methodMapping[planData.recommendationMethod] || 'hybrid',
+        // 🆕 Health data
+        weight_kg: planData.body.weightKg ? parseFloat(planData.body.weightKg) : null,
+        height_cm: planData.body.heightCm ? parseInt(planData.body.heightCm) : null,
+        injuries: (planData.health.injuries || []).filter(i => i !== 'none'),
+        health_conditions: (planData.health.healthConditions || []).filter(c => c !== 'none'),
+        health_notes: planData.health.healthNotes || '',
       };
       
       console.log('📤 [EnhancedPlanCreator] Dane do zapisu:', profileData);
@@ -570,6 +582,17 @@ const generateRecommendedPlan = async () => {
     // ========== KONIEC ZAPISU PROFILU ==========
 
     // Przygotuj preferencje do generowania rekomendacji
+    // 🆕 Oblicz BMI jeśli dostępne weight i height
+    let calculatedBMI = null;
+    if (planData.body.weightKg && planData.body.heightCm) {
+      const weightNum = parseFloat(planData.body.weightKg);
+      const heightNum = parseInt(planData.body.heightCm);
+      if (weightNum > 0 && heightNum > 0) {
+        calculatedBMI = weightNum / Math.pow(heightNum / 100, 2);
+        calculatedBMI = Math.round(calculatedBMI * 100) / 100;  // Round to 2 decimals
+      }
+    }
+    
     const preferences = {
       goal: planData.goal,
       level: planData.level,
@@ -580,6 +603,12 @@ const generateRecommendedPlan = async () => {
       avoidances: planData.avoidances,
       body: planData.body,
       plan_name: planData.name, // Dodaj nazwę planu z ankiety
+      // 🆕 Health data
+      weight_kg: planData.body.weightKg ? parseFloat(planData.body.weightKg) : null,
+      height_cm: planData.body.heightCm ? parseInt(planData.body.heightCm) : null,
+      bmi: calculatedBMI,
+      injuries: (planData.health.injuries || []).filter(i => i !== 'none'),
+      health_conditions: (planData.health.healthConditions || []).filter(c => c !== 'none'),
     };
 
     console.log('📊 [EnhancedPlanCreator] Generuję rekomendacje z preferencjami:', preferences);
@@ -680,7 +709,7 @@ const generateRecommendedPlan = async () => {
   );
 
   const StepProgress = () => {
-    const steps = ['Metoda', 'Podstawy', 'Preferencje', 'Ciało', 'Nazwa'];
+    const steps = ['Metoda', 'Podstawy', 'Preferencje', 'Ciało', 'Zdrowie', 'Nazwa'];
     return (
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -716,12 +745,12 @@ const generateRecommendedPlan = async () => {
             </div>
           ))}
         </div>
-        <div className="mt-3 flex justify-between">
+        <div className="mt-3 flex justify-between px-1">
           {steps.map((step, index) => (
             <div
               key={index}
               className={[
-                'text-xs font-medium transition-colors',
+                'text-xs font-medium transition-colors text-center flex-1',
                 index <= currentStep ? 'text-emerald-300' : 'text-gray-500',
               ].join(' ')}
             >
@@ -736,7 +765,7 @@ const generateRecommendedPlan = async () => {
   const renderMethodStep = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <Kicker>Krok 1 z 5</Kicker>
+        <Kicker>Krok 1 z 6</Kicker>
         <h2 className="mt-4 text-4xl font-black text-white">Wybierz metodę rekomendacji</h2>
         <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
           Jak chcesz, aby Lasko dobierał dla Ciebie plan treningowy?
@@ -780,7 +809,7 @@ const generateRecommendedPlan = async () => {
   const renderBasicsStep = () => (
     <div className="space-y-8">
       <div className="text-center">
-        <Kicker>Krok 2 z 5</Kicker>
+        <Kicker>Krok 2 z 6</Kicker>
         <h2 className="mt-4 text-4xl font-black text-white">Powiedz nam o swoich celach</h2>
         <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
           Określ swój główny cel treningowy i poziom zaawansowania
@@ -831,8 +860,8 @@ const generateRecommendedPlan = async () => {
             >
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <h4 className="text-white font-bold">{l.label}</h4>
-                  <p className="text-sm text-gray-400">{l.description}</p>
+                <h4 className="text-white font-bold">{l.label}</h4>
+                <p className="text-sm text-gray-400">{l.description}</p>
                 </div>
                 {planData.level === l.value && (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-emerald-400 flex-shrink-0">
@@ -889,7 +918,7 @@ const generateRecommendedPlan = async () => {
   const renderPreferencesStep = () => (
     <div className="space-y-8">
       <div className="text-center">
-        <Kicker>Krok 3 z 5</Kicker>
+        <Kicker>Krok 3 z 6</Kicker>
         <h2 className="mt-4 text-4xl font-black text-white">Dostosuj plan do swoich możliwości</h2>
         <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
           Określ dostępne wyposażenie i czas na trening
@@ -1003,7 +1032,7 @@ const generateRecommendedPlan = async () => {
     return (
       <div className="space-y-8">
         <div className="text-center">
-          <Kicker>Krok 4 z 5</Kicker>
+          <Kicker>Krok 4 z 6</Kicker>
           <h2 className="mt-4 text-4xl font-black text-white">Pomożemy dobrać intensywność</h2>
           <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
             Twoje parametry pomogą nam lepiej dostosować plan
@@ -1099,10 +1128,214 @@ const generateRecommendedPlan = async () => {
     );
   };
 
+  // ============================================================================
+  // KROK 5: ZDROWIE (opcjonalny)
+  // ============================================================================
+  
+  const injuryOptions = [
+    { 
+      id: 'knee', 
+      label: 'Kolano', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-red-400"><circle cx="12" cy="7" r="2" stroke="currentColor" strokeWidth="2"/><path d="M12 9v6M10 15h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M10 19l2-2 2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    },
+    { 
+      id: 'lower_back', 
+      label: 'Dolny odcinek kręgosłupa', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-red-400"><path d="M12 2v20M8 6c0 2 4 2 4 0M8 12c0 2 4 2 4 0M8 18c0 2 4 2 4 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+    },
+    { 
+      id: 'shoulder', 
+      label: 'Bark', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-red-400"><circle cx="12" cy="8" r="3" stroke="currentColor" strokeWidth="2"/><path d="M9 11l-4 8M15 11l4 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+    },
+    { 
+      id: 'elbow', 
+      label: 'Łokieć', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-red-400"><path d="M8 4v8l4 4M16 20v-8l-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    },
+    { 
+      id: 'wrist', 
+      label: 'Nadgarstek', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-red-400"><path d="M12 8v8M8 12h8M12 12l-3 3M12 12l3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+    },
+    { 
+      id: 'none', 
+      label: 'Brak kontuzji', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-emerald-400"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    },
+  ];
+
+  const healthConditionOptions = [
+    { 
+      id: 'hypertension', 
+      label: 'Nadciśnienie', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-yellow-400"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke="currentColor" strokeWidth="2"/></svg>
+    },
+    { 
+      id: 'asthma', 
+      label: 'Astma', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-yellow-400"><path d="M9 17c.5 0 .75-.5 1.5-1.5S12 14 13 14s1.5.5 2 1.5S15.5 17 16 17M9 11h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><ellipse cx="12" cy="12" rx="8" ry="10" stroke="currentColor" strokeWidth="2"/></svg>
+    },
+    { 
+      id: 'diabetes', 
+      label: 'Cukrzyca', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-yellow-400"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/><path d="M12 2v4M12 18v4M22 12h-4M6 12H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+    },
+    { 
+      id: 'heart_condition', 
+      label: 'Problemy z sercem', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-yellow-400"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="2"/><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+    },
+    { 
+      id: 'none', 
+      label: 'Brak schorzeń', 
+      icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-emerald-400"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    },
+  ];
+
+  const toggleInjury = (injuryId) => {
+    setPlanData(prev => {
+      const current = prev.health.injuries || [];
+      if (injuryId === 'none') {
+        return { ...prev, health: { ...prev.health, injuries: ['none'] } };
+      }
+      const filtered = current.filter(i => i !== 'none');
+      if (filtered.includes(injuryId)) {
+        return { ...prev, health: { ...prev.health, injuries: filtered.filter(i => i !== injuryId) } };
+      } else {
+        return { ...prev, health: { ...prev.health, injuries: [...filtered, injuryId] } };
+      }
+    });
+  };
+
+  const toggleHealthCondition = (conditionId) => {
+    setPlanData(prev => {
+      const current = prev.health.healthConditions || [];
+      if (conditionId === 'none') {
+        return { ...prev, health: { ...prev.health, healthConditions: ['none'] } };
+      }
+      const filtered = current.filter(c => c !== 'none');
+      if (filtered.includes(conditionId)) {
+        return { ...prev, health: { ...prev.health, healthConditions: filtered.filter(c => c !== conditionId) } };
+      } else {
+        return { ...prev, health: { ...prev.health, healthConditions: [...filtered, conditionId] } };
+      }
+    });
+  };
+
+  const renderHealthStep = () => (
+    <div className="space-y-8">
+      <div className="text-center">
+        <Kicker>Krok 5 z 6 (opcjonalny)</Kicker>
+        <h2 className="mt-4 text-4xl font-black text-white">Zdrowie i bezpieczeństwo</h2>
+        <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
+          Pomóż nam dobrać bezpieczny plan. Te informacje są <strong>opcjonalne</strong> - możesz je pominąć.
+        </p>
+      </div>
+
+      {/* Kontuzje */}
+      <div>
+        <label className="block text-xl font-bold text-white mb-4 text-center">
+          Czy masz jakieś kontuzje?
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {injuryOptions.map(injury => (
+            <button
+              key={injury.id}
+              type="button"
+              onClick={() => toggleInjury(injury.id)}
+              className={[
+                'p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3',
+                (planData.health.injuries || []).includes(injury.id)
+                  ? injury.id === 'none' 
+                    ? 'border-emerald-400 bg-emerald-400/10'
+                    : 'border-red-400 bg-red-400/10'
+                  : 'border-white/10 bg-white/5 hover:border-red-400/50'
+              ].join(' ')}
+            >
+              <div>{injury.icon}</div>
+              <div className="text-white font-medium text-center text-sm">{injury.label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Health Conditions */}
+      <div>
+        <label className="block text-xl font-bold text-white mb-4 text-center">
+          Czy masz jakieś schorzenia?
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {healthConditionOptions.map(condition => (
+            <button
+              key={condition.id}
+              type="button"
+              onClick={() => toggleHealthCondition(condition.id)}
+              className={[
+                'p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3',
+                (planData.health.healthConditions || []).includes(condition.id)
+                  ? condition.id === 'none'
+                    ? 'border-emerald-400 bg-emerald-400/10'
+                    : 'border-yellow-400 bg-yellow-400/10'
+                  : 'border-white/10 bg-white/5 hover:border-yellow-400/50'
+              ].join(' ')}
+            >
+              <div>{condition.icon}</div>
+              <div className="text-white font-medium text-center text-sm">{condition.label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Dodatkowe notatki */}
+      <div className="mx-auto max-w-2xl">
+        <label className="block text-lg font-semibold text-white mb-3 text-center">
+          Dodatkowe informacje (opcjonalne)
+        </label>
+        <textarea
+          value={planData.health.healthNotes || ''}
+          onChange={(e) => setPlanData(p => ({ ...p, health: { ...p.health, healthNotes: e.target.value } }))}
+          placeholder="np. Po operacji kolana w 2022, unikam głębokich przysiadów..."
+          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+          rows={4}
+          maxLength={500}
+        />
+        <p className="text-xs text-gray-500 mt-2 text-right">
+          {(planData.health.healthNotes || '').length}/500 znaków
+        </p>
+      </div>
+
+      {/* Disclaimer */}
+      <div className="mx-auto max-w-2xl p-4 rounded-xl bg-blue-400/10 border border-blue-400/20">
+        <p className="text-sm text-blue-300 text-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="inline mr-2 text-blue-400">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+            <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          Informacje zdrowotne pomogą nam dobrać bezpieczniejszy plan. Zawsze konsultuj z lekarzem przed rozpoczęciem treningu, szczególnie przy problemach zdrowotnych.
+        </p>
+      </div>
+
+      {/* Opcja pominięcia */}
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={() => {
+            setPlanData(p => ({ ...p, health: { injuries: ['none'], healthConditions: ['none'], healthNotes: '' } }));
+            setCurrentStep(5);  // Przejdź do kroku "Nazwa"
+          }}
+          className="text-gray-400 hover:text-white transition-colors text-sm underline"
+        >
+          Pomiń ten krok →
+        </button>
+      </div>
+    </div>
+  );
+
   const renderNameStep = () => (
     <div className="space-y-8">
       <div className="text-center">
-        <Kicker>Krok 5 z 5</Kicker>
+        <Kicker>Krok 6 z 6</Kicker>
         <h2 className="mt-4 text-4xl font-black text-white">Nazwij swój plan</h2>
         <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
           Nadaj swojemu planowi unikalną nazwę, która będzie Cię motywować
@@ -1237,12 +1470,12 @@ const generateRecommendedPlan = async () => {
         <div className="mt-6 rounded-xl bg-white/5 p-3">
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-400">Postęp wypełniania</span>
-            <span className="font-semibold text-emerald-300">{(((currentStep + 1) / 5) * 100).toFixed(0)}%</span>
+            <span className="font-semibold text-emerald-300">{(((currentStep + 1) / 6) * 100).toFixed(0)}%</span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all duration-300"
-              style={{ width: `${((currentStep + 1) / 5) * 100}%` }}
+              style={{ width: `${((currentStep + 1) / 6) * 100}%` }}
             />
           </div>
         </div>
@@ -1267,6 +1500,7 @@ const generateRecommendedPlan = async () => {
     { title: 'Podstawy', component: renderBasicsStep },
     { title: 'Preferencje', component: renderPreferencesStep },
     { title: 'Ciało', component: renderBodyStep },
+    { title: 'Zdrowie', component: renderHealthStep },  // 🆕 Nowy krok
     { title: 'Nazwa', component: renderNameStep },
   ];
 

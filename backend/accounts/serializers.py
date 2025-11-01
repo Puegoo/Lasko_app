@@ -145,7 +145,9 @@ class UserRegistrationSerializer(serializers.Serializer):
             profile_fields = [
                 'goal', 'level', 'training_days_per_week', 'equipment_preference',
                 'recommendation_method', 'date_of_birth', 'preferred_session_duration',
-                'avoid_exercises', 'focus_areas'
+                'avoid_exercises', 'focus_areas',
+                # 🆕 Health fields (NIE dodawaj 'bmi' - to GENERATED COLUMN!)
+                'weight_kg', 'height_cm', 'injuries', 'health_conditions', 'health_notes'
             ]
             
             # Wyciągnij tylko te dane, które faktycznie przyszły
@@ -204,6 +206,9 @@ class UserRegistrationSerializer(serializers.Serializer):
                 # NIE USTAWIAJ ŻADNYCH INNYCH DOMYŚLNYCH WARTOŚCI!
                 # Pozwól aby goal, level, equipment_preference były NULL w bazie
                 
+                # 🆕 WAŻNE: Usuń 'bmi' jeśli przypadkiem jest w danych (to GENERATED COLUMN!)
+                profile_data.pop('bmi', None)
+                
                 logger.info(f"[Registration] Tworzenie profilu z finalnymi danymi: {profile_data}")
                 
                 user_profile = UserProfile.objects.create(**profile_data)
@@ -259,6 +264,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer do profilu użytkownika"""
     
     age = serializers.SerializerMethodField()
+    bmi = serializers.SerializerMethodField()  # 🆕 BMI jako SerializerMethodField (nie z modelu!)
     total_workouts = serializers.SerializerMethodField()
     weekly_progress = serializers.SerializerMethodField()
     weekly_goal = serializers.SerializerMethodField()
@@ -277,13 +283,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'preferred_session_duration', 'avoid_exercises',
             'focus_areas', 'last_survey_date', 'recommendation_method',
             'profile_picture', 'bio', 
-            'total_workouts', 'weekly_progress', 'weekly_goal', 'current_streak'
+            'total_workouts', 'weekly_progress', 'weekly_goal', 'current_streak',
+            'weight_kg', 'height_cm', 'bmi', 'injuries', 'health_conditions', 'health_notes'
         ]
         
         extra_kwargs = {
             'avoid_exercises': {'required': False, 'allow_null': True},
             'focus_areas': {'required': False, 'allow_null': True},
             'last_survey_date': {'read_only': True},
+            'injuries': {'required': False, 'allow_null': True},
+            'health_conditions': {'required': False, 'allow_null': True},
+            'health_notes': {'required': False, 'allow_null': True, 'allow_blank': True},
         }
     
     def get_age(self, obj):
@@ -294,6 +304,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
             return today.year - obj.date_of_birth.year - (
                 (today.month, today.day) < (obj.date_of_birth.month, obj.date_of_birth.day)
             )
+        return None
+    
+    def get_bmi(self, obj):
+        """Pobierz BMI z bazy danych (GENERATED COLUMN)"""
+        from django.db import connection
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT bmi
+                    FROM user_profiles
+                    WHERE auth_account_id = %s
+                """, [obj.auth_account_id])
+                result = cursor.fetchone()
+                if result and result[0]:
+                    return round(float(result[0]), 2)
+        except Exception as e:
+            logger.error(f"[Serializer] Error fetching BMI: {e}")
         return None
     
     def get_total_workouts(self, obj):
@@ -383,12 +410,16 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'first_name', 'date_of_birth', 'goal', 'level',
             'training_days_per_week', 'equipment_preference',
             'preferred_session_duration', 'avoid_exercises',
-            'focus_areas', 'recommendation_method'
+            'focus_areas', 'recommendation_method',
+            'weight_kg', 'height_cm', 'injuries', 'health_conditions', 'health_notes'
         ]
         
         extra_kwargs = {
             'avoid_exercises': {'required': False, 'allow_null': True},
             'focus_areas': {'required': False, 'allow_null': True},
+            'injuries': {'required': False, 'allow_null': True},
+            'health_conditions': {'required': False, 'allow_null': True},
+            'health_notes': {'required': False, 'allow_null': True, 'allow_blank': True},
         }
     
     def validate_training_days_per_week(self, value):
@@ -401,10 +432,25 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Czas sesji musi być między 15 a 180 minut.")
         return value
     
+    def validate_weight_kg(self, value):
+        """Walidacja wagi"""
+        if value is not None and (value < 30 or value > 300):
+            raise serializers.ValidationError("Waga musi być między 30 a 300 kg.")
+        return value
+    
+    def validate_height_cm(self, value):
+        """Walidacja wzrostu"""
+        if value is not None and (value < 100 or value > 250):
+            raise serializers.ValidationError("Wzrost musi być między 100 a 250 cm.")
+        return value
+    
     def update(self, instance, validated_data):
         """Aktualizuj tylko te pola, które zostały przesłane"""
         logger.info(f"[UpdateProfile] Aktualizacja profilu użytkownika: {instance.auth_account.username}")
         logger.info(f"[UpdateProfile] Otrzymane dane: {validated_data}")
+        
+        # 🆕 WAŻNE: Usuń 'bmi' z danych (to GENERATED COLUMN, nie można go aktualizować!)
+        validated_data.pop('bmi', None)
         
         # Sprawdź czy są istotne dane treningowe - jeśli tak, zaktualizuj last_survey_date
         training_fields = ['goal', 'level', 'training_days_per_week', 'equipment_preference']
