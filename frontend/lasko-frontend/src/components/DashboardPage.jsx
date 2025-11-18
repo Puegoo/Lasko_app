@@ -394,6 +394,12 @@ const DashboardPage = () => {
   const displayPlan = activePlan || tempActivePlan;
 
   useEffect(() => {
+    if (user?.is_admin || user?.is_superuser) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
     // Sprawdź czy użytkownik dopiero aktywował plan
     const justActivated = localStorage.getItem('plan_just_activated');
     if (justActivated === 'true') {
@@ -405,7 +411,7 @@ const DashboardPage = () => {
       }, 3000);
     }
 
-    if (isAuthenticated()) {
+    if (isAuthenticated() && !(user?.is_admin || user?.is_superuser)) {
       fetchUserData();
     } else {
       setLoading(false);
@@ -428,6 +434,11 @@ const DashboardPage = () => {
   }, []);
 
   const fetchUserData = async () => {
+    if (user?.is_admin || user?.is_superuser) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       // Pobierz profil użytkownika

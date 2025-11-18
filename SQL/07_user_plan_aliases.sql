@@ -47,3 +47,4 @@ COMMENT ON COLUMN user_plan_aliases.custom_name IS 'Nazwa nadana przez użytkown
 COMMENT ON COLUMN user_plan_aliases.auth_account_id IS 'ID użytkownika, który nadał alias';
 COMMENT ON COLUMN user_plan_aliases.plan_id IS 'ID planu treningowego';
 
+

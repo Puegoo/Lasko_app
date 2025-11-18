@@ -4,6 +4,11 @@ services:
     build:
       context: ./frontend/lasko-frontend
       dockerfile: Dockerfile.dev
+    user: "0:0"
+    command: >
+      sh -c "rm -rf node_modules/.vite && mkdir -p node_modules/.vite &&
+             chmod -R 777 node_modules/.vite &&
+             npm run dev -- --host 0.0.0.0 --port 3000 --force"
     ports:
       - "3000:3000"
     volumes:

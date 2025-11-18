@@ -33,6 +33,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'recommendations',
+    'adminpanel',
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
 ]
 
 MIDDLEWARE = [
@@ -44,6 +47,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'adminpanel.middleware.AdminAuditLogMiddleware',
 ]
 
 ROOT_URLCONF = 'lasko_backend.urls'
@@ -89,6 +93,29 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Lasko API",
+    "DESCRIPTION": "Dokumentacja REST API dla platformy Lasko – autoryzacja, rekomendacje, plany treningowe oraz moduły społecznościowe.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_AUTHENTICATION": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SECURITY": [
+        {"BearerAuth": []},
+    ],
+    "SECURITY_SCHEMES": {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    },
 }
 
 # JWT Configuration
@@ -221,6 +248,12 @@ LOGGING = {
             'filename': str(LOGS_DIR / 'django.log'),  # ← NAPRAWIONA ŚCIEŻKA!
             'formatter': 'verbose',
         },
+        'admin_audit_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': str(LOGS_DIR / 'admin_audit.log'),
+            'formatter': 'verbose',
+        },
     },
     'root': {
         'handlers': ['console', 'file'],
@@ -239,6 +272,11 @@ LOGGING = {
         },
         'recommendations.views': {
             'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'admin.audit': {
+            'handlers': ['admin_audit_file', 'console'],
             'level': 'INFO',
             'propagate': False,
         },

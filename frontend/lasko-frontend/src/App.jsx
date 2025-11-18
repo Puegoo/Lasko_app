@@ -23,15 +23,12 @@ import CommunityPage from './components/CommunityPage.jsx';
 import SettingsPage from './components/SettingsPage.jsx';
 import CalendarPage from './components/CalendarPage.jsx';
 import PlansPage from './components/PlansPage.jsx';
+import AdminApp from './admin/AdminApp.jsx';
 
 // Assets
 import laskoHi from './assets/Lasko_pose/Lasko_Hi.png';
 import whoIsLasko from './assets/Lasko_pose/whoislasko.png';
 import laskoCropHi from './assets/Lasko_pose/Lasko_crop_Hi.png';
-import instagramIcon from './assets/icons/instagram.svg';
-import twitterIcon from './assets/icons/twitter.svg';
-import tiktokIcon from './assets/icons/tiktok.svg';
-import facebookIcon from './assets/icons/facebook.svg';
 
 // ---------- UI helpers (tylko wygląd) ----------
 const GradientGridBg = () => (
@@ -111,6 +108,24 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated() ? children : <Navigate to="/login" replace />;
 };
 
+const AdminRoute = ({ children }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+  const hasAccess = isAuthenticated() && (user?.is_admin || user?.is_superuser);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[#1DCD9F] border-t-transparent motion-reduce:animate-none" />
+          <p className="text-white">Ładowanie...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return hasAccess ? children : <Navigate to="/" replace />;
+};
+
 // ---------- LANDING ----------
 const HomePage = () => {
   const { user, logout } = useAuth();
@@ -131,7 +146,11 @@ const HomePage = () => {
             {user ? (
               <>
                 <span className="hidden text-sm text-gray-300 lg:inline">Witaj, <span className="font-semibold text-white">{user.username}</span>!</span>
-                <PrimaryButton to="/dashboard">Dashboard</PrimaryButton>
+                {user?.is_admin ? (
+                  <PrimaryButton to="/admin">Panel admina</PrimaryButton>
+                ) : (
+                  <PrimaryButton to="/dashboard">Dashboard</PrimaryButton>
+                )}
                 <button onClick={logout} className="text-sm text-gray-300 hover:text-white">Wyloguj</button>
               </>
             ) : (
@@ -163,7 +182,11 @@ const HomePage = () => {
               <div className="mt-2 flex items-center gap-2">
                 {user ? (
                   <>
-                    <PrimaryButton to="/dashboard">Dashboard</PrimaryButton>
+                    {user?.is_admin ? (
+                      <PrimaryButton to="/admin">Panel admina</PrimaryButton>
+                    ) : (
+                      <PrimaryButton to="/dashboard">Dashboard</PrimaryButton>
+                    )}
                     <button onClick={logout} className="rounded-full px-4 py-2 text-gray-300 hover:text-white">Wyloguj</button>
                   </>
                 ) : (
@@ -349,17 +372,19 @@ const HomePage = () => {
             <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-white/10" />
           </div>
 
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-8">
-            <blockquote className="relative z-10 text-lg italic text-gray-200">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-8 flex flex-col">
+            <blockquote className="relative z-10 text-lg italic text-gray-200 mb-auto">
               <p className="mb-2">Hej, jestem Lasko! Wiem, że zmiana bywa trudna... Dlatego tu jestem.</p>
               <p className="text-right">Razem znajdziemy sposób na Ciebie – ten najlepszy.</p>
             </blockquote>
-            <img
-              src={laskoCropHi}
-              alt="Lasko"
-              className="pointer-events-none absolute -bottom-6 left-3 w-[18rem] max-w-[55vw] opacity-90"
-              style={{ aspectRatio: '2982/1195' }}
-            />
+            <div className="mt-auto flex items-end justify-center h-48">
+              <img
+                src={laskoCropHi}
+                alt="Lasko"
+                className="pointer-events-none w-full max-w-xs object-contain opacity-90"
+                style={{ aspectRatio: '2982/1195' }}
+              />
+            </div>
             <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-white/10" />
           </div>
         </div>
@@ -415,18 +440,6 @@ const HomePage = () => {
             <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
               Lasko
             </Link>
-            <div className="flex gap-6">
-              {[
-                { icon: instagramIcon, href: "#", label: "Instagram" },
-                { icon: twitterIcon, href: "#", label: "Twitter" },
-                { icon: tiktokIcon, href: "#", label: "TikTok" },
-                { icon: facebookIcon, href: "#", label: "Facebook" }
-              ].map((s, i) => (
-                <a key={i} href={s.href} aria-label={s.label} className="text-gray-400 hover:text-white">
-                  <img src={s.icon} alt={s.label} className="h-6 w-6" />
-                </a>
-              ))}
-            </div>
           </div>
           <div className="mt-8 grid gap-4 text-center text-sm text-gray-500 md:grid-cols-3 md:text-left">
             <div className="flex justify-center gap-4 md:justify-start">
@@ -574,6 +587,13 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/*"
+        element={
+          <AdminRoute>
+            <AdminApp />
+          </AdminRoute>
+        } />
 
       {/* Przekierowanie nieznanych tras */}
       <Route path="*" element={<Navigate to="/" replace />} />

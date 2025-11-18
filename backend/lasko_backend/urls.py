@@ -8,6 +8,8 @@ from django.conf.urls.static import static
 from recommendations import views as rec_views
 from recommendations.urls import workout_urlpatterns, exercise_urlpatterns
 from accounts.urls import progress_urlpatterns, feedback_urlpatterns, journal_urlpatterns, statistics_urlpatterns, community_urlpatterns, settings_urlpatterns, calendar_urlpatterns
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from adminpanel import urls as adminpanel_urls
 
 @csrf_exempt
 def health_check(request):
@@ -43,6 +45,7 @@ urlpatterns = [
     path('api/', api_root, name='api_root'),
     path('api/auth/', include('accounts.urls')),
     path('api/recommendations/', include('recommendations.urls')),
+    path('api/admin/', include(adminpanel_urls)),
     path('api/exercises/', include(exercise_urlpatterns)),
     path('api/workouts/', include(workout_urlpatterns)),
     path('api/progress/', include(progress_urlpatterns)),
@@ -52,6 +55,9 @@ urlpatterns = [
     path('api/community/', include(community_urlpatterns)),
     path('api/settings/', include(settings_urlpatterns)),
     path('api/calendar/', include(calendar_urlpatterns)),
+    path('api/schema/', SpectacularAPIView.as_view(), name='api-schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='api-swagger'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='api-schema'), name='api-redoc'),
 ]
 
 # Serve media files in development
