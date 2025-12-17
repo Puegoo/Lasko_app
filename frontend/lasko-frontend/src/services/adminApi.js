@@ -35,6 +35,12 @@ const adminApi = {
       body: JSON.stringify(payload),
     });
   },
+  async resetUserPassword(userId, newPassword = 'password123') {
+    return apiService.request(`/api/admin/users/${userId}/reset-password/`, {
+      method: 'POST',
+      body: JSON.stringify({ new_password: newPassword }),
+    });
+  },
 
   // Exercises
   async getExercises(params) {
@@ -85,4 +91,7 @@ const adminApi = {
 };
 
 export default adminApi;
+
+
+
 

@@ -2,6 +2,7 @@
 from django.urls import path
 from . import views
 from . import exercises_views
+from . import exercise_views
 
 urlpatterns = [
     # Główny endpoint rekomendacji
@@ -31,6 +32,12 @@ urlpatterns = [
     path('plans/<int:plan_id>/exercises/<int:exercise_id>/delete/', views.delete_plan_exercise, name='delete_plan_exercise'),
     path('plans/<int:plan_id>/exercises/<int:plan_exercise_id>/replace/', views.replace_plan_exercise, name='replace_plan_exercise'),
     path('plans/<int:plan_id>/days/<int:day_id>/exercises/', views.add_plan_exercise, name='add_plan_exercise'),
+    
+    # 🆕 REKOMENDACJE ĆWICZEŃ I CUSTOM PLANY
+    path('exercises/', exercise_views.get_recommended_exercises, name='get_recommended_exercises'),
+    path('custom-plans/', exercise_views.manage_custom_plans, name='manage_custom_plans'),  # GET lista / POST create
+    path('custom-plans/<int:plan_id>/', exercise_views.get_custom_plan, name='get_custom_plan'),  # GET szczegóły
+    path('custom-plans/<int:plan_id>/update/', exercise_views.update_custom_plan, name='update_custom_plan'),  # PUT/PATCH
 ]
 
 # Exercise catalog URLs (mapped under /api/exercises/)
@@ -46,6 +53,7 @@ exercise_urlpatterns = [
 # Workout URLs (mapped under /api/workouts/)
 workout_urlpatterns = [
     path('today/', views.today_workout, name='today_workout'),
+    path('active-session/', views.get_active_session, name='get_active_session'),
     path('sessions/', views.start_workout_session, name='start_workout_session'),
     path('sessions/<int:session_id>/finish/', views.finish_workout_session, name='finish_workout_session'),
 ]

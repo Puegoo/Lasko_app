@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
@@ -90,55 +90,272 @@ const GhostButton = ({ onClick, children, className = '' }) => (
   </button>
 );
 
+
 // Navbar
 const Navbar = ({ username }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [showPlanDropdown, setShowPlanDropdown] = useState(false);
+  const planButtonRef = useRef(null);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
+  // Zamknij dropdown gdy klikniemy poza nim
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (planButtonRef.current && !planButtonRef.current.contains(event.target)) {
+        setShowPlanDropdown(false);
+      }
+    };
+
+    if (showPlanDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPlanDropdown]);
+
+  // Icon button component
+  const IconButton = ({ icon, tooltip, onClick, to, className = '' }) => {
+    const baseClasses = "relative flex items-center justify-center w-10 h-10 rounded-lg text-gray-300 hover:text-white transition-all duration-200 hover:bg-white/5 hover:border-white/10 border border-transparent group";
+    const content = (
+      <>
+        {icon}
+        {tooltip && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1.5 text-xs font-medium text-white bg-gray-900/95 backdrop-blur-sm border border-white/20 rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50">
+            {tooltip}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-0 border-4 border-transparent border-b-gray-900/95" />
+          </div>
+        )}
+      </>
+    );
+
+    if (to) {
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">
-      <div className="flex items-center justify-between px-4 py-4">
-        <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+        <Link to={to} className={`${baseClasses} ${className}`}>
+          {content}
+        </Link>
+      );
+    }
+
+    return (
+      <button onClick={onClick} className={`${baseClasses} ${className}`}>
+        {content}
+      </button>
+    );
+  };
+
+  return (
+    <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-xl">
+      <div className="flex items-center justify-between px-4 py-3">
+        <Link to="/" className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 transition-all duration-300">
           Lasko
         </Link>
 
-        <div className="hidden items-center gap-3 md:flex">
-          <span className="hidden text-sm text-gray-300 lg:inline">
-            Witaj, <span className="font-semibold text-white">{username}</span>!
+        <div className="hidden items-center gap-2 md:flex">
+          {/* User info */}
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span className="text-sm text-gray-300">
+              <span className="font-semibold text-white">{username}</span>
           </span>
-          <SecondaryButton to="/enhanced-plan-creator">
-            Nowy plan
-          </SecondaryButton>
-          <button onClick={handleLogout} className="text-sm text-gray-300 hover:text-white transition-colors">
-            Wyloguj
-          </button>
+          </div>
+
+          {/* Action buttons */}
+          <div className="relative" ref={planButtonRef}>
+            <IconButton
+              icon={
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              }
+              tooltip="Nowy plan"
+              onClick={() => setShowPlanDropdown(!showPlanDropdown)}
+              className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+            />
+            {showPlanDropdown && (
+              <>
+                {/* Overlay do zamknięcia */}
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowPlanDropdown(false)}
+                />
+                {/* Dropdown menu */}
+                <div
+                  className="absolute top-full right-0 mt-2 z-50 w-64 rounded-lg border border-white/10 bg-black/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-1">
+                    {/* Option 1: Na podstawie preferencji */}
+                    <button
+                      onClick={() => {
+                        navigate('/enhanced-plan-creator');
+                        setShowPlanDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10 text-left"
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-white">Na podstawie preferencji</div>
+                        <div className="text-xs text-gray-400 mt-0.5">System dobierze plan</div>
+                      </div>
+                    </button>
+
+                    {/* Option 2: Stwórz od zera */}
+                    <button
+                      onClick={() => {
+                        navigate('/plan-creator-blank');
+                        setShowPlanDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10 text-left"
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-white">Stwórz od zera</div>
+                        <div className="text-xs text-gray-400 mt-0.5">Wybierz ćwiczenia ręcznie</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <IconButton
+            icon={
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            }
+            tooltip="Ustawienia"
+            to="/settings"
+          />
+          <IconButton
+            icon={
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            }
+            tooltip="Wyloguj"
+            onClick={handleLogout}
+            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+          />
         </div>
 
         <button
           onClick={() => setOpen(v => !v)}
-          className="md:hidden rounded-full p-2 text-gray-300 hover:bg-white/5 hover:text-white"
+          className="md:hidden rounded-lg p-2 text-gray-300 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10"
           aria-label="Otwórz menu"
         >
-          <svg width="24" height="24" fill="none" stroke="currentColor">
-            <path strokeLinecap="round" strokeWidth="2" d="M4 7h16M4 12h16M4 17h16" />
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {open ? (
+              <path d="M18 6L6 18M6 6l12 12" />
+            ) : (
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            )}
           </svg>
         </button>
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-white/5 bg-black/80 px-6 py-3">
-          <div className="flex flex-col gap-2">
-            <Link to="/enhanced-plan-creator" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
-              Nowy plan
+        <div className="md:hidden border-t border-white/5 bg-black/95 backdrop-blur-xl px-4 py-3">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-white/5 border border-white/10">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <span className="text-sm text-gray-300">
+                <span className="font-semibold text-white">{username}</span>
+              </span>
+            </div>
+            <div className="relative">
+              <button 
+                onClick={() => setShowPlanDropdown(!showPlanDropdown)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10 w-full text-left"
+              >
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Nowy plan</span>
+                <svg 
+                  width="16" 
+                  height="16" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  className={`ml-auto transition-transform ${showPlanDropdown ? 'rotate-180' : ''}`}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {showPlanDropdown && (
+                <div className="mt-1 rounded-lg border border-white/10 bg-black/95 backdrop-blur-xl shadow-lg overflow-hidden">
+                  <button
+                    onClick={() => {
+                      navigate('/enhanced-plan-creator');
+                      setShowPlanDropdown(false);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 border-b border-white/5 last:border-b-0 transition-colors"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white">Na podstawie preferencji</div>
+                      <div className="text-xs text-gray-400">System dobierze plan</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/plan-creator-blank');
+                      setShowPlanDropdown(false);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white">Stwórz od zera</div>
+                      <div className="text-xs text-gray-400">Wybierz ćwiczenia ręcznie</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+            <Link 
+              to="/settings" 
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10"
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>Ustawienia</span>
             </Link>
-            <button onClick={handleLogout} className="rounded-lg px-3 py-2 text-left text-gray-200 hover:bg-white/5">
-              Wyloguj
+            <button 
+              onClick={() => {
+                setOpen(false);
+                handleLogout();
+              }} 
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/20"
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Wyloguj</span>
             </button>
           </div>
         </div>
@@ -190,7 +407,7 @@ const ActionCard = ({ icon, title, description, onClick }) => (
   </button>
 );
 
-const PlanCard = ({ plan, isActive = false, onActivate, activePlanId = null }) => {
+const PlanCard = ({ plan, isActive = false, onActivate, activePlanId = null, hasActiveSession = false }) => {
   const navigate = useNavigate();
   const notify = useNotification();
   
@@ -244,7 +461,13 @@ const PlanCard = ({ plan, isActive = false, onActivate, activePlanId = null }) =
       return;
     }
     
-    navigate(`/plan-details/${planId}`);
+    navigate(`/plan-details/${planId}`, {
+      state: {
+        plan,
+        isCustomPlan: plan?.isCustomPlan || plan?.is_custom_plan,
+        customPlanId: plan?.customPlanId || plan?.custom_plan_id,
+      },
+    });
   };
   
   return (
@@ -330,7 +553,7 @@ const PlanCard = ({ plan, isActive = false, onActivate, activePlanId = null }) =
         {isActive ? (
           <>
             <PrimaryButton onClick={() => navigate('/workout/today')} className="flex-1">
-              Rozpocznij trening
+              {hasActiveSession ? 'Kontynuuj trening' : 'Rozpocznij trening'}
             </PrimaryButton>
             <GhostButton onClick={handleViewDetails}>
               Zobacz szczegóły
@@ -388,10 +611,25 @@ const DashboardPage = () => {
   const [activePlan, setActivePlan] = useState(null);
   const [error, setError] = useState(null);
   const [showCongrats, setShowCongrats] = useState(false);
+  const [previousPlanId, setPreviousPlanId] = useState(null); // 🆕 Śledź poprzedni plan ID
+  const [weeklyProgress, setWeeklyProgress] = useState(0); // 🆕 Lokalny progress (może być zresetowany)
+  const [hasActiveSession, setHasActiveSession] = useState(false); // 🆕 Czy istnieje aktywna sesja treningowa
 
   // plany przekazane przez nawigację (po aktywacji) - tymczasowe
   const tempActivePlan = location.state?.activePlan;
   const displayPlan = activePlan || tempActivePlan;
+
+  // 🆕 Resetuj progress gdy plan się zmienia
+  useEffect(() => {
+    const currentPlanId = displayPlan?.planId || displayPlan?.id;
+    if (currentPlanId && previousPlanId && currentPlanId !== previousPlanId) {
+      console.log('[DashboardPage] Plan changed! Resetting weekly progress');
+      setWeeklyProgress(0); // Resetuj progress
+    }
+    if (currentPlanId) {
+      setPreviousPlanId(currentPlanId);
+    }
+  }, [displayPlan?.planId, displayPlan?.id, previousPlanId]);
 
   useEffect(() => {
     if (user?.is_admin || user?.is_superuser) {
@@ -413,11 +651,30 @@ const DashboardPage = () => {
 
     if (isAuthenticated() && !(user?.is_admin || user?.is_superuser)) {
       fetchUserData();
+      checkActiveSession();
     } else {
       setLoading(false);
     }
+    
+    // Sprawdź czy trening został zakończony (odśwież sesję)
+    const workoutFinished = localStorage.getItem('workout_finished');
+    if (workoutFinished === 'true') {
+      localStorage.removeItem('workout_finished');
+      checkActiveSession();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sprawdź aktywną sesję treningową
+  const checkActiveSession = async () => {
+    try {
+      const response = await apiService.request('/api/workouts/active-session/');
+      setHasActiveSession(response.has_active_session || false);
+    } catch (error) {
+      console.error('[DashboardPage] Error checking active session:', error);
+      setHasActiveSession(false);
+    }
+  };
   
   // 🆕 Odświeżaj dane gdy użytkownik wraca na stronę (np. po treningu)
   useEffect(() => {
@@ -477,21 +734,33 @@ const DashboardPage = () => {
       if (activePlanData?.has_active_plan && activePlanData?.plan) {
         console.log('[DashboardPage] Setting active plan:', activePlanData.plan);
         console.log('[DashboardPage] Active plan ID:', activePlanData.plan.planId || activePlanData.plan.id);
+        const newPlanId = activePlanData.plan.planId || activePlanData.plan.id;
+        // 🆕 Sprawdź czy plan się zmienił
+        const currentPlanId = activePlan?.planId || activePlan?.id;
+        if (currentPlanId && newPlanId !== currentPlanId) {
+          console.log('[DashboardPage] Plan changed! Resetting weekly progress');
+          setWeeklyProgress(0); // Resetuj progress
+        }
         setActivePlan(activePlanData.plan);
+        // 🆕 Zaktualizuj progress z profilu (ale tylko jeśli plan się nie zmienił)
+        if (profileData?.profile?.weekly_progress !== undefined) {
+          setWeeklyProgress(profileData.profile.weekly_progress);
+        }
       } else {
         console.log('[DashboardPage] No active plan found');
+        setActivePlan(null);
       }
       
       // Pobierz rekomendacje
       try {
-        const recoData = await apiService.generateRecommendations?.('hybrid', {});
-        console.log('[DashboardPage] recoData from API:', recoData);
-        console.log('[DashboardPage] recommendations:', recoData?.recommendations);
-        if (recoData?.recommendations && recoData.recommendations.length > 0) {
-          console.log('[DashboardPage] First recommendation:', recoData.recommendations[0]);
-          console.log('[DashboardPage] First recommendation keys:', Object.keys(recoData.recommendations[0] || {}));
-        }
-        setRecommendations(recoData?.recommendations || []);
+      const recoData = await apiService.generateRecommendations?.('hybrid', {});
+      console.log('[DashboardPage] recoData from API:', recoData);
+      console.log('[DashboardPage] recommendations:', recoData?.recommendations);
+      if (recoData?.recommendations && recoData.recommendations.length > 0) {
+        console.log('[DashboardPage] First recommendation:', recoData.recommendations[0]);
+        console.log('[DashboardPage] First recommendation keys:', Object.keys(recoData.recommendations[0] || {}));
+      }
+      setRecommendations(recoData?.recommendations || []);
       } catch (recoError) {
         // 🆕 Obsługa przypadku pustego profilu (użytkownik pominął ankietę)
         if (recoError.message?.includes('empty_profile') || recoError.message?.includes('incomplete')) {
@@ -552,13 +821,17 @@ const DashboardPage = () => {
   }
 
   // Statystyki
+  // 🆕 weeklyGoal powinno być z aktywnego planu, nie z profilu
+  const weeklyGoalFromPlan = displayPlan?.trainingDaysPerWeek || displayPlan?.training_days_per_week || 3;
+  // 🆕 Użyj lokalnego progressu jeśli plan się zmienił, w przeciwnym razie z profilu
+  const currentWeeklyProgress = weeklyProgress > 0 ? weeklyProgress : (userProfile?.weekly_progress || 0);
   const stats = {
     totalWorkouts: userProfile?.total_workouts || 0,
     currentStreak: userProfile?.current_streak || 0,
-    weeklyGoal: userProfile?.weekly_goal || 3,
-    weeklyProgress: userProfile?.weekly_progress || 0,
+    weeklyGoal: weeklyGoalFromPlan, // 🆕 Użyj z aktywnego planu
+    weeklyProgress: currentWeeklyProgress, // 🆕 Użyj lokalnego progressu lub z profilu
   };
-  const progressPercentage = (stats.weeklyProgress / stats.weeklyGoal) * 100;
+  const progressPercentage = stats.weeklyGoal > 0 ? (stats.weeklyProgress / stats.weeklyGoal) * 100 : 0;
 
   // Stany do sterowania widokiem planów
   const hasActivePlan = Boolean(displayPlan);
@@ -653,6 +926,8 @@ const DashboardPage = () => {
 
         {/* Weekly progress */}
         <div className="mb-10 rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+          {hasActivePlan ? (
+            <>
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold text-white">Tygodniowy cel</h3>
@@ -670,6 +945,15 @@ const DashboardPage = () => {
               style={{ width: `${Math.min(progressPercentage, 100)}%` }}
             />
           </div>
+            </>
+          ) : (
+            <div>
+              <h3 className="text-lg font-bold text-white mb-1">Tygodniowy cel</h3>
+              <p className="text-sm text-gray-400">
+                Aby śledzić swoje postępy tygodniowe, aktywuj jeden z dostępnych planów treningowych.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Main grid */}
@@ -694,8 +978,12 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <PrimaryButton onClick={() => navigate('/workout/today')} className="flex-1">
-                    <IconKit.Dumbbell size="sm" className="inline" /> Rozpocznij trening
+                  <PrimaryButton 
+                    onClick={() => navigate('/workout/today')} 
+                    className="flex-1"
+                  >
+                    <IconKit.Dumbbell size="sm" className="inline" /> 
+                    {hasActiveSession ? 'Kontynuuj trening' : 'Rozpocznij trening'}
                   </PrimaryButton>
                   <SecondaryButton onClick={() => {
                     console.log('[Dashboard] Active plan - displayPlan:', displayPlan);
@@ -706,7 +994,13 @@ const DashboardPage = () => {
                       notify.error('Brak ID aktywnego planu');
                       return;
                     }
-                    navigate(`/plan-details/${planId}`);
+                    navigate(`/plan-details/${planId}`, {
+                      state: {
+                        plan: displayPlan,
+                        isCustomPlan: displayPlan?.isCustomPlan || displayPlan?.is_custom_plan,
+                        customPlanId: displayPlan?.customPlanId || displayPlan?.custom_plan_id,
+                      },
+                    });
                   }}>
                     Zobacz szczegóły
                   </SecondaryButton>
@@ -851,10 +1145,10 @@ const DashboardPage = () => {
                   onClick={() => navigate('/plans')}
                 />
                 <ActionCard
-                  icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-gray-400"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" strokeWidth="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="2"/></svg>}
-                  title="Ustawienia"
-                  description="Edytuj preferencje"
-                  onClick={() => navigate('/settings')}
+                  icon={<svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-pink-400"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  title="Społeczność"
+                  description="Poznaj innych użytkowników"
+                  onClick={() => navigate('/community')}
                 />
               </div>
             </div>
@@ -873,12 +1167,13 @@ const DashboardPage = () => {
                     })
                     .slice(0, 3)
                     .map((plan, index) => (
-                      <PlanCard 
-                        key={`${plan.id || plan.name}-${index}`} 
-                        plan={plan} 
-                        onActivate={handleActivatePlan}
-                        activePlanId={activePlan?.planId || activePlan?.id}
-                      />
+                    <PlanCard 
+                      key={`${plan.id || plan.name}-${index}`} 
+                      plan={plan} 
+                      onActivate={handleActivatePlan}
+                      hasActiveSession={hasActiveSession}
+                      activePlanId={activePlan?.planId || activePlan?.id}
+                    />
                     ))
                   }
                 </div>
@@ -892,9 +1187,9 @@ const DashboardPage = () => {
               /* 🆕 Komunikat dla użytkowników bez profilu */
               <div className="rounded-3xl border border-yellow-400/20 bg-yellow-400/5 p-8">
                 <div className="flex items-start gap-4">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-yellow-400 flex-shrink-0">
-                    <path d="M9 21h6M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  <div className="flex-shrink-0 w-12 h-12 rounded-lg border-2 border-yellow-400 flex items-center justify-center">
+                    <IconKit.Lightbulb size="xl" className="text-yellow-400" />
+                  </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-white mb-2">Uzupełnij profil, aby zobaczyć rekomendacje</h3>
                     <p className="text-gray-300 mb-4">

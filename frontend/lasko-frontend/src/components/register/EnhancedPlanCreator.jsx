@@ -272,7 +272,7 @@ const equipmentOptions = [
   { 
     value: 'masa_ciala', 
     label: 'Dom (brak sprzętu)', 
-    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-gray-300" stroke="currentColor" strokeWidth="1.5"><path d="M17.2346 16.8478L16.9476 17.5407L17.2346 16.8478ZM16 13.5H16.75C16.75 13.0858 16.4142 12.75 16 12.75V13.5ZM16.1522 15.7654L15.4593 16.0524L16.1522 15.7654ZM21.8478 15.7654L22.5407 16.0524L21.8478 15.7654ZM20.7654 16.8478L20.4784 16.1548L20.7654 16.8478ZM20.7654 7.15224L20.4784 7.84515V7.84515L20.7654 7.15224ZM21.1549 8.52165C21.3134 8.90433 21.7521 9.08606 22.1348 8.92754C22.5175 8.76903 22.6992 8.3303 22.5407 7.94762L21.1549 8.52165ZM17.2346 7.15224L16.9476 6.45933L16.9476 6.45933L17.2346 7.15224ZM16 10.5V11.25C16.4142 11.25 16.75 10.9142 16.75 10.5H16ZM16.1522 8.23463L15.4593 7.94762L16.1522 8.23463ZM3.23463 16.8478L2.94762 17.5407L3.23463 16.8478ZM2.15224 15.7654L1.45933 16.0524L1.45933 16.0524L2.15224 15.7654ZM8 13.5V12.75C7.58579 12.75 7.25 13.0858 7.25 13.5H8ZM7.84776 15.7654L8.54067 16.0524L7.84776 15.7654ZM6.76537 16.8478L7.05238 17.5407H7.05238L6.76537 16.8478ZM6.76537 7.15224L7.05238 6.45933V6.45933L6.76537 7.15224ZM8 10.5H7.25C7.25 10.9142 7.58579 11.25 8 11.25V10.5ZM7.84776 8.23463L8.54067 7.94762L7.84776 8.23463ZM3.23463 7.15224L2.94762 6.45933L3.23463 7.15224ZM2.15224 8.23463L1.45933 7.94762L2.15224 8.23463ZM22.75 12C22.75 11.5858 22.4142 11.25 22 11.25C21.5858 11.25 21.25 11.5858 21.25 12H22.75ZM19 16.25C18.5238 16.25 18.2042 16.2496 17.9567 16.2327C17.716 16.2163 17.5988 16.1868 17.5216 16.1548L16.9476 17.5407C17.238 17.661 17.5375 17.7076 17.8546 17.7292C18.165 17.7504 18.5443 17.75 19 17.75V16.25ZM15.25 13.5C15.25 13.961 15.2498 14.4545 15.2699 14.8796C15.2799 15.0928 15.2955 15.3014 15.3211 15.4889C15.3452 15.6654 15.3841 15.8706 15.4593 16.0524L16.8452 15.4784C16.847 15.4828 16.8416 15.4703 16.8329 15.4328C16.8247 15.3969 16.8159 15.3485 16.8073 15.2859C16.7901 15.1597 16.7772 14.9997 16.7682 14.809C16.7502 14.4263 16.75 13.9709 16.75 13.5H15.25ZM17.5216 16.1548C17.2154 16.028 16.972 15.7846 16.8452 15.4784L15.4593 16.0524C15.7384 16.7262 16.2738 17.2616 16.9476 17.5407L17.5216 16.1548ZM21.25 14C21.25 14.4762 21.2496 14.7958 21.2327 15.0433C21.2163 15.284 21.1868 15.4012 21.1549 15.4784L22.5407 16.0524C22.661 15.762 22.7076 15.4625 22.7292 15.1454C22.7504 14.835 22.75 14.4557 22.75 14H21.25ZM19 17.75C19.4557 17.75 19.835 17.7504 20.1454 17.7292C20.4625 17.7076 20.762 17.661 21.0524 17.5407L20.4784 16.1548C20.4012 16.1868 20.284 16.2163 20.0433 16.2327C19.7958 16.2496 19.4762 16.25 19 16.25V17.75ZM21.1549 15.4784C21.028 15.7846 20.7846 16.028 20.4784 16.1548L21.0524 17.5407C21.7262 17.2616 22.2616 16.7262 22.5407 16.0524L21.1549 15.4784ZM19 7.75C19.4762 7.75 19.7958 7.75041 20.0433 7.76729C20.284 7.78372 20.4012 7.81319 20.4784 7.84515L21.0524 6.45933C20.762 6.33905 20.4625 6.29241 20.1454 6.27077C19.835 6.24959 19.4557 6.25 19 6.25V7.75ZM20.4784 7.84515C20.7846 7.97202 21.028 8.21536 21.1549 8.52165L22.5407 7.94762C22.2616 7.27379 21.7262 6.73844 21.0524 6.45933L20.4784 7.84515ZM19 6.25C18.5443 6.25 18.165 6.24959 17.8546 6.27077C17.5375 6.29241 17.238 6.33905 16.9476 6.45933L17.5216 7.84515C17.5988 7.81319 17.716 7.78372 17.9567 7.76729C18.2042 7.75041 18.5238 7.75 19 7.75V6.25ZM16.75 10.5C16.75 10.0291 16.7502 9.5737 16.7682 9.19099C16.7772 9.00026 16.7901 8.84026 16.8073 8.71407C16.8159 8.65147 16.8247 8.60307 16.8329 8.56724C16.8416 8.52968 16.847 8.51715 16.8452 8.52165L15.4593 7.94762C15.3841 8.12935 15.3452 8.33457 15.3211 8.51115C15.2955 8.69856 15.2799 8.9072 15.2699 9.12039C15.2498 9.5455 15.25 10.039 15.25 10.5H16.75ZM16.9476 6.45933C16.2738 6.73844 15.7384 7.27379 15.4593 7.94762L16.8452 8.52165C16.972 8.21536 17.2154 7.97202 17.5216 7.84515L16.9476 6.45933ZM2.75 14V10H1.25V14H2.75ZM5 16.25C4.5238 16.25 4.20421 16.2496 3.95674 16.2327C3.71601 16.2163 3.5988 16.1868 3.52165 16.1548L2.94762 17.5407C3.23801 17.661 3.53754 17.7076 3.85464 17.7292C4.165 17.7504 4.54432 17.75 5 17.75V16.25ZM1.25 14C1.25 14.4557 1.24959 14.835 1.27077 15.1454C1.29241 15.4625 1.33905 15.762 1.45933 16.0524L2.84515 15.4784C2.81319 15.4012 2.78372 15.284 2.76729 15.0433C2.75041 14.7958 2.75 14.4762 2.75 14H1.25ZM3.52165 16.1548C3.21536 16.028 2.97202 15.7846 2.84515 15.4784L1.45933 16.0524C1.73844 16.7262 2.27379 17.2616 2.94762 17.5407L3.52165 16.1548ZM7.25 13.5C7.25 13.9709 7.24983 14.4263 7.2318 14.809C7.22282 14.9997 7.2099 15.1597 7.19267 15.2859C7.18412 15.3485 7.17529 15.3969 7.16706 15.4328C7.15843 15.4703 7.15299 15.4828 7.15485 15.4784L8.54067 16.0524C8.61595 15.8706 8.65477 15.6654 8.67888 15.4889C8.70447 15.3014 8.72009 15.0928 8.73014 14.8796C8.75017 14.4545 8.75 13.961 8.75 13.5H7.25ZM5 17.75C5.45568 17.75 5.835 17.7504 6.14536 17.7292C6.46246 17.7076 6.76199 17.661 7.05238 17.5407L6.47835 16.1548C6.4012 16.1868 6.28399 16.2163 6.04326 16.2327C5.79579 16.2496 5.4762 16.25 5 16.25V17.75ZM7.15485 15.4784C7.02798 15.7846 6.78464 16.028 6.47835 16.1548L7.05238 17.5407C7.72621 17.2616 8.26156 16.7262 8.54067 16.0524L7.15485 15.4784ZM5 7.75C5.4762 7.75 5.79579 7.75041 6.04326 7.76729C6.28399 7.78372 6.4012 7.81319 6.47835 7.84515L7.05238 6.45933C6.76199 6.33905 6.46246 6.29241 6.14536 6.27077C5.835 6.24959 5.45568 6.25 5 6.25V7.75ZM8.75 10.5C8.75 10.039 8.75017 9.5455 8.73014 9.12039C8.72009 8.9072 8.70447 8.69856 8.67888 8.51115C8.65477 8.33457 8.61595 8.12935 8.54067 7.94762L7.15485 8.52165C7.15299 8.51715 7.15843 8.52968 7.16706 8.56724C7.17529 8.60307 7.18412 8.65147 7.19267 8.71407C7.2099 8.84026 7.22282 9.00026 7.2318 9.19099C7.24983 9.5737 7.25 10.0291 7.25 10.5H8.75ZM6.47835 7.84515C6.78464 7.97202 7.02798 8.21536 7.15485 8.52165L8.54067 7.94762C8.26156 7.27379 7.72621 6.73844 7.05238 6.45933L6.47835 7.84515ZM5 6.25C4.54432 6.25 4.165 6.24959 3.85464 6.27077C3.53754 6.29241 3.23801 6.33905 2.94762 6.45933L3.52165 7.84515C3.5988 7.81319 3.71601 7.78372 3.95674 7.76729C4.20421 7.75041 4.5238 7.75 5 7.75V6.25ZM2.75 10C2.75 9.5238 2.75041 9.20421 2.76729 8.95674C2.78372 8.71601 2.81319 8.5988 2.84515 8.52165L1.45933 7.94762C1.33905 8.23801 1.29241 8.53754 1.27077 8.85464C1.24959 9.165 1.25 9.54432 1.25 10H2.75ZM2.94762 6.45933C2.27379 6.73844 1.73844 7.27379 1.45933 7.94762L2.84515 8.52165C2.97202 8.21536 3.21536 7.97202 3.52165 7.84515L2.94762 6.45933ZM8 11.25H16V9.75H8V11.25ZM16 12.75H8V14.25H16V12.75ZM21.25 12V14H22.75V12H21.25Z" fill="currentColor"/><line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-green-400" stroke="currentColor" strokeWidth="1.5"><path d="M17.2346 16.8478L16.9476 17.5407L17.2346 16.8478ZM16 13.5H16.75C16.75 13.0858 16.4142 12.75 16 12.75V13.5ZM16.1522 15.7654L15.4593 16.0524L16.1522 15.7654ZM21.8478 15.7654L22.5407 16.0524L21.8478 15.7654ZM20.7654 16.8478L20.4784 16.1548L20.7654 16.8478ZM20.7654 7.15224L20.4784 7.84515V7.84515L20.7654 7.15224ZM21.1549 8.52165C21.3134 8.90433 21.7521 9.08606 22.1348 8.92754C22.5175 8.76903 22.6992 8.3303 22.5407 7.94762L21.1549 8.52165ZM17.2346 7.15224L16.9476 6.45933L16.9476 6.45933L17.2346 7.15224ZM16 10.5V11.25C16.4142 11.25 16.75 10.9142 16.75 10.5H16ZM16.1522 8.23463L15.4593 7.94762L16.1522 8.23463ZM3.23463 16.8478L2.94762 17.5407L3.23463 16.8478ZM2.15224 15.7654L1.45933 16.0524L1.45933 16.0524L2.15224 15.7654ZM8 13.5V12.75C7.58579 12.75 7.25 13.0858 7.25 13.5H8ZM7.84776 15.7654L8.54067 16.0524L7.84776 15.7654ZM6.76537 16.8478L7.05238 17.5407H7.05238L6.76537 16.8478ZM6.76537 7.15224L7.05238 6.45933V6.45933L6.76537 7.15224ZM8 10.5H7.25C7.25 10.9142 7.58579 11.25 8 11.25V10.5ZM7.84776 8.23463L8.54067 7.94762L7.84776 8.23463ZM3.23463 7.15224L2.94762 6.45933L3.23463 7.15224ZM2.15224 8.23463L1.45933 7.94762L2.15224 8.23463ZM22.75 12C22.75 11.5858 22.4142 11.25 22 11.25C21.5858 11.25 21.25 11.5858 21.25 12H22.75ZM19 16.25C18.5238 16.25 18.2042 16.2496 17.9567 16.2327C17.716 16.2163 17.5988 16.1868 17.5216 16.1548L16.9476 17.5407C17.238 17.661 17.5375 17.7076 17.8546 17.7292C18.165 17.7504 18.5443 17.75 19 17.75V16.25ZM15.25 13.5C15.25 13.961 15.2498 14.4545 15.2699 14.8796C15.2799 15.0928 15.2955 15.3014 15.3211 15.4889C15.3452 15.6654 15.3841 15.8706 15.4593 16.0524L16.8452 15.4784C16.847 15.4828 16.8416 15.4703 16.8329 15.4328C16.8247 15.3969 16.8159 15.3485 16.8073 15.2859C16.7901 15.1597 16.7772 14.9997 16.7682 14.809C16.7502 14.4263 16.75 13.9709 16.75 13.5H15.25ZM17.5216 16.1548C17.2154 16.028 16.972 15.7846 16.8452 15.4784L15.4593 16.0524C15.7384 16.7262 16.2738 17.2616 16.9476 17.5407L17.5216 16.1548ZM21.25 14C21.25 14.4762 21.2496 14.7958 21.2327 15.0433C21.2163 15.284 21.1868 15.4012 21.1549 15.4784L22.5407 16.0524C22.661 15.762 22.7076 15.4625 22.7292 15.1454C22.7504 14.835 22.75 14.4557 22.75 14H21.25ZM19 17.75C19.4557 17.75 19.835 17.7504 20.1454 17.7292C20.4625 17.7076 20.762 17.661 21.0524 17.5407L20.4784 16.1548C20.4012 16.1868 20.284 16.2163 20.0433 16.2327C19.7958 16.2496 19.4762 16.25 19 16.25V17.75ZM21.1549 15.4784C21.028 15.7846 20.7846 16.028 20.4784 16.1548L21.0524 17.5407C21.7262 17.2616 22.2616 16.7262 22.5407 16.0524L21.1549 15.4784ZM19 7.75C19.4762 7.75 19.7958 7.75041 20.0433 7.76729C20.284 7.78372 20.4012 7.81319 20.4784 7.84515L21.0524 6.45933C20.762 6.33905 20.4625 6.29241 20.1454 6.27077C19.835 6.24959 19.4557 6.25 19 6.25V7.75ZM20.4784 7.84515C20.7846 7.97202 21.028 8.21536 21.1549 8.52165L22.5407 7.94762C22.2616 7.27379 21.7262 6.73844 21.0524 6.45933L20.4784 7.84515ZM19 6.25C18.5443 6.25 18.165 6.24959 17.8546 6.27077C17.5375 6.29241 17.238 6.33905 16.9476 6.45933L17.5216 7.84515C17.5988 7.81319 17.716 7.78372 17.9567 7.76729C18.2042 7.75041 18.5238 7.75 19 7.75V6.25ZM16.75 10.5C16.75 10.0291 16.7502 9.5737 16.7682 9.19099C16.7772 9.00026 16.7901 8.84026 16.8073 8.71407C16.8159 8.65147 16.8247 8.60307 16.8329 8.56724C16.8416 8.52968 16.847 8.51715 16.8452 8.52165L15.4593 7.94762C15.3841 8.12935 15.3452 8.33457 15.3211 8.51115C15.2955 8.69856 15.2799 8.9072 15.2699 9.12039C15.2498 9.5455 15.25 10.039 15.25 10.5H16.75ZM16.9476 6.45933C16.2738 6.73844 15.7384 7.27379 15.4593 7.94762L16.8452 8.52165C16.972 8.21536 17.2154 7.97202 17.5216 7.84515L16.9476 6.45933ZM2.75 14V10H1.25V14H2.75ZM5 16.25C4.5238 16.25 4.20421 16.2496 3.95674 16.2327C3.71601 16.2163 3.5988 16.1868 3.52165 16.1548L2.94762 17.5407C3.23801 17.661 3.53754 17.7076 3.85464 17.7292C4.165 17.7504 4.54432 17.75 5 17.75V16.25ZM1.25 14C1.25 14.4557 1.24959 14.835 1.27077 15.1454C1.29241 15.4625 1.33905 15.762 1.45933 16.0524L2.84515 15.4784C2.81319 15.4012 2.78372 15.284 2.76729 15.0433C2.75041 14.7958 2.75 14.4762 2.75 14H1.25ZM3.52165 16.1548C3.21536 16.028 2.97202 15.7846 2.84515 15.4784L1.45933 16.0524C1.73844 16.7262 2.27379 17.2616 2.94762 17.5407L3.52165 16.1548ZM7.25 13.5C7.25 13.9709 7.24983 14.4263 7.2318 14.809C7.22282 14.9997 7.2099 15.1597 7.19267 15.2859C7.18412 15.3485 7.17529 15.3969 7.16706 15.4328C7.15843 15.4703 7.15299 15.4828 7.15485 15.4784L8.54067 16.0524C8.61595 15.8706 8.65477 15.6654 8.67888 15.4889C8.70447 15.3014 8.72009 15.0928 8.73014 14.8796C8.75017 14.4545 8.75 13.961 8.75 13.5H7.25ZM5 17.75C5.45568 17.75 5.835 17.7504 6.14536 17.7292C6.46246 17.7076 6.76199 17.661 7.05238 17.5407L6.47835 16.1548C6.4012 16.1868 6.28399 16.2163 6.04326 16.2327C5.79579 16.2496 5.4762 16.25 5 16.25V17.75ZM7.15485 15.4784C7.02798 15.7846 6.78464 16.028 6.47835 16.1548L7.05238 17.5407C7.72621 17.2616 8.26156 16.7262 8.54067 16.0524L7.15485 15.4784ZM5 7.75C5.4762 7.75 5.79579 7.75041 6.04326 7.76729C6.28399 7.78372 6.4012 7.81319 6.47835 7.84515L7.05238 6.45933C6.76199 6.33905 6.46246 6.29241 6.14536 6.27077C5.835 6.24959 5.45568 6.25 5 6.25V7.75ZM8.75 10.5C8.75 10.039 8.75017 9.5455 8.73014 9.12039C8.72009 8.9072 8.70447 8.69856 8.67888 8.51115C8.65477 8.33457 8.61595 8.12935 8.54067 7.94762L7.15485 8.52165C7.15299 8.51715 7.15843 8.52968 7.16706 8.56724C7.17529 8.60307 7.18412 8.65147 7.19267 8.71407C7.2099 8.84026 7.22282 9.00026 7.2318 9.19099C7.24983 9.5737 7.25 10.0291 7.25 10.5H8.75ZM6.47835 7.84515C6.78464 7.97202 7.02798 8.21536 7.15485 8.52165L8.54067 7.94762C8.26156 7.27379 7.72621 6.73844 7.05238 6.45933L6.47835 7.84515ZM5 6.25C4.54432 6.25 4.165 6.24959 3.85464 6.27077C3.53754 6.29241 3.23801 6.33905 2.94762 6.45933L3.52165 7.84515C3.5988 7.81319 3.71601 7.78372 3.95674 7.76729C4.20421 7.75041 4.5238 7.75 5 7.75V6.25ZM2.75 10C2.75 9.5238 2.75041 9.20421 2.76729 8.95674C2.78372 8.71601 2.81319 8.5988 2.84515 8.52165L1.45933 7.94762C1.33905 8.23801 1.29241 8.53754 1.27077 8.85464C1.24959 9.165 1.25 9.54432 1.25 10H2.75ZM2.94762 6.45933C2.27379 6.73844 1.73844 7.27379 1.45933 7.94762L2.84515 8.52165C2.97202 8.21536 3.21536 7.97202 3.52165 7.84515L2.94762 6.45933ZM8 11.25H16V9.75H8V11.25ZM16 12.75H8V14.25H16V12.75ZM21.25 12V14H22.75V12H21.25Z" fill="currentColor"/><line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
   },
   { 
     value: 'minimalne', 
@@ -354,6 +354,7 @@ const EnhancedPlanCreator = () => {
 
   const [planData, setPlanData] = useState({
     recommendationMethod: initialData.recommendationMethod || 'hybrid',
+    recommendationMode: initialData.recommendationMode || 'plans', // domyślnie gotowe plany
     goal: initialData.goal || '',
     level: initialData.level || '',
     trainingDaysPerWeek: initialData.trainingDaysPerWeek || 3,
@@ -462,12 +463,12 @@ const EnhancedPlanCreator = () => {
   // FUNKCJE NAWIGACJI I WALIDACJI
   // ============================================================================
   const isStepValid = (stepIndex) => {
-    if (stepIndex === 0) return !!planData.recommendationMethod;
-    if (stepIndex === 1) return Object.keys(validateBasics).length === 0;
-    if (stepIndex === 2) return Object.keys(validatePreferences).length === 0;
-    if (stepIndex === 3) return Object.keys(validateBody).length === 0;
+    if (stepIndex === 0) return !!planData.recommendationMethod; // Metoda
+    if (stepIndex === 1) return Object.keys(validateBasics).length === 0; // Podstawy
+    if (stepIndex === 2) return Object.keys(validatePreferences).length === 0; // Preferencje
+    if (stepIndex === 3) return Object.keys(validateBody).length === 0; // Ciało
     if (stepIndex === 4) return true;  // Krok "Zdrowie" jest OPCJONALNY - zawsze valid
-    if (stepIndex === 5) return !!planData.name?.trim();
+    if (stepIndex === 5) return !!planData.name?.trim(); // Krok "Nazwa" tylko dla ćwiczeń
     return true;
   };
 
@@ -478,13 +479,30 @@ const EnhancedPlanCreator = () => {
     else setErrors({});
   };
 
+  // 🆕 Oblicz dynamiczną listę kroków (używana w wielu miejscach)
+  const getSteps = () => {
+    const baseSteps = [
+      { title: 'Metoda', component: renderMethodStep },
+      { title: 'Podstawy', component: renderBasicsStep },
+      { title: 'Preferencje', component: renderPreferencesStep },
+      { title: 'Ciało', component: renderBodyStep },
+      { title: 'Zdrowie', component: renderHealthStep },
+    ];
+    const nameStep = planData.recommendationMode === 'exercises' 
+      ? [{ title: 'Nazwa', component: renderNameStep }] 
+      : [];
+    return [...baseSteps, ...nameStep];
+  };
+
   const handleNext = () => {
     if (!isStepValid(currentStep)) {
       showErrorsForStep(currentStep);
       return;
     }
     setErrors({});
-    setCurrentStep((prev) => Math.min(prev + 1, 5));  // 🆕 Zmieniono z 4 na 5 (6 kroków: 0-5)
+    // 🆕 Dynamiczny limit - użyj długości aktualnej listy kroków
+    const steps = getSteps();
+    setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
   };
 
   const handlePrev = () => {
@@ -655,6 +673,20 @@ const generateRecommendedPlan = async () => {
 
       console.log('✅ [EnhancedPlanCreator] Plan wygenerowany, przechodzę do podsumowania');
 
+      // 🆕 Jeśli wybrano tryb ćwiczeń, przejdź do rekomendacji ćwiczeń
+      if (planData.recommendationMode === 'exercises') {
+        navigate('/exercise-recommendations', {
+          state: { 
+            planData: updatedPlanData, 
+            preferences: preferences,
+            fromCreator: true, 
+            username: usernameCandidate 
+          },
+        });
+        return;
+      }
+
+      // Standardowy flow - przejdź do podsumowania planów
       navigate('/plan-summary', {
         state: { planData: updatedPlanData, fromCreator: true, username: usernameCandidate },
       });
@@ -709,7 +741,10 @@ const generateRecommendedPlan = async () => {
   );
 
   const StepProgress = () => {
-    const steps = ['Metoda', 'Podstawy', 'Preferencje', 'Ciało', 'Zdrowie', 'Nazwa'];
+    // 🆕 Dynamiczna lista kroków - ukryj "Nazwa" gdy wybrano plany
+    const baseSteps = ['Metoda', 'Tryb', 'Podstawy', 'Preferencje', 'Ciało', 'Zdrowie'];
+    const nameStep = planData.recommendationMode === 'exercises' ? ['Nazwa'] : [];
+    const steps = [...baseSteps, ...nameStep];
     return (
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -765,7 +800,7 @@ const generateRecommendedPlan = async () => {
   const renderMethodStep = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <Kicker>Krok 1 z 6</Kicker>
+        <Kicker>Krok 1 z 7</Kicker>
         <h2 className="mt-4 text-4xl font-black text-white">Wybierz metodę rekomendacji</h2>
         <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
           Jak chcesz, aby Lasko dobierał dla Ciebie plan treningowy?
@@ -806,10 +841,75 @@ const generateRecommendedPlan = async () => {
     </div>
   );
 
+  // 🆕 KROK WYBORU TRYBU (ćwiczenia vs plany)
+  const renderModeStep = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <Kicker>Krok 2 z 7</Kicker>
+        <h2 className="mt-4 text-4xl font-black text-white">Wybierz tryb rekomendacji</h2>
+        <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
+          Chcesz gotowe plany treningowe czy zbudować własny plan z rekomendowanych ćwiczeń?
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <OptionCard 
+          active={planData.recommendationMode === 'plans'} 
+          onClick={() => setPlanData((p) => ({ ...p, recommendationMode: 'plans' }))}
+        >
+          <div className="text-center space-y-3">
+            <div className="mb-3 flex justify-center">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-emerald-400" stroke="currentColor" strokeWidth="2">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-white">Gotowe plany</h3>
+            <p className="text-sm text-gray-400">
+              Otrzymasz gotowe plany treningowe dopasowane do Twoich preferencji. Szybko i wygodnie.
+            </p>
+            {planData.recommendationMode === 'plans' && (
+              <div className="inline-flex items-center gap-1 text-emerald-300">
+                <svg width="20" height="20" fill="currentColor">
+                  <path d="M7.5 13.5L3 9l1.4-1.4 3.1 3.1L15.6 2.5 17 3.9 7.5 13.5z" />
+                </svg>
+                <span className="text-sm font-medium">Wybrano</span>
+              </div>
+            )}
+          </div>
+        </OptionCard>
+
+        <OptionCard 
+          active={planData.recommendationMode === 'exercises'} 
+          onClick={() => setPlanData((p) => ({ ...p, recommendationMode: 'exercises' }))}
+        >
+          <div className="text-center space-y-3">
+            <div className="mb-3 flex justify-center">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-orange-400" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-white">Rekomendacja ćwiczeń</h3>
+            <p className="text-sm text-gray-400">
+              Zbuduj własny plan z rekomendowanych ćwiczeń. Większa personalizacja i kontrola.
+            </p>
+            {planData.recommendationMode === 'exercises' && (
+              <div className="inline-flex items-center gap-1 text-emerald-300">
+                <svg width="20" height="20" fill="currentColor">
+                  <path d="M7.5 13.5L3 9l1.4-1.4 3.1 3.1L15.6 2.5 17 3.9 7.5 13.5z" />
+                </svg>
+                <span className="text-sm font-medium">Wybrano</span>
+              </div>
+            )}
+          </div>
+        </OptionCard>
+      </div>
+    </div>
+  );
+
   const renderBasicsStep = () => (
     <div className="space-y-8">
       <div className="text-center">
-        <Kicker>Krok 2 z 6</Kicker>
+        <Kicker>Krok 3 z 7</Kicker>
         <h2 className="mt-4 text-4xl font-black text-white">Powiedz nam o swoich celach</h2>
         <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
           Określ swój główny cel treningowy i poziom zaawansowania
@@ -918,7 +1018,7 @@ const generateRecommendedPlan = async () => {
   const renderPreferencesStep = () => (
     <div className="space-y-8">
       <div className="text-center">
-        <Kicker>Krok 3 z 6</Kicker>
+        <Kicker>Krok 4 z 7</Kicker>
         <h2 className="mt-4 text-4xl font-black text-white">Dostosuj plan do swoich możliwości</h2>
         <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
           Określ dostępne wyposażenie i czas na trening
@@ -1032,7 +1132,7 @@ const generateRecommendedPlan = async () => {
     return (
       <div className="space-y-8">
         <div className="text-center">
-          <Kicker>Krok 4 z 6</Kicker>
+          <Kicker>Krok 5 z 7</Kicker>
           <h2 className="mt-4 text-4xl font-black text-white">Pomożemy dobrać intensywność</h2>
           <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
             Twoje parametry pomogą nam lepiej dostosować plan
@@ -1151,7 +1251,7 @@ const generateRecommendedPlan = async () => {
     { 
       id: 'elbow', 
       label: 'Łokieć', 
-      icon: <svg width="32" height="32" viewBox="0 0 512 512" fill="currentColor" className="text-red-400"><path d="M211.832 39.06c-15.022 15.31-15.894 22.83-23.473 43.903 2.69 9.14 5.154 16.927 9.148 25.117 5.158.283 10.765.47 15.342.43-6.11-10.208-8.276-19.32-4.733-35.274 4.3 19.05 12.847 29.993 21.203 34.332 3.032-.334 5.957-.714 8.776-1.146-6.255-10.337-8.494-19.47-4.914-35.588 3.897 17.27 11.287 27.876 18.86 32.94 4.658-1.043 9.283-2.243 13.927-3.534-5.517-9.69-7.36-18.692-3.97-33.957 3.357 14.876 9.307 24.81 15.732 30.516 5.095-1.57 9.296-2.898 13.852-4.347-.685-5.782-.416-12.187 1.064-19.115l1.883-8.8 17.603 3.76-1.88 8.804c-3.636 17.008 1.324 24.42 7.306 28.666 5.98 4.244 14.69 3.46 16.03 2.6l7.576-4.86 9.72 15.15c-3.857 2.34-7.9 5.44-11.822 7.06 18.65 27.678 32.183 61.465 24.756 93.55-2.365 9.474-6.03 18.243-11.715 24.986 12.725 12.13 21.215 22.026 31.032 34.5-3.713-2.387-7.586-4.844-11.692-7.37-11.397-7.01-23.832-14.214-34.98-19.802-16.012-7.8-31.367-18.205-47.73-20.523-22.552-2.967-46.27 4.797-73.32 21.06 7.872 8.72 13.282 15.474 20.312 24.288-6.98-4.338-14.652-9.07-23.16-14.23-32.554-17.48-65.39-48.227-100.438-49.99-30.56-1.092-59.952 14.955-89.677 38.568L18 254.293V494h31.963c45.184-17.437 80.287-57.654 97.03-94.52l.25-.564.325-.52c9.463-15.252 11.148-29.688 16.79-44.732 5.645-15.044 16.907-29.718 41.884-38.756 4.353-2.16 5.07-1.415 8.633 1.395 30.468 24.01 57.29 32.02 83.24 32.35 32.61-1.557 58.442-9.882 85.682-19.38-3.966 3.528-8.77 7.21-13.986 10.762-15.323 10.436-34.217 19.928-46.304 24.8-14.716 2.006-28.36 2.416-41.967.616-9.96 12.09-25.574 20.358-37.35 26.673 63.92 14.023 115.88.91 167.386-22.896-9.522-1.817-19.008-3.692-27.994-5.42 31.634-4.422 64.984-3.766 94.705-3.53 4.084-.02 7.213-.453 8.7-.886 14.167-51.072-4.095-97.893-34.294-145.216-30.263-47.425-72.18-94.107-101.896-143.04-21.1-17.257-48.6-31.455-77.522-46.175-20.386 4.25-41.026 9.336-61.443 14.1zm85.385 70.49c-11.678 3.6-23.71 7.425-33.852 10.012 2.527 4.93 3.735 10.664 3.395 16.202 11.028.877 21.082-2.018 28.965-6.356 4.845-2.666 8.74-6.048 11.414-8.96-3.854-2.735-7.26-6.41-9.923-10.9zm-54.213 14.698c-11.76 1.143-24.59 2.362-35.06 2.236 2.39 4.772 3.78 12.067 8.51 14.84 11.18 1.164 20.6 1.997 29.91-1.746 5.435-3.214 1.818-15.058-3.36-15.33zm-34.98 209.332c-17.593 7.233-22.586 15.14-26.813 26.406-3.998 10.66-6.227 25.076-14.48 41.014 32.29-6.38 69.625-21.23 93.852-40.088-17.017-5.098-34.553-13.852-52.557-27.332zm9.318 71.385c-18.723 7.237-40.836 16.144-59.696 14.062C143.774 446.68 124.012 474.03 91.762 494h84.68c21.564-29.798 38.067-56.575 40.9-89.035z"/></svg>
+      icon: <svg width="32" height="32" viewBox="0 0 36 36" fill="currentColor" className="text-red-400"><path d="M15.977 9.36h3.789a.777.777 0 0 0 .058-.673l-3.846-4.705V9.36z"></path><path d="M12.804 22.277a9.192 9.192 0 0 0-.206-.973c-.62-2.223-1.14-3.164-.918-5.494c.29-1.584.273-4.763 4.483-4.268c1.112.131 2.843.927 3.834.91c.567-.01.98-1.157 1.017-1.539c.051-.526-.865-1.42-1.248-1.554a94.35 94.35 0 0 0-2.681-.824c-1.039-.301-.985-1.705-1.051-2.205a.597.597 0 0 1 .294-.591c.21-.124.375-.008.579.125l.885.648c.497.426-.874 1.24-.503 1.376c0 0 1.755.659 2.507.796c.412.075 1.834-1.529 1.917-2.47c.065-.74-3.398-4.083-5.867-5.381c-.868-.456-1.377-.721-1.949-.694c-.683.032-.898.302-1.748 1.03C8.302 4.46 4.568 11.577 4.02 13.152c-2.246 6.461-2.597 9.865-2.677 11.788a21.26 21.26 0 0 0-.076 1.758c.065 0-1 5 0 6s5.326 1 5.326 1c10 3.989 28.57 2.948 28.57-7.233c0-12.172-18.813-10.557-22.359-4.188z"></path><path d="M20.63 32.078c-3.16-.332-5.628-1.881-5.767-1.97a1 1 0 0 1 1.075-1.687c.04.025 4.003 2.492 7.846 1.467c2.125-.566 3.867-2.115 5.177-4.601a1 1 0 0 1 1.77.932c-1.585 3.006-3.754 4.893-6.447 5.606c-1.257.332-2.502.374-3.654.253z"></path></svg>
     },
     { 
       id: 'wrist', 
@@ -1226,7 +1326,7 @@ const generateRecommendedPlan = async () => {
   const renderHealthStep = () => (
     <div className="space-y-8">
       <div className="text-center">
-        <Kicker>Krok 5 z 6 (opcjonalny)</Kicker>
+        <Kicker>Krok 6 z 7 (opcjonalny)</Kicker>
         <h2 className="mt-4 text-4xl font-black text-white">Zdrowie i bezpieczeństwo</h2>
         <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
           Pomóż nam dobrać bezpieczny plan. Te informacje są <strong>opcjonalne</strong> - możesz je pominąć.
@@ -1322,7 +1422,9 @@ const generateRecommendedPlan = async () => {
           type="button"
           onClick={() => {
             setPlanData(p => ({ ...p, health: { injuries: ['none'], healthConditions: ['none'], healthNotes: '' } }));
-            setCurrentStep(5);  // Przejdź do kroku "Nazwa"
+            // 🆕 Przejdź do ostatniego kroku (może być 5 lub 6 w zależności od trybu)
+            const steps = getSteps();
+            setCurrentStep(steps.length - 1);
           }}
           className="text-gray-400 hover:text-white transition-colors text-sm underline"
         >
@@ -1335,7 +1437,7 @@ const generateRecommendedPlan = async () => {
   const renderNameStep = () => (
     <div className="space-y-8">
       <div className="text-center">
-        <Kicker>Krok 6 z 6</Kicker>
+        <Kicker>Krok 7 z 7</Kicker>
         <h2 className="mt-4 text-4xl font-black text-white">Nazwij swój plan</h2>
         <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
           Nadaj swojemu planowi unikalną nazwę, która będzie Cię motywować
@@ -1470,12 +1572,12 @@ const generateRecommendedPlan = async () => {
         <div className="mt-6 rounded-xl bg-white/5 p-3">
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-400">Postęp wypełniania</span>
-            <span className="font-semibold text-emerald-300">{(((currentStep + 1) / 6) * 100).toFixed(0)}%</span>
+            <span className="font-semibold text-emerald-300">{(((currentStep + 1) / getSteps().length) * 100).toFixed(0)}%</span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all duration-300"
-              style={{ width: `${((currentStep + 1) / 6) * 100}%` }}
+              style={{ width: `${((currentStep + 1) / getSteps().length) * 100}%` }}
             />
           </div>
         </div>
@@ -1495,14 +1597,8 @@ const generateRecommendedPlan = async () => {
   // ============================================================================
   // RENDER GŁÓWNY
   // ============================================================================
-  const steps = [
-    { title: 'Metoda', component: renderMethodStep },
-    { title: 'Podstawy', component: renderBasicsStep },
-    { title: 'Preferencje', component: renderPreferencesStep },
-    { title: 'Ciało', component: renderBodyStep },
-    { title: 'Zdrowie', component: renderHealthStep },  // 🆕 Nowy krok
-    { title: 'Nazwa', component: renderNameStep },
-  ];
+  // 🆕 Dynamiczna lista kroków - ukryj "Nazwa" gdy wybrano plany
+  const steps = getSteps();
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">

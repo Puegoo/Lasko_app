@@ -41,6 +41,60 @@ const LoadingSpinner = () => (
   </div>
 );
 
+// Confirm Modal Component
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Potwierdź', cancelText = 'Anuluj' }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <div 
+        className="relative w-full max-w-md rounded-2xl border border-white/10 bg-gradient-to-br from-black/95 to-black/80 backdrop-blur-xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Gradient background effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-rose-500/5 pointer-events-none" />
+        
+        <div className="relative p-6">
+          {/* Icon */}
+          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 border border-red-400/30">
+            <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+              <path d="M3 6h18" />
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            </svg>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-xl font-black text-white text-center mb-3">
+            {title}
+          </h3>
+
+          {/* Message */}
+          <p className="text-gray-300 text-center mb-6 leading-relaxed">
+            {message}
+          </p>
+
+          {/* Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 rounded-lg border-2 border-white/20 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+            >
+              {cancelText}
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 rounded-lg border-2 border-red-400/60 bg-gradient-to-r from-red-500/20 to-rose-500/20 px-4 py-3 text-sm font-semibold text-red-300 hover:from-red-500/30 hover:to-rose-500/30 hover:border-red-400 transition-all duration-200"
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ---------- Main Component ----------
 export default function JournalPage() {
   const navigate = useNavigate();
@@ -53,6 +107,7 @@ export default function JournalPage() {
   const [newNote, setNewNote] = useState('');
   const [editingNote, setEditingNote] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, noteId: null });
 
   useEffect(() => {
     fetchNotes();
@@ -141,8 +196,13 @@ export default function JournalPage() {
     }
   };
 
-  const handleDeleteNote = async (noteId) => {
-    if (!confirm('Czy na pewno chcesz usunąć tę notatkę?')) return;
+  const handleDeleteNoteClick = (noteId) => {
+    setDeleteModal({ isOpen: true, noteId });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { noteId } = deleteModal;
+    setDeleteModal({ isOpen: false, noteId: null });
 
     try {
       const response = await apiService.request(`/api/journal/notes/${noteId}/delete/`, {
@@ -158,6 +218,10 @@ export default function JournalPage() {
       console.error('[JournalPage] Error deleting note:', error);
       notify.error('Nie udało się usunąć notatki');
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModal({ isOpen: false, noteId: null });
   };
 
   const exportToPDF = () => {
@@ -225,7 +289,7 @@ export default function JournalPage() {
         </style>
       </head>
       <body>
-        <h1>📝 Dziennik Treningowy</h1>
+        <h1>Dziennik Treningowy</h1>
         <div class="meta">
           <p><strong>Wygenerowano:</strong> ${new Date().toLocaleString('pl-PL')}</p>
           <p><strong>Liczba notatek:</strong> ${notes.length}</p>
@@ -234,7 +298,7 @@ export default function JournalPage() {
         ${notes.map(note => `
           <div class="note">
             <div class="note-date">
-              📅 ${new Date(note.note_date).toLocaleString('pl-PL')}
+              ${new Date(note.note_date).toLocaleString('pl-PL')}
             </div>
             <div class="note-content">${note.content}</div>
             ${note.tags && note.tags.length > 0 ? `
@@ -282,6 +346,16 @@ export default function JournalPage() {
     <div className="min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
       <GradientGridBg />
       
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Usuwanie notatki"
+        message="Czy na pewno chcesz usunąć tę notatkę? Tej operacji nie można cofnąć."
+        confirmText="Usuń"
+        cancelText="Anuluj"
+      />
+      
       <div className="max-w-5xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="mb-8">
@@ -310,10 +384,10 @@ export default function JournalPage() {
             
             <div className="flex gap-3">
               <SecondaryButton onClick={exportToPDF}>
-                <IconKit.Download size="sm" className="inline" /> Pobierz PDF
+                Pobierz PDF
               </SecondaryButton>
               <PrimaryButton onClick={() => setShowAddForm(!showAddForm)}>
-                {showAddForm ? <><IconKit.Close size="sm" className="inline" /> Anuluj</> : <><IconKit.Plus size="sm" className="inline" /> Dodaj notatkę</>}
+                {showAddForm ? 'Anuluj' : 'Dodaj notatkę'}
               </PrimaryButton>
             </div>
           </div>
@@ -347,7 +421,7 @@ export default function JournalPage() {
                   Anuluj
                 </button>
                 <PrimaryButton type="submit">
-                  <IconKit.Document size="sm" className="inline" /> Zapisz notatkę
+                  Zapisz notatkę
                 </PrimaryButton>
               </div>
             </form>
@@ -377,20 +451,29 @@ export default function JournalPage() {
             {/* Search */}
             <div>
               <label className="flex items-center gap-2 text-sm text-gray-300 mb-2">
-                <IconKit.Search size="sm" /> Szukaj
+                Szukaj
               </label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Wpisz słowo kluczowe..."
-                className="w-full px-4 py-2 rounded-xl bg-black/40 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
-              />
+              <div className="relative">
+                <IconKit.Search size="md" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Wpisz słowo kluczowe..."
+                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-black/40 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                />
+              </div>
             </div>
 
             {/* Tag Filter */}
             <div>
-              <label className="block text-sm text-gray-300 mb-2">🏷️ Filtruj po tagu</label>
+              <label className="flex items-center gap-2 text-sm text-gray-300 mb-2">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                  <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+                Filtruj po tagu
+              </label>
               <select
                 value={selectedTag}
                 onChange={(e) => setSelectedTag(e.target.value)}
@@ -426,7 +509,9 @@ export default function JournalPage() {
           <LoadingSpinner />
         ) : notes.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">📔</div>
+            <div className="flex justify-center mb-4">
+              <IconKit.Notebook size="2xl" className="text-gray-500" />
+            </div>
             <h2 className="text-2xl font-bold text-white mb-2">Brak notatek</h2>
             <p className="text-gray-400 mb-6">
               {searchQuery || selectedTag 
@@ -435,7 +520,7 @@ export default function JournalPage() {
             </p>
             {!showAddForm && (
               <PrimaryButton onClick={() => setShowAddForm(true)}>
-                <IconKit.Plus size="sm" className="inline" /> Dodaj pierwszą notatkę
+                Dodaj pierwszą notatkę
               </PrimaryButton>
             )}
           </div>
@@ -458,7 +543,7 @@ export default function JournalPage() {
                           onClick={() => setEditingNote({ id: note.id, content: note.content })}
                         />
                         <DeleteButton
-                          onClick={() => handleDeleteNote(note.id)}
+                          onClick={() => handleDeleteNoteClick(note.id)}
                         />
                       </>
                     )}

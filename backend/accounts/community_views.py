@@ -44,8 +44,11 @@ def get_similar_users(request):
             cursor.execute("""
                 SELECT COUNT(DISTINCT vsu.similar_user_id)
                 FROM v_similar_users vsu
+                JOIN auth_accounts aa ON vsu.similar_user_id = aa.id
                 WHERE vsu.user_id = %s
                     AND vsu.similarity_score >= %s
+                    AND (aa.is_admin = FALSE OR aa.is_admin IS NULL)
+                    AND (aa.is_superuser = FALSE OR aa.is_superuser IS NULL)
             """, [user_id, min_score])
             total_count = cursor.fetchone()[0]
             
@@ -71,6 +74,8 @@ def get_similar_users(request):
                 LEFT JOIN personal_records pr ON vsu.similar_user_id = pr.auth_account_id
                 WHERE vsu.user_id = %s
                     AND vsu.similarity_score >= %s
+                    AND (aa.is_admin = FALSE OR aa.is_admin IS NULL)
+                    AND (aa.is_superuser = FALSE OR aa.is_superuser IS NULL)
                 GROUP BY vsu.similar_user_id, vsu.similarity_score, aa.username, 
                          up.first_name, up.goal, up.level, up.training_days_per_week, up.equipment_preference, up.profile_picture
                 ORDER BY vsu.similarity_score DESC, total_workouts DESC
@@ -145,6 +150,10 @@ def search_users(request):
         where_clauses = ["aa.id != %s"]  # Exclude current user
         params = [user_id]
         
+        # Exclude admins and superusers
+        where_clauses.append("(aa.is_admin = FALSE OR aa.is_admin IS NULL)")
+        where_clauses.append("(aa.is_superuser = FALSE OR aa.is_superuser IS NULL)")
+        
         if query:
             where_clauses.append("(aa.username ILIKE %s OR up.first_name ILIKE %s)")
             params.extend([f'%{query}%', f'%{query}%'])
@@ -160,17 +169,16 @@ def search_users(request):
         where_sql = " AND ".join(where_clauses)
         
         with connection.cursor() as cursor:
-            # First get total count
-            count_params = params[:-2] if len(params) > 2 else params  # Remove limit and offset from count query
+            # First get total count (use params without limit and offset)
             cursor.execute(f"""
                 SELECT COUNT(DISTINCT aa.id)
                 FROM auth_accounts aa
                 LEFT JOIN user_profiles up ON aa.id = up.auth_account_id
                 WHERE {where_sql}
-            """, count_params)
+            """, params)
             total_count = cursor.fetchone()[0]
             
-            # Then get paginated results
+            # Then get paginated results (add limit and offset to params)
             params.extend([limit, offset])
             cursor.execute(f"""
                 SELECT 

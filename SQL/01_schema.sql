@@ -163,8 +163,11 @@ CREATE TABLE training_plans (
     training_days_per_week INT NOT NULL,
     equipment_required VARCHAR(50) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
+    is_base_plan BOOLEAN DEFAULT TRUE,
+    base_plan_id INT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE SET NULL
+    FOREIGN KEY (auth_account_id) REFERENCES auth_accounts(id) ON DELETE SET NULL,
+    FOREIGN KEY (base_plan_id) REFERENCES training_plans(id) ON DELETE SET NULL
 );
 
 -- Historia planów

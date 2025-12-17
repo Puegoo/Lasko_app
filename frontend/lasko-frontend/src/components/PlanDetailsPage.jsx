@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { RecommendationService } from '../services/recommendationService';
@@ -90,57 +90,366 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// ---------- Navbar ----------
+// ---------- Navbar (nowy, spójny z Dashboard) ----------
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [showPlanDropdown, setShowPlanDropdown] = useState(false);
+  const planButtonRef = useRef(null);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
+  const username =
+    user?.username ||
+    user?.first_name ||
+    sessionStorage.getItem('lasko_username') ||
+    (() => {
+      try {
+        const raw = localStorage.getItem('user_data');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed.username || parsed.first_name || null;
+      } catch {
+        return null;
+      }
+    })() ||
+    null;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  // Zamknij dropdown gdy klikniemy poza nim
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (planButtonRef.current && !planButtonRef.current.contains(event.target)) {
+        setShowPlanDropdown(false);
+      }
+    };
+
+    if (showPlanDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
     }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPlanDropdown]);
+
+  // Icon button (jak w Dashboard)
+  const IconButton = ({ icon, tooltip, onClick, to, className = '' }) => {
+    const baseClasses =
+      'relative flex items-center justify-center w-10 h-10 rounded-lg text-gray-300 hover:text-white transition-all duration-200 hover:bg-white/5 hover:border-white/10 border border-transparent group';
+    const content = (
+      <>
+        {icon}
+        {tooltip && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1.5 text-xs font-medium text-white bg-gray-900/95 backdrop-blur-sm border border-white/20 rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50">
+            {tooltip}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-0 border-4 border-transparent border-b-gray-900/95" />
+          </div>
+        )}
+      </>
+    );
+
+    if (to) {
+      return (
+        <Link to={to} className={`${baseClasses} ${className}`}>
+          {content}
+        </Link>
+      );
+    }
+
+    return (
+      <button onClick={onClick} className={`${baseClasses} ${className}`}>
+        {content}
+      </button>
+    );
   };
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">
-      <div className="flex items-center justify-between px-4 py-4">
-        <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+    <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-xl">
+      <div className="flex items-center justify-between px-4 py-3">
+        <Link
+          to="/"
+          className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 transition-all duration-300"
+        >
           Lasko
         </Link>
 
-        <div className="hidden items-center gap-3 md:flex">
-          <span className="hidden text-sm text-gray-300 lg:inline">
-            Witaj, <span className="font-semibold text-white">{user?.username}</span>!
-          </span>
-          <SecondaryButton to="/dashboard">Dashboard</SecondaryButton>
-          <button onClick={handleLogout} className="text-sm text-gray-300 hover:text-white transition-colors">
-            Wyloguj
-          </button>
+        <div className="hidden items-center gap-2 md:flex">
+          {/* User info */}
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-emerald-400"
+            >
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span className="text-sm text-gray-300">
+              <span className="font-semibold text-white">{username}</span>
+            </span>
+          </div>
+
+          {/* Action buttons */}
+          <div className="relative" ref={planButtonRef}>
+            <IconButton
+              icon={
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-emerald-400"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              }
+              tooltip="Nowy plan"
+              onClick={() => setShowPlanDropdown(!showPlanDropdown)}
+              className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+            />
+            {showPlanDropdown && (
+              <>
+                {/* Overlay do zamknięcia */}
+                <div className="fixed inset-0 z-40" onClick={() => setShowPlanDropdown(false)} />
+                {/* Dropdown menu */}
+                <div
+                  className="absolute top-full right-0 mt-2 z-50 w-64 rounded-lg border border-white/10 bg-black/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-1">
+                    {/* Option 1: Na podstawie preferencji */}
+                    <button
+                      onClick={() => {
+                        navigate('/enhanced-plan-creator');
+                        setShowPlanDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10 text-left"
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-white">Na podstawie preferencji</div>
+                        <div className="text-xs text-gray-400 mt-0.5">System dobierze plan</div>
+                      </div>
+                    </button>
+
+                    {/* Option 2: Stwórz od zera */}
+                    <button
+                      onClick={() => {
+                        navigate('/plan-creator-blank');
+                        setShowPlanDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10 text-left"
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-white">Stwórz od zera</div>
+                        <div className="text-xs text-gray-400 mt-0.5">Wybierz ćwiczenia ręcznie</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <IconButton
+            icon={
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            }
+            tooltip="Ustawienia"
+            to="/settings"
+          />
+          <IconButton
+            icon={
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            }
+            tooltip="Wyloguj"
+            onClick={handleLogout}
+            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+          />
         </div>
 
         <button
-          onClick={() => setOpen(v => !v)}
-          className="md:hidden rounded-full p-2 text-gray-300 hover:bg-white/5 hover:text-white"
+          onClick={() => setOpen((v) => !v)}
+          className="md:hidden rounded-lg p-2 text-gray-300 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10"
           aria-label="Otwórz menu"
         >
-          <svg width="24" height="24" fill="none" stroke="currentColor">
-            <path strokeLinecap="round" strokeWidth="2" d="M4 7h16M4 12h16M4 17h16" />
+          <svg
+            width="24"
+            height="24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {open ? <path d="M18 6L6 18M6 6l12 12" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
           </svg>
         </button>
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-white/5 bg-black/80 px-6 py-3">
-          <div className="flex flex-col gap-2">
-            <Link to="/dashboard" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
-              Dashboard
-            </Link>
-            <button onClick={handleLogout} className="rounded-lg px-3 py-2 text-left text-gray-200 hover:bg-white/5">
-              Wyloguj
+        <div className="md:hidden border-t border-white/5 bg-black/95 backdrop-blur-xl px-4 py-3">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-white/5 border border-white/10">
+              <svg
+                width="18"
+                height="18"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-emerald-400"
+              >
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <span className="text-sm text-gray-300">
+                <span className="font-semibold text-white">{username}</span>
+              </span>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowPlanDropdown(!showPlanDropdown)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10 w-full text-left"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-emerald-400"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Nowy plan</span>
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className={`ml-auto transition-transform ${showPlanDropdown ? 'rotate-180' : ''}`}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {showPlanDropdown && (
+                <div className="mt-1 rounded-lg border border-white/10 bg-black/95 backdrop-blur-xl shadow-lg overflow-hidden">
+                  <button
+                    onClick={() => {
+                      navigate('/enhanced-plan-creator');
+                      setShowPlanDropdown(false);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 border-b border-white/5 last:border-b-0 transition-colors"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white">Na podstawie preferencji</div>
+                      <div className="text-xs text-gray-400">System dobierze plan</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/plan-creator-blank');
+                      setShowPlanDropdown(false);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 border-b border-white/5 last:border-b-0 transition-colors"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-white">Stwórz od zera</div>
+                      <div className="text-xs text-gray-400">Wybierz ćwiczenia ręcznie</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => navigate('/settings')}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10 w-full text-left"
+            >
+              <svg
+                width="18"
+                height="18"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gray-300"
+              >
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>Ustawienia</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors border border-transparent hover:border-red-500/40 w-full text-left"
+            >
+              <svg
+                width="18"
+                height="18"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-red-300"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Wyloguj</span>
             </button>
           </div>
         </div>
@@ -149,9 +458,64 @@ const Navbar = () => {
   );
 };
 
+// ---------- ConfirmModal Component ----------
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Potwierdź', cancelText = 'Anuluj' }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <div 
+        className="relative w-full max-w-md rounded-2xl border border-white/10 bg-gradient-to-br from-black/95 to-black/80 backdrop-blur-xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Gradient background effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-rose-500/5 pointer-events-none" />
+        
+        <div className="relative p-6">
+          {/* Icon */}
+          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 border border-red-400/30">
+            <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+              <path d="M3 6h18" />
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            </svg>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-xl font-black text-white text-center mb-3">
+            {title}
+          </h3>
+
+          {/* Message */}
+          <p className="text-gray-300 text-center mb-6 leading-relaxed">
+            {message}
+          </p>
+
+          {/* Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 rounded-lg border-2 border-white/20 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+            >
+              {cancelText}
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 rounded-lg border-2 border-red-400/60 bg-gradient-to-r from-red-500/20 to-rose-500/20 px-4 py-3 text-sm font-semibold text-red-300 hover:from-red-500/30 hover:to-rose-500/30 hover:border-red-400 transition-all duration-200"
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ---------- Main Component ----------
 export default function PlanDetailsPage() {
   const { planId } = useParams();
+  const { state } = useLocation();
   const navigate = useNavigate();
   const notify = useNotification();
   const [plan, setPlan] = useState(null);
@@ -166,14 +530,17 @@ export default function PlanDetailsPage() {
   const [editedPlan, setEditedPlan] = useState(null); // Edytowany plan
   const [saving, setSaving] = useState(false); // Stan zapisywania
   const [replaceModal, setReplaceModal] = useState({ open: false, dayIndex: null, exerciseIndex: null, currentExercise: null }); // Modal zamiany ćwiczenia
-  const [exercises, setExercises] = useState([]); // Katalog ćwiczeń
+  const [exercises, setExercises] = useState([]); // Katalog ćwiczeń (wszystkie pobrane)
+  const [filteredExercises, setFilteredExercises] = useState([]); // Przefiltrowane ćwiczenia
   const [exercisesLoading, setExercisesLoading] = useState(false);
   const [exerciseFilters, setExerciseFilters] = useState({ muscle_group: '', search: '' });
+  const searchTimeoutRef = useRef(null); // Ref dla debouncingu wyszukiwania
   const [showRatePlanModal, setShowRatePlanModal] = useState(false); // Modal oceny planu
   const [planRating, setPlanRating] = useState(null); // Obecna ocena planu
   const [editNameModal, setEditNameModal] = useState(false); // 🆕 Modal edycji nazwy
   const [customPlanName, setCustomPlanName] = useState(''); // 🆕 Niestandardowa nazwa
   const [savingAlias, setSavingAlias] = useState(false); // 🆕 Stan zapisywania aliasu
+  const [deleteExerciseModal, setDeleteExerciseModal] = useState({ open: false, dayIndex: null, exerciseIndex: null, exerciseName: '' }); // Modal potwierdzenia usunięcia ćwiczenia
   const recApi = useMemo(() => new RecommendationService(), []);
 
   // Dni tygodnia
@@ -266,16 +633,65 @@ export default function PlanDetailsPage() {
       try {
         setLoading(true);
         setError(null);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log('[PlanDetailsPage] Fetching plan:', planId);
-        const data = await recApi.getPlanDetailed(planId);
+        console.log('[PlanDetailsPage] Location state:', state);
+        let data;
+
+        // Jeśli przyszliśmy z dashboardu z informacją, że to custom plan – użyj dedykowanego endpointu
+        const isCustomFromState =
+          state?.isCustomPlan ||
+          state?.plan?.isCustomPlan ||
+          state?.plan?.is_custom_plan ||
+          state?.customPlanId;
+
+        if (isCustomFromState) {
+          console.log('[PlanDetailsPage] Detected custom plan from state, using getCustomPlan');
+          data = await recApi.getCustomPlan(planId);
+        } else {
+          data = await recApi.getPlanDetailed(planId);
+        }
         
         // Sprawdź czy dane są w data.plan czy bezpośrednio w data
         const planData = data.plan || data;
-        
+        console.log('[PlanDetailsPage] planData from API:', planData);
+        console.log('[PlanDetailsPage] planData.days:', planData?.days);
+
+        // Wyznacz nazwę wyświetlaną i oryginalną, żeby była spójna z dashboardem
+        const backendName = planData.name;
+        const statePlan = state?.plan || null;
+        const isCustomPlanBackend = !!(planData.is_custom_plan || planData.isCustomPlan);
+
+        let displayName = backendName;
+        let originalName = backendName;
+        let customName = null;
+
+        if (statePlan) {
+          // Dla custom planów – pokazuj nazwę z user_custom_plans (ta sama co na dashboardzie)
+          if (statePlan.isCustomPlan || statePlan.is_custom_plan || isCustomPlanBackend) {
+            displayName = statePlan.name || backendName;
+            originalName = backendName;
+          } else {
+            // Dla planów bazowych z aliasem – dashboard ma alias w statePlan.name
+            const alias = statePlan.customName || statePlan.name;
+            if (alias && alias !== backendName) {
+              displayName = alias;
+              originalName = backendName;
+              customName = alias;
+            }
+          }
+        }
+
         // Normalizuj dane planu
         const normalizedPlan = {
           id: planData.plan_id || planData.id,
-          name: planData.name,
+          // Flagi custom planu jeśli są
+          is_custom_plan: planData.is_custom_plan || planData.isCustomPlan || false,
+          isCustomPlan: planData.isCustomPlan || planData.is_custom_plan || false,
+          auth_account_id: planData.auth_account_id,
+          name: displayName,
+          originalName: originalName,
+          customName: customName,
           description: planData.description,
           goalType: planData.goal_type || planData.goalType,
           difficultyLevel: planData.difficulty_level || planData.difficultyLevel,
@@ -284,7 +700,23 @@ export default function PlanDetailsPage() {
           days: planData.days || planData.workouts || [],
         };
         
+        console.log('[PlanDetailsPage] normalizedPlan:', normalizedPlan);
+        console.log('[PlanDetailsPage] normalizedPlan.days:', normalizedPlan.days);
+        if (Array.isArray(normalizedPlan.days)) {
+          console.log(
+            '[PlanDetailsPage] Days & exercises:',
+            normalizedPlan.days.map((d, idx) => ({
+              idx,
+              name: d.title || d.name,
+              exercisesCount: Array.isArray(d.exercises) ? d.exercises.length : 'not-array',
+              exercisesSample: Array.isArray(d.exercises) ? d.exercises.slice(0, 3) : null,
+            }))
+          );
+        }
+        
         setPlan(normalizedPlan);
+        console.log('[PlanDetailsPage] Plan set in state.');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       } catch (err) {
         console.error('[PlanDetailsPage] Error fetching plan:', err);
         setError(err.message || 'Nie udało się pobrać szczegółów planu');
@@ -298,13 +730,26 @@ export default function PlanDetailsPage() {
     }
   }, [planId, recApi]);
 
+  // Cleanup timeout przy unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleActivatePlan = async () => {
     if (!plan) return;
     
+    const isCustom = plan?.is_custom_plan || plan?.isCustomPlan || false;
+    // Dla standardowych planów customPlanId powinno być null/undefined
+    const customPlanId = isCustom ? (plan?.customPlanId || plan?.custom_plan_id || plan?.id) : null;
+    
     try {
       setActivating(true);
-      console.log('[PlanDetailsPage] Activating plan:', plan.id);
-      await recApi.activatePlan(plan.id);
+      console.log('[PlanDetailsPage] Activating plan:', plan.id, 'isCustom:', isCustom, 'customPlanId:', customPlanId);
+      await recApi.activatePlan(plan.id, isCustom, customPlanId);
       setActivePlanId(plan.id); // Zaktualizuj ID aktywnego planu
       notify.success('Plan został aktywowany! 🎉');
       setTimeout(() => navigate('/dashboard'), 800);
@@ -383,22 +828,41 @@ export default function PlanDetailsPage() {
 
     setSavingAlias(true);
     try {
-      const response = await apiService.request(`/api/plans/${plan.id}/alias/`, {
-        method: 'POST',
-        body: JSON.stringify({ custom_name: customPlanName.trim() })
-      });
+      // Jeśli to custom plan użytkownika – aktualizujemy bezpośrednio user_custom_plans
+      if (plan?.is_custom_plan || plan?.isCustomPlan) {
+        const response = await apiService.request(`/api/recommendations/custom-plans/${plan.id}/update/`, {
+          method: 'PUT',
+          body: JSON.stringify({ name: customPlanName.trim() })
+        });
 
-      if (response.success) {
-        notify.success('Nazwa planu została zapisana! 🎉');
-        // Zaktualizuj lokalnie nazwę w planie
+        if (!response.success) {
+          throw new Error(response.error || 'Nie udało się zapisać nazwy');
+        }
+
+        notify.success('Nazwa planu została zaktualizowana! 🎉');
         setPlan(prev => ({
           ...prev,
-          name: customPlanName.trim(),
-          customName: customPlanName.trim()
+          name: customPlanName.trim()
         }));
         setEditNameModal(false);
       } else {
-        throw new Error(response.error || 'Nie udało się zapisać nazwy');
+        // Standardowy plan – użyj aliasu (user_plan_aliases)
+        const response = await apiService.request(`/api/recommendations/plans/${plan.id}/alias/`, {
+          method: 'POST',
+          body: JSON.stringify({ custom_name: customPlanName.trim() })
+        });
+
+        if (response.success) {
+          notify.success('Nazwa planu została zapisana! 🎉');
+          setPlan(prev => ({
+            ...prev,
+            name: customPlanName.trim(),
+            customName: customPlanName.trim()
+          }));
+          setEditNameModal(false);
+        } else {
+          throw new Error(response.error || 'Nie udało się zapisać nazwy');
+        }
       }
     } catch (err) {
       console.error('[PlanDetailsPage] Error saving alias:', err);
@@ -459,30 +923,98 @@ export default function PlanDetailsPage() {
     try {
       setSaving(true);
       
-      // Zapisz metadane planu
-      await apiService.request(`/api/recommendations/plans/${planId}/`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: editedPlan.name,
-          description: editedPlan.description,
-        })
-      });
+      // Dla custom planów zapisujemy przez endpoint custom-plans (nie training_plans)
+      if (plan?.is_custom_plan || plan?.isCustomPlan) {
+        const daysPayload = (editedPlan.days || [])
+          .map((day, dayIdx) => {
+            const rawExercises = Array.isArray(day.exercises)
+              ? day.exercises
+              : Array.isArray(day.items)
+              ? day.items
+              : Array.isArray(day.movements)
+              ? day.movements
+              : [];
 
-      // Zapisz zmiany w ćwiczeniach
-      if (editedPlan.days) {
-        for (const day of editedPlan.days) {
-          if (day.exercises) {
-            for (const exercise of day.exercises) {
-              if (exercise.id && exercise._modified) {
-                await apiService.request(`/api/recommendations/plans/${planId}/exercises/${exercise.id}/`, {
-                  method: 'PUT',
-                  body: JSON.stringify({
-                    target_sets: exercise.target_sets || exercise.targetSets,
-                    target_reps: exercise.target_reps || exercise.targetReps,
-                    rest_seconds: exercise.rest_seconds || exercise.restSeconds,
-                    superset_group: exercise.superset_group || exercise.supersetGroup
-                  })
-                });
+            const exercises = rawExercises
+              .map((ex, exIdx) => {
+                const exerciseId = ex.exercise_id || ex.id;
+                if (!exerciseId) return null;
+
+                const sets =
+                  ex.sets ??
+                  ex.target_sets ??
+                  ex.targetSets ??
+                  ex.series ??
+                  '3';
+
+                const reps =
+                  ex.reps ??
+                  ex.target_reps ??
+                  ex.targetReps ??
+                  ex.repetitions ??
+                  '10-12';
+
+                const restSeconds = ex.rest_seconds ?? ex.rest ?? ex.restSeconds ?? 60;
+                // Walidacja rest_seconds - tylko liczby całkowite (sekundy)
+                const validatedRestSeconds = Math.max(0, Math.floor(Number(restSeconds) || 60));
+
+                const order =
+                  ex.exercise_order ??
+                  ex.order ??
+                  exIdx + 1;
+
+                return {
+                  exercise_id: exerciseId,
+                  target_sets: String(sets),
+                  target_reps: String(reps),
+                  rest_seconds: validatedRestSeconds,
+                  exercise_order: order,
+                };
+              })
+              .filter(Boolean);
+
+            return {
+              name: day.title || day.name || day.dayName || `Dzień ${dayIdx + 1}`,
+              day_order: day.day_order || day.dayNumber || dayIdx + 1,
+              exercises,
+            };
+          })
+          .filter((d) => d.exercises && d.exercises.length > 0);
+
+        await apiService.request(`/api/recommendations/custom-plans/${plan.id}/update/`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: editedPlan.name,
+            description: editedPlan.description,
+            days: daysPayload,
+          }),
+        });
+      } else {
+        // Dla standardowych planów używamy istniejących endpointów training_plans
+        await apiService.request(`/api/recommendations/plans/${planId}/`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: editedPlan.name,
+            description: editedPlan.description,
+          })
+        });
+
+        // Zapisz zmiany w ćwiczeniach (tylko jeśli są oznaczone jako zmodyfikowane)
+        if (editedPlan.days) {
+          for (const day of editedPlan.days) {
+            if (day.exercises) {
+              for (const exercise of day.exercises) {
+                if (exercise.id && exercise._modified) {
+                  await apiService.request(`/api/recommendations/plans/${planId}/exercises/${exercise.id}/`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                      target_sets: exercise.target_sets || exercise.targetSets,
+                      target_reps: exercise.target_reps || exercise.targetReps,
+                      rest_seconds: Math.max(0, Math.floor(Number(exercise.rest_seconds || exercise.restSeconds || 60))),
+                      superset_group: exercise.superset_group || exercise.supersetGroup
+                    })
+                  });
+                }
               }
             }
           }
@@ -516,29 +1048,62 @@ export default function PlanDetailsPage() {
     setEditedPlan(prev => {
       const newPlan = JSON.parse(JSON.stringify(prev));
       if (newPlan.days?.[dayIndex]?.exercises?.[exerciseIndex]) {
-        newPlan.days[dayIndex].exercises[exerciseIndex][field] = value;
+        // Walidacja wartości w zależności od pola
+        let validatedValue = value;
+        
+        if (field === 'rest_seconds') {
+          // Dla przerwy - tylko liczby całkowite (sekundy)
+          const numValue = typeof value === 'string' ? value.replace(/[^0-9]/g, '') : value;
+          validatedValue = numValue === '' ? '' : Math.max(0, Math.floor(Number(numValue)));
+        } else if (field === 'target_sets' || field === 'target_reps') {
+          // Dla serii i powtórzeń - pozwól na format "3-4" lub "10-12", ale usuń nieprawidłowe znaki
+          validatedValue = typeof value === 'string' ? value.replace(/[^0-9-]/g, '') : value;
+        } else {
+          // Dla innych pól - użyj wartości bez zmian
+          validatedValue = value;
+        }
+        
+        newPlan.days[dayIndex].exercises[exerciseIndex][field] = validatedValue;
         newPlan.days[dayIndex].exercises[exerciseIndex]._modified = true;
       }
       return newPlan;
     });
   };
 
-  // Usuń ćwiczenie
-  const removeExercise = async (dayIndex, exerciseIndex) => {
+  // Otwórz modal potwierdzenia usunięcia ćwiczenia
+  const openDeleteExerciseModal = (dayIndex, exerciseIndex) => {
     const exercise = editedPlan.days?.[dayIndex]?.exercises?.[exerciseIndex];
     if (!exercise) return;
 
-    if (!confirm(`Czy na pewno chcesz usunąć ćwiczenie "${exercise.name}"?`)) {
-      return;
-    }
+    const exerciseName = exercise.name || exercise.exercise_name || 'Ćwiczenie';
+    setDeleteExerciseModal({
+      open: true,
+      dayIndex,
+      exerciseIndex,
+      exerciseName
+    });
+  };
+
+  // Usuń ćwiczenie (po potwierdzeniu)
+  const confirmRemoveExercise = async () => {
+    const { dayIndex, exerciseIndex } = deleteExerciseModal;
+    if (dayIndex === null || exerciseIndex === null) return;
+
+    const exercise = editedPlan.days?.[dayIndex]?.exercises?.[exerciseIndex];
+    if (!exercise) return;
 
     try {
-      if (exercise.id) {
+      const isCustom = plan?.is_custom_plan || plan?.isCustomPlan || false;
+      
+      // Dla custom plans nie wywołujemy endpointu DELETE - usuwamy lokalnie i zapisujemy cały plan
+      if (!isCustom && exercise.id) {
+        // Dla standardowych planów wywołaj endpoint DELETE
         await apiService.request(`/api/recommendations/plans/${planId}/exercises/${exercise.id}/delete/`, {
           method: 'DELETE'
         });
       }
 
+      // Usuń ćwiczenie z lokalnego stanu
       setEditedPlan(prev => {
         const newPlan = JSON.parse(JSON.stringify(prev));
         if (newPlan.days?.[dayIndex]?.exercises) {
@@ -547,10 +1112,14 @@ export default function PlanDetailsPage() {
         return newPlan;
       });
 
+      // Zamknij modal
+      setDeleteExerciseModal({ open: false, dayIndex: null, exerciseIndex: null, exerciseName: '' });
+
       notify.success('Ćwiczenie zostało usunięte');
     } catch (err) {
       console.error('[PlanDetailsPage] Failed to remove exercise:', err);
       notify.error('Nie udało się usunąć ćwiczenia');
+      setDeleteExerciseModal({ open: false, dayIndex: null, exerciseIndex: null, exerciseName: '' });
     }
   };
 
@@ -559,6 +1128,11 @@ export default function PlanDetailsPage() {
     const exercise = editedPlan.days?.[dayIndex]?.exercises?.[exerciseIndex];
     if (!exercise) return;
 
+    // Wyczyść timeout jeśli istnieje
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
     setReplaceModal({
       open: true,
       dayIndex,
@@ -566,23 +1140,30 @@ export default function PlanDetailsPage() {
       currentExercise: exercise
     });
 
-    // Pobierz katalog ćwiczeń
-    await fetchExercises();
+    // Resetuj filtry
+    const emptyFilters = { muscle_group: '', search: '' };
+    setExerciseFilters(emptyFilters);
+
+    // Pobierz katalog ćwiczeń (tylko jeśli jeszcze nie pobrano)
+    if (exercises.length === 0) {
+      await fetchExercises();
+    } else {
+      // Jeśli już mamy ćwiczenia, zastosuj filtry
+      applyFilters(exercises, emptyFilters);
+    }
   };
 
-  // Pobierz ćwiczenia z API
+  // Pobierz wszystkie ćwiczenia z API (raz, bez filtrów)
   const fetchExercises = async () => {
     try {
       setExercisesLoading(true);
-      const params = new URLSearchParams({
-        limit: 100,
-        ...exerciseFilters
-      });
-
-      const response = await apiService.request(`/api/exercises/?${params}`);
+      const response = await apiService.request(`/api/exercises/?limit=500`);
       
       if (response.success) {
-        setExercises(response.exercises || []);
+        const allExercises = response.exercises || [];
+        setExercises(allExercises);
+        // Zastosuj aktualne filtry
+        applyFilters(allExercises, exerciseFilters);
       }
     } catch (error) {
       console.error('[PlanDetailsPage] Error fetching exercises:', error);
@@ -591,35 +1172,127 @@ export default function PlanDetailsPage() {
     }
   };
 
+  // Zastosuj filtry do ćwiczeń (po stronie frontendu)
+  const applyFilters = (exercisesList, filters) => {
+    let filtered = [...exercisesList];
+
+    // Filtruj po partii mięśniowej
+    if (filters.muscle_group) {
+      filtered = filtered.filter(ex => 
+        ex.muscle_group && ex.muscle_group.toLowerCase() === filters.muscle_group.toLowerCase()
+      );
+    }
+
+    // Filtruj po wyszukiwaniu (nazwa lub opis)
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(ex => 
+        (ex.name && ex.name.toLowerCase().includes(searchLower)) ||
+        (ex.description && ex.description.toLowerCase().includes(searchLower))
+      );
+    }
+
+    setFilteredExercises(filtered);
+  };
+
+  // Debounced search handler
+  const handleSearchChange = (value) => {
+    setExerciseFilters(prev => ({ ...prev, search: value }));
+    
+    // Wyczyść poprzedni timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Ustaw nowy timeout
+    searchTimeoutRef.current = setTimeout(() => {
+      applyFilters(exercises, { ...exerciseFilters, search: value });
+    }, 300); // 300ms debounce
+  };
+
   // Zamień ćwiczenie
   const replaceExercise = async (newExercise) => {
-    const { currentExercise } = replaceModal;
+    const { currentExercise, dayIndex, exerciseIndex } = replaceModal;
+    const isCustom = plan?.is_custom_plan || plan?.isCustomPlan || false;
 
     try {
-      const planExerciseId = currentExercise.id; // ID z plan_exercises
-      
-      const response = await apiService.request(
-        `/api/recommendations/plans/${planId}/exercises/${planExerciseId}/replace/`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            new_exercise_id: newExercise.id,
-            target_sets: currentExercise.target_sets || currentExercise.targetSets || '3',
-            target_reps: currentExercise.target_reps || currentExercise.targetReps || '10-12',
-            rest_seconds: currentExercise.rest_seconds || currentExercise.restSeconds || 60
-          })
-        }
-      );
+      if (isCustom) {
+        // Dla custom plans - aktualizuj lokalnie i zapisz cały plan
+        setEditedPlan(prev => {
+          const newPlan = JSON.parse(JSON.stringify(prev));
+          if (newPlan.days?.[dayIndex]?.exercises?.[exerciseIndex]) {
+            const exercise = newPlan.days[dayIndex].exercises[exerciseIndex];
+            // Zamień ćwiczenie zachowując parametry
+            newPlan.days[dayIndex].exercises[exerciseIndex] = {
+              ...exercise,
+              exercise_id: newExercise.id,
+              id: newExercise.id, // Dla kompatybilności
+              name: newExercise.name,
+              exercise_name: newExercise.name,
+              muscle_group: newExercise.muscle_group,
+              type: newExercise.type,
+              description: newExercise.description,
+              // Zachowaj istniejące parametry treningowe
+              target_sets: exercise.target_sets || exercise.targetSets || '3',
+              target_reps: exercise.target_reps || exercise.targetReps || '10-12',
+              rest_seconds: Math.max(0, Math.floor(Number(exercise.rest_seconds || exercise.restSeconds || 60)))
+            };
+          }
+          return newPlan;
+        });
 
-      if (response.success) {
-        // Odśwież plan z backendu
-        const updatedPlanData = await recApi.getPlanDetailed(planId);
-        const normalizedPlan = updatedPlanData.plan || updatedPlanData;
-        setPlan(normalizedPlan);
-        setEditedPlan(JSON.parse(JSON.stringify(normalizedPlan)));
+        // Zaktualizuj również główny plan
+        setPlan(prev => {
+          if (!prev) return prev;
+          const newPlan = JSON.parse(JSON.stringify(prev));
+          if (newPlan.days?.[dayIndex]?.exercises?.[exerciseIndex]) {
+            const exercise = newPlan.days[dayIndex].exercises[exerciseIndex];
+            newPlan.days[dayIndex].exercises[exerciseIndex] = {
+              ...exercise,
+              exercise_id: newExercise.id,
+              id: newExercise.id,
+              name: newExercise.name,
+              exercise_name: newExercise.name,
+              muscle_group: newExercise.muscle_group,
+              type: newExercise.type,
+              description: newExercise.description,
+              target_sets: exercise.target_sets || exercise.targetSets || '3',
+              target_reps: exercise.target_reps || exercise.targetReps || '10-12',
+              rest_seconds: Math.max(0, Math.floor(Number(exercise.rest_seconds || exercise.restSeconds || 60)))
+            };
+          }
+          return newPlan;
+        });
 
         setReplaceModal({ open: false, dayIndex: null, exerciseIndex: null, currentExercise: null });
         notify.success(`Ćwiczenie zostało zamienione na: ${newExercise.name}`);
+      } else {
+        // Dla standardowych planów - użyj endpointu replace
+        const planExerciseId = currentExercise.id; // ID z plan_exercises
+        
+        const response = await apiService.request(
+          `/api/recommendations/plans/${planId}/exercises/${planExerciseId}/replace/`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              new_exercise_id: newExercise.id,
+              target_sets: currentExercise.target_sets || currentExercise.targetSets || '3',
+              target_reps: currentExercise.target_reps || currentExercise.targetReps || '10-12',
+              rest_seconds: Math.max(0, Math.floor(Number(currentExercise.rest_seconds || currentExercise.restSeconds || 60)))
+            })
+          }
+        );
+
+        if (response.success) {
+          // Odśwież plan z backendu
+          const updatedPlanData = await recApi.getPlanDetailed(planId);
+          const normalizedPlan = updatedPlanData.plan || updatedPlanData;
+          setPlan(normalizedPlan);
+          setEditedPlan(JSON.parse(JSON.stringify(normalizedPlan)));
+
+          setReplaceModal({ open: false, dayIndex: null, exerciseIndex: null, currentExercise: null });
+          notify.success(`Ćwiczenie zostało zamienione na: ${newExercise.name}`);
+        }
       }
     } catch (err) {
       console.error('[PlanDetailsPage] Error replacing exercise:', err);
@@ -789,11 +1462,15 @@ export default function PlanDetailsPage() {
                         Zapisywanie...
                       </span>
                     ) : (
-                      <><IconKit.Document size="sm" className="inline" /> Zapisz zmiany</>
+                      <span className="inline-flex items-center gap-2">
+                        <IconKit.Check size="sm" /> Zapisz zmiany
+                      </span>
                     )}
                   </PrimaryButton>
                   <SecondaryButton onClick={handleCancelEdit} className="w-full" disabled={saving}>
-                    ❌ Anuluj
+                    <span className="inline-flex items-center gap-2">
+                      <IconKit.Close size="sm" /> Anuluj
+                    </span>
                   </SecondaryButton>
                 </>
               ) : (
@@ -827,27 +1504,17 @@ export default function PlanDetailsPage() {
                   {/* Pokaż "Edytuj" tylko dla planów użytkownika, "Skopiuj" dla systemowych */}
                   {plan.auth_account_id ? (
                     <SecondaryButton onClick={handleStartEdit} className="w-full">
-                      ✏️ Edytuj plan
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="inline mr-2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Edytuj plan
                     </SecondaryButton>
                   ) : (
                     <SecondaryButton onClick={handleCopyAndEdit} className="w-full">
                       <IconKit.Copy size="sm" className="inline" /> Skopiuj i edytuj
                     </SecondaryButton>
                   )}
-                  {/* 🆕 Przycisk edycji nazwy planu */}
-                  <SecondaryButton 
-                    onClick={() => {
-                      setCustomPlanName(plan?.name || '');
-                      setEditNameModal(true);
-                    }}
-                    className="w-full"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="inline mr-2">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Zmień nazwę
-                  </SecondaryButton>
                   <GhostButton onClick={handleReportProblem} className="w-full">
                     ⚠️ Zgłoś problem
                   </GhostButton>
@@ -1011,7 +1678,7 @@ export default function PlanDetailsPage() {
                                           onClick={() => openReplaceModal(idx, exIdx)}
                                         />
                                         <DeleteButton
-                                          onClick={() => removeExercise(idx, exIdx)}
+                                          onClick={() => openDeleteExerciseModal(idx, exIdx)}
                                         />
                                       </div>
                                     )}
@@ -1042,13 +1709,66 @@ export default function PlanDetailsPage() {
                                       </div>
                                       <div>
                                         <label className="block text-xs text-gray-400 mb-1">Odpoczynek (s)</label>
-                                        <input
-                                          type="number"
-                                          value={ex.rest_seconds || ex.restSeconds || ''}
-                                          onChange={(e) => updateExercise(idx, exIdx, 'rest_seconds', parseInt(e.target.value) || 0)}
-                                          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-400/50"
-                                          placeholder="60"
-                                        />
+                                        <div className="relative">
+                                          <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={ex.rest_seconds || ex.restSeconds || ''}
+                                            onChange={(e) => updateExercise(idx, exIdx, 'rest_seconds', e.target.value)}
+                                            className="w-full px-3 py-2 pr-20 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-400/50"
+                                            placeholder="60"
+                                          />
+                                          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-row gap-0.5">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const current = Number(ex.rest_seconds || ex.restSeconds || 0);
+                                                const next = isNaN(current) ? 1 : current + 1;
+                                                updateExercise(idx, exIdx, 'rest_seconds', String(next));
+                                              }}
+                                              className="w-6 h-5 flex items-center justify-center rounded bg-emerald-400/20 hover:bg-emerald-400/40 transition-colors group"
+                                            >
+                                              <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 12 12"
+                                                fill="none"
+                                                className="text-emerald-400 group-hover:text-emerald-300"
+                                              >
+                                                <path
+                                                  d="M6 3L6 9M3 6L9 6"
+                                                  stroke="currentColor"
+                                                  strokeWidth="1.5"
+                                                  strokeLinecap="round"
+                                                />
+                                              </svg>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const current = Number(ex.rest_seconds || ex.restSeconds || 0);
+                                                const next = Math.max(0, isNaN(current) ? 0 : current - 1);
+                                                updateExercise(idx, exIdx, 'rest_seconds', String(next));
+                                              }}
+                                              className="w-6 h-5 flex items-center justify-center rounded bg-emerald-400/20 hover:bg-emerald-400/40 transition-colors group"
+                                            >
+                                              <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 12 12"
+                                                fill="none"
+                                                className="text-emerald-400 group-hover:text-emerald-300"
+                                              >
+                                                <path
+                                                  d="M3 6L9 6"
+                                                  stroke="currentColor"
+                                                  strokeWidth="1.5"
+                                                  strokeLinecap="round"
+                                                />
+                                              </svg>
+                                            </button>
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
                                   ) : (
@@ -1322,22 +2042,22 @@ export default function PlanDetailsPage() {
 
       {/* Modal zamiany ćwiczenia */}
       {replaceModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-gradient-to-b from-[#1a1a1a] to-black border border-white/10 p-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setReplaceModal({ open: false, dayIndex: null, exerciseIndex: null, currentExercise: null })}>
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0b0b0b] p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-white mb-2">Zamień ćwiczenie</h2>
                 <p className="text-gray-400">
-                  Aktualne: <span className="text-emerald-300 font-medium">{replaceModal.currentExercise?.name}</span>
+                  Aktualne: <span className="text-emerald-300 font-medium">{replaceModal.currentExercise?.name || replaceModal.currentExercise?.exercise_name || 'Ćwiczenie'}</span>
                 </p>
               </div>
               <button
                 onClick={() => setReplaceModal({ open: false, dayIndex: null, exerciseIndex: null, currentExercise: null })}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
               >
-                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 18L18 6M6 6l12 12" />
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
               </button>
             </div>
@@ -1345,33 +2065,39 @@ export default function PlanDetailsPage() {
             {/* Filters */}
             <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                  <IconKit.Search size="sm" /> Szukaj
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Szukaj
                 </label>
-                <input
-                  type="text"
-                  value={exerciseFilters.search}
-                  onChange={(e) => {
-                    setExerciseFilters(prev => ({ ...prev, search: e.target.value }));
-                    fetchExercises();
-                  }}
-                  placeholder="Wpisz nazwę ćwiczenia..."
-                  className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.35-4.35" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={exerciseFilters.search}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    placeholder="Wpisz nazwę ćwiczenia..."
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                  <IconKit.Muscle size="sm" /> Partia mięśniowa
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Partia mięśniowa
                 </label>
                 <div className="relative">
                   <select
                     value={exerciseFilters.muscle_group}
                     onChange={(e) => {
-                      setExerciseFilters(prev => ({ ...prev, muscle_group: e.target.value }));
-                      fetchExercises();
+                      const newFilters = { ...exerciseFilters, muscle_group: e.target.value };
+                      setExerciseFilters(newFilters);
+                      applyFilters(exercises, newFilters);
                     }}
-                    className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all appearance-none cursor-pointer pr-10"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20 transition-all appearance-none cursor-pointer pr-10"
                     style={{
                       backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5l5 5 5-5' stroke='%2310B981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
                       backgroundRepeat: 'no-repeat',
@@ -1380,12 +2106,12 @@ export default function PlanDetailsPage() {
                     }}
                   >
                     <option value="" className="bg-gray-900 text-white">Wszystkie partie</option>
-                    <option value="klatka" className="bg-gray-900 text-white">💪 Klatka piersiowa</option>
-                    <option value="plecy" className="bg-gray-900 text-white">🦾 Plecy</option>
-                    <option value="nogi" className="bg-gray-900 text-white">🦵 Nogi</option>
-                    <option value="ramiona" className="bg-gray-900 text-white">💪 Ramiona</option>
-                    <option value="brzuch" className="bg-gray-900 text-white">🔥 Brzuch</option>
-                    <option value="barki" className="bg-gray-900 text-white">🏋️ Barki</option>
+                    <option value="klatka" className="bg-gray-900 text-white">Klatka piersiowa</option>
+                    <option value="plecy" className="bg-gray-900 text-white">Plecy</option>
+                    <option value="nogi" className="bg-gray-900 text-white">Nogi</option>
+                    <option value="ramiona" className="bg-gray-900 text-white">Ramiona</option>
+                    <option value="brzuch" className="bg-gray-900 text-white">Brzuch</option>
+                    <option value="barki" className="bg-gray-900 text-white">Barki</option>
                   </select>
                 </div>
               </div>
@@ -1396,17 +2122,20 @@ export default function PlanDetailsPage() {
               <div className="flex items-center justify-center py-12">
                 <div className="h-12 w-12 animate-spin rounded-full border-4 border-emerald-400/30 border-t-emerald-400"></div>
               </div>
-            ) : exercises.length === 0 ? (
+            ) : filteredExercises.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-400">Brak ćwiczeń do wyświetlenia</p>
+                {exerciseFilters.search && (
+                  <p className="text-sm text-gray-500 mt-2">Spróbuj zmienić kryteria wyszukiwania</p>
+                )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
-                {exercises.map((exercise) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-400/20 scrollbar-track-transparent">
+                {filteredExercises.map((exercise) => (
                   <button
                     key={exercise.id}
                     onClick={() => replaceExercise(exercise)}
-                    className="text-left rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-400/50 transition-all p-4 group"
+                    className="text-left rounded-xl bg-white/[0.02] border border-white/10 hover:bg-white/[0.04] hover:border-emerald-400/50 transition-all p-4 group"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="font-semibold text-white group-hover:text-emerald-300 transition-colors">
@@ -1485,13 +2214,6 @@ export default function PlanDetailsPage() {
                 </p>
               </div>
 
-              {/* Info */}
-              <div className="p-3 rounded-xl bg-blue-400/10 border border-blue-400/20">
-                <p className="text-xs text-blue-300">
-                  💡 Twoja nazwa będzie widoczna tylko dla Ciebie. Inni użytkownicy nadal zobaczą oryginalną nazwę planu.
-                </p>
-              </div>
-
               {/* Buttons */}
               <div className="flex gap-3">
                 <button
@@ -1520,6 +2242,17 @@ export default function PlanDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* Modal potwierdzenia usunięcia ćwiczenia */}
+      <ConfirmModal
+        isOpen={deleteExerciseModal.open}
+        onClose={() => setDeleteExerciseModal({ open: false, dayIndex: null, exerciseIndex: null, exerciseName: '' })}
+        onConfirm={confirmRemoveExercise}
+        title="Usuwanie ćwiczenia"
+        message={`Czy na pewno chcesz usunąć ćwiczenie "${deleteExerciseModal.exerciseName}"? Tej operacji nie można cofnąć.`}
+        confirmText="Usuń"
+        cancelText="Anuluj"
+      />
 
       {/* Modal oceny planu */}
       <RatePlanModal 

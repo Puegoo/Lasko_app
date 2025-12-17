@@ -222,7 +222,7 @@ def enhance_profile_with_defaults(user: Dict) -> Dict:
 
 
 def _content_candidates() -> List[Tuple]:
-    """Get all active training plans with popularity stats + health data (intensity, type)."""
+    """Get all active BASE training plans with popularity stats + health data (intensity, type)."""
     q = """
     SELECT
         tp.id AS plan_id,
@@ -240,6 +240,7 @@ def _content_candidates() -> List[Tuple]:
     LEFT JOIN user_active_plans uap ON uap.plan_id = tp.id
     WHERE COALESCE(tp.is_active, TRUE) = TRUE
       AND tp.name <> 'Demo'
+      AND COALESCE(tp.is_base_plan, TRUE) = TRUE
     GROUP BY
         tp.id, tp.name, tp.description, tp.goal_type,
         tp.difficulty_level, tp.training_days_per_week, tp.equipment_required,
@@ -251,7 +252,7 @@ def _content_candidates() -> List[Tuple]:
     with connection.cursor() as cur:
         cur.execute(q)
         results = cur.fetchall()
-    logger.info(f"[Engine] Found {len(results)} active plans")
+    logger.info(f"[Engine] Found {len(results)} active base plans")
     return results
 
 
@@ -844,6 +845,13 @@ def hybrid(user_id: int, user: Dict) -> List[Dict]:
             cbn_abs = _absolute_norm_cb(cb)
             for item in cb:
                 item['score'] = cbn_abs[item['plan_id']]
+                # 🆕 Dodaj metadane o CF score (0 jeśli CF nie zwrócił wyników)
+                if 'meta' not in item:
+                    item['meta'] = {}
+                item['meta']['cf_score'] = 0.0
+                item['meta']['cb_score'] = cbn_abs[item['plan_id']]
+                item['meta']['cb_weight'] = 1.0
+                item['meta']['cf_weight'] = 0.0
         return cb
 
     # 🆕 Użyj ABSOLUTE normalizacji dla CB, min-max dla CF
@@ -861,6 +869,13 @@ def hybrid(user_id: int, user: Dict) -> List[Dict]:
         
         # 🆕 Użyj adaptacyjnych wag zamiast hardkodowanych
         combined_score = cb_weight * cb_score + cf_weight * cf_score
+        
+        # 🆕 OCHRONA: Finalny wynik nie może być niższy niż 80% wartości CB
+        # (zapobiega sytuacji gdzie plan z wysokim CB ma niski finalny przez CF)
+        min_score = cb_score * 0.8
+        if combined_score < min_score:
+            logger.info(f"[Hybrid] Plan {pid}: combined={combined_score:.2f}% < min={min_score:.2f}% (80% of CB={cb_score:.2f}%), boosting to {min_score:.2f}%")
+            combined_score = min_score
 
         meta = {}
         for item in cb:
@@ -868,9 +883,12 @@ def hybrid(user_id: int, user: Dict) -> List[Dict]:
                 meta = item.get('meta', {})
                 break
         
-        # 🆕 Dodaj metadane o wagach
+        # 🆕 Dodaj metadane o wagach i score'ach
         meta['cb_weight'] = round(cb_weight, 3)
         meta['cf_weight'] = round(cf_weight, 3)
+        meta['cb_score'] = round(cb_score, 2)  # 🆕 CB score w %
+        meta['cf_score'] = round(cf_score, 2)  # 🆕 CF score w %
+        meta['was_boosted'] = combined_score == min_score  # 🆕 Flaga czy został boostowany
 
         out.append({'plan_id': pid, 'score': combined_score, 'meta': meta})
 
@@ -1049,6 +1067,251 @@ class RecommendationService:
             pass
 
 
+# ============================================================================
+# K-NEAREST NEIGHBORS & PLAN SIMILARITY
+# ============================================================================
+
+def calculate_user_similarity(user1: Dict, user2: Dict) -> float:
+    """
+    Oblicz podobieństwo między dwoma użytkownikami (0.0 - 1.0)
+    Na podstawie profilu: goal, level, days, equipment, weight, height, BMI
+    """
+    similarity = 0.0
+    factors = 0
+    
+    # Goal (waga: 0.3)
+    if user1.get('goal') and user2.get('goal'):
+        if _norm(user1['goal']) == _norm(user2['goal']):
+            similarity += 0.3
+        factors += 0.3
+    
+    # Level (waga: 0.2)
+    if user1.get('level') and user2.get('level'):
+        if _norm(user1['level']) == _norm(user2['level']):
+            similarity += 0.2
+        factors += 0.2
+    
+    # Days (waga: 0.2)
+    if user1.get('days') and user2.get('days'):
+        days_diff = abs(int(user1['days']) - int(user2['days']))
+        if days_diff == 0:
+            similarity += 0.2
+        elif days_diff == 1:
+            similarity += 0.15
+        elif days_diff == 2:
+            similarity += 0.1
+        factors += 0.2
+    
+    # Equipment (waga: 0.1)
+    if user1.get('equipment') and user2.get('equipment'):
+        if _norm(user1['equipment']) == _norm(user2['equipment']):
+            similarity += 0.1
+        factors += 0.1
+    
+    # BMI similarity (waga: 0.2)
+    bmi1 = user1.get('bmi')
+    bmi2 = user2.get('bmi')
+    if bmi1 and bmi2:
+        bmi_diff = abs(float(bmi1) - float(bmi2))
+        if bmi_diff < 2:
+            similarity += 0.2
+        elif bmi_diff < 5:
+            similarity += 0.15
+        elif bmi_diff < 10:
+            similarity += 0.1
+        factors += 0.2
+    
+    return similarity / factors if factors > 0 else 0.0
+
+
+def find_k_nearest_neighbors(user_id: int, k: int = 5) -> List[Tuple[int, float]]:
+    """
+    Znajdź k najbliższych sąsiadów użytkownika na podstawie podobieństwa profilu.
+    Zwraca listę (user_id, similarity_score) posortowaną malejąco.
+    """
+    user_profile = fetch_user_profile(user_id)
+    if not user_profile:
+        logger.warning(f"[KNN] No profile found for user {user_id}")
+        return []
+    
+    # Pobierz wszystkich innych użytkowników z aktywnymi planami
+    q = """
+    SELECT DISTINCT 
+        up.auth_account_id,
+        up.goal,
+        up.level,
+        up.training_days_per_week,
+        up.equipment_preference,
+        up.weight_kg,
+        up.height_cm,
+        up.bmi
+    FROM user_profiles up
+    WHERE up.auth_account_id != %s
+      AND up.goal IS NOT NULL
+      AND up.level IS NOT NULL
+      AND up.training_days_per_week IS NOT NULL
+    """
+    
+    with connection.cursor() as cur:
+        cur.execute(q, [user_id])
+        all_users = cur.fetchall()
+    
+    similarities = []
+    for other_user_row in all_users:
+        other_id = other_user_row[0]
+        other_profile = {
+            'goal': _norm(other_user_row[1]),
+            'level': _norm(other_user_row[2]),
+            'days': other_user_row[3],
+            'equipment': _norm(other_user_row[4]),
+            'weight_kg': float(other_user_row[5]) if other_user_row[5] else None,
+            'height_cm': int(other_user_row[6]) if other_user_row[6] else None,
+            'bmi': float(other_user_row[7]) if other_user_row[7] else None,
+        }
+        
+        sim_score = calculate_user_similarity(user_profile, other_profile)
+        similarities.append((other_id, sim_score))
+    
+    # Sortuj malejąco i zwróć k najlepszych
+    similarities.sort(key=lambda x: x[1], reverse=True)
+    return similarities[:k]
+
+
+def calculate_plan_similarity(plan1_id: int, plan2_id: int) -> float:
+    """
+    Oblicz podobieństwo między dwoma planami treningowymi (0.0 - 1.0)
+    Na podstawie: ćwiczeń, celów, poziomu, dni, sprzętu
+    """
+    q = """
+    SELECT 
+        tp.id,
+        tp.goal_type,
+        tp.difficulty_level,
+        tp.training_days_per_week,
+        tp.equipment_required,
+        ARRAY_AGG(DISTINCT pe.exercise_id) as exercise_ids
+    FROM training_plans tp
+    LEFT JOIN plan_days pd ON tp.id = pd.plan_id
+    LEFT JOIN plan_exercises pe ON pd.id = pe.plan_day_id
+    WHERE tp.id IN (%s, %s)
+    GROUP BY tp.id, tp.goal_type, tp.difficulty_level, tp.training_days_per_week, tp.equipment_required
+    """
+    
+    with connection.cursor() as cur:
+        cur.execute(q, [plan1_id, plan2_id])
+        plans_data = cur.fetchall()
+    
+    if len(plans_data) != 2:
+        return 0.0
+    
+    plan1 = {
+        'goal': _norm(plans_data[0][1]),
+        'level': _norm(plans_data[0][2]),
+        'days': plans_data[0][3],
+        'equipment': _norm(plans_data[0][4]),
+        'exercises': set(plans_data[0][5] or []),
+    }
+    plan2 = {
+        'goal': _norm(plans_data[1][1]),
+        'level': _norm(plans_data[1][2]),
+        'days': plans_data[1][3],
+        'equipment': _norm(plans_data[1][4]),
+        'exercises': set(plans_data[1][5] or []),
+    }
+    
+    similarity = 0.0
+    
+    # Goal match (waga: 0.2)
+    if plan1['goal'] == plan2['goal']:
+        similarity += 0.2
+    
+    # Level match (waga: 0.15)
+    if plan1['level'] == plan2['level']:
+        similarity += 0.15
+    
+    # Days similarity (waga: 0.15)
+    if plan1['days'] and plan2['days']:
+        days_diff = abs(int(plan1['days']) - int(plan2['days']))
+        if days_diff == 0:
+            similarity += 0.15
+        elif days_diff == 1:
+            similarity += 0.1
+        elif days_diff == 2:
+            similarity += 0.05
+    
+    # Equipment match (waga: 0.1)
+    if plan1['equipment'] == plan2['equipment']:
+        similarity += 0.1
+    
+    # Exercise overlap (waga: 0.4) - Jaccard similarity
+    if plan1['exercises'] and plan2['exercises']:
+        intersection = len(plan1['exercises'] & plan2['exercises'])
+        union = len(plan1['exercises'] | plan2['exercises'])
+        if union > 0:
+            jaccard = intersection / union
+            similarity += 0.4 * jaccard
+    
+    return min(1.0, similarity)
+
+
+def get_plans_by_similar_users(user_id: int, k: int = 5, limit: int = 10) -> List[Dict]:
+    """
+    Znajdź plany używane przez k najbliższych sąsiadów użytkownika.
+    Zwraca posortowaną listę planów według popularności wśród podobnych użytkowników.
+    """
+    neighbors = find_k_nearest_neighbors(user_id, k)
+    if not neighbors:
+        logger.info(f"[KNN] No neighbors found for user {user_id}")
+        return []
+    
+    neighbor_ids = [n[0] for n in neighbors]
+    
+    q = """
+    SELECT 
+        tp.id,
+        tp.name,
+        tp.description,
+        tp.goal_type,
+        tp.difficulty_level,
+        tp.training_days_per_week,
+        tp.equipment_required,
+        COUNT(DISTINCT uap.auth_account_id) as usage_count,
+        AVG(uap.rating) as avg_rating
+    FROM training_plans tp
+    INNER JOIN user_active_plans uap ON uap.plan_id = tp.id
+    WHERE uap.auth_account_id = ANY(%s)
+      AND COALESCE(tp.is_base_plan, TRUE) = TRUE
+      AND COALESCE(tp.is_active, TRUE) = TRUE
+    GROUP BY tp.id, tp.name, tp.description, tp.goal_type, 
+             tp.difficulty_level, tp.training_days_per_week, tp.equipment_required
+    ORDER BY usage_count DESC, avg_rating DESC NULLS LAST
+    LIMIT %s
+    """
+    
+    with connection.cursor() as cur:
+        cur.execute(q, [neighbor_ids, limit])
+        results = cur.fetchall()
+    
+    plans = []
+    for row in results:
+        plans.append({
+            'plan_id': row[0],
+            'name': row[1],
+            'description': row[2],
+            'goal_type': row[3],
+            'difficulty_level': row[4],
+            'training_days_per_week': row[5],
+            'equipment_required': row[6],
+            'usage_count': row[7],
+            'avg_rating': float(row[8]) if row[8] else None,
+            'recommendation_method': 'knn_collaborative',
+            'similarity_score': None,  # Można dodać szczegółowe score
+        })
+    
+    logger.info(f"[KNN] Found {len(plans)} plans from {len(neighbors)} similar users")
+    return plans
+
+
 __all__ = [
     "RecommendationService",
     "fetch_user_profile",
@@ -1061,4 +1324,8 @@ __all__ = [
     "calculate_profile_completeness",
     "enhance_profile_with_defaults",
     "calculate_adaptive_weights",
+    "find_k_nearest_neighbors",
+    "calculate_plan_similarity",
+    "calculate_user_similarity",
+    "get_plans_by_similar_users",
 ]

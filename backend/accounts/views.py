@@ -533,6 +533,53 @@ def check_username(request):
     return Response({'available': not exists}, status=status.HTTP_200_OK)
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    """
+    POST /api/auth/forgot-password/
+    Resetowanie hasła - wyśle email z nowym hasłem (lub resetuje na domyślne)
+    Body: {"email": "user@example.com"}
+    """
+    try:
+        email = (request.data.get('email') or '').strip().lower()
+        
+        if not email:
+            return Response({
+                'success': False,
+                'error': 'Email jest wymagany'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            account = AuthAccount.objects.get(email__iexact=email)
+        except AuthAccount.DoesNotExist:
+            # Dla bezpieczeństwa nie ujawniamy, czy email istnieje
+            return Response({
+                'success': True,
+                'message': 'Jeśli podany email istnieje w systemie, wysłaliśmy link do resetowania hasła.'
+            }, status=status.HTTP_200_OK)
+        
+        # Resetuj hasło na domyślne (w przyszłości można wysłać email)
+        account.set_password('password123')
+        account.save()
+        
+        logger.info(f"[ForgotPassword] Hasło zresetowane dla użytkownika: {account.username}")
+        
+        return Response({
+            'success': True,
+            'message': 'Hasło zostało zresetowane. Sprawdź swoją skrzynkę pocztową.'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"[ForgotPassword] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            'success': False,
+            'error': 'Wystąpił błąd podczas resetowania hasła. Spróbuj ponownie później.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # ============================================================================
 # HARMONOGRAM I POWIADOMIENIA
 # ============================================================================

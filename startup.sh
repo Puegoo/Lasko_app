@@ -39,14 +39,22 @@ done
 echo "Starting backend..."
 $COMPOSE up -d backend
 
-echo "Seeding users and profiles (base accounts)..."
-$COMPOSE exec -T backend bash -lc "python SQL/02_insert_data_docker.py"
+echo "Waiting for backend to be ready..."
+sleep 5
 
-if [ "$SEED_LARGE_DATA" = "1" ]; then
-  echo "Seeding extended domain data (plans, exercises, logs)..."
-  SEED_ENV="SEED_RESET_DOMAIN=1 SEED_PLANS=1200 EX_COUNT_TARGET=900 USERS_LIMIT=60000 RECL_USERS_LIMIT=8000"
-  $COMPOSE exec -T backend bash -lc "$SEED_ENV python SQL/03_seed_domain_data_docker.py"
-fi
+echo "Applying database migrations..."
+$COMPOSE exec -T backend bash -lc "python manage.py migrate --noinput"
+
+echo "Applying schema updates (is_base_plan field)..."
+$COMPOSE exec -T db psql -U postgres -d LaskoDB -f /docker-entrypoint-initdb.d/06_add_base_plan_field.sql 2>/dev/null || echo "Migration already applied or file not found"
+
+echo "Applying exercise recommendations & custom plans schema..."
+$COMPOSE exec -T db psql -U postgres -d LaskoDB -f /docker-entrypoint-initdb.d/09_exercise_recommendations_system.sql 2>/dev/null || echo "Exercise recommendations schema already applied or file not found"
+
+echo "Clearing and seeding database with static data (including accounts)..."
+# Seed zawiera wszystko: equipment, tags, exercises, plans, accounts, profiles
+$COMPOSE exec -T db psql -U postgres -d LaskoDB -f /docker-entrypoint-initdb.d/03_lasko_seed.sql 2>/dev/null || \
+$COMPOSE exec -T db psql -U postgres -d LaskoDB -f /seed/lasko_seed.sql
 
 echo "Starting frontend..."
 $COMPOSE up -d frontend

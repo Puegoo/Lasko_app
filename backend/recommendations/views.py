@@ -222,10 +222,12 @@ def _generate_with_engine(user_id, mode, top, preferences):
 
             # Użyj nazwy z ankiety jeśli dostępna, w przeciwnym razie nazwa z bazy
             plan_name = preferences.get('plan_name') or plan_detail['name']
+            original_name = plan_detail['name']  # 🆕 Oryginalna nazwa z bazy
             
             enriched_recommendation = {
                 "planId": plan_id,
                 "name": plan_name,
+                "originalName": original_name,  # 🆕 Oryginalna nazwa z bazy (bez custom name)
                 "description": plan_detail['description'],
                 "goalType": plan_detail['goal_type'],
                 "difficultyLevel": plan_detail['difficulty_level'],
@@ -238,6 +240,9 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 "scoreBreakdown": meta.get('score_breakdown'),  # 🆕 Szczegółowy breakdown punktów
                 "cbWeight": meta.get('cb_weight'),  # 🆕 Wagi dla modalu
                 "cfWeight": meta.get('cf_weight'),
+                "cbScore": meta.get('cb_score'),  # 🆕 CB score w %
+                "cfScore": meta.get('cf_score'),  # 🆕 CF score w %
+                "wasBoosted": meta.get('was_boosted', False),  # 🆕 Czy został boostowany (ochrona przed zbyt niskim CF)
                 "healthWarnings": meta.get('health_warnings', []),  # 🆕 Health warnings
             }
             
@@ -480,42 +485,93 @@ def get_active_plan(request):
         logger.info(f"[GetActivePlan] Getting active plan for user_id: {user_id}")
 
         with connection.cursor() as cursor:
+            # Sprawdź czy użytkownik ma aktywny custom plan
             cursor.execute("""
                 SELECT 
-                    tp.id, tp.name, tp.description, tp.goal_type, 
-                    tp.difficulty_level, tp.training_days_per_week, tp.equipment_required,
-                    uap.start_date, uap.rating,
-                    upa.custom_name
+                    uap.custom_plan_id, uap.plan_id, uap.start_date, uap.rating
                 FROM user_active_plans uap
-                JOIN training_plans tp ON uap.plan_id = tp.id
-                LEFT JOIN user_plan_aliases upa ON (tp.id = upa.plan_id AND upa.auth_account_id = %s)
-                WHERE uap.auth_account_id = %s
-            """, [user_id, user_id])
-            row = cursor.fetchone()
+                WHERE uap.auth_account_id = %s AND uap.is_completed = FALSE
+            """, [user_id])
+            active_row = cursor.fetchone()
 
-            if not row:
+            if not active_row:
                 return Response({
                     "success": True,
                     "has_active_plan": False,
                     "plan": None
                 }, status=status.HTTP_200_OK)
 
-            custom_name = row[9]  # Alias użytkownika
-            display_name = custom_name if custom_name else row[1]  # Priorytet: alias > oryginalna nazwa
+            custom_plan_id = active_row[0]
+            plan_id = active_row[1]
+            start_date = active_row[2]
+            rating = active_row[3]
+
+            # Jeśli custom_plan_id jest ustawiony, pobierz custom plan
+            if custom_plan_id:
+                cursor.execute("""
+                    SELECT 
+                        id, name, description, goal_type, difficulty_level,
+                        training_days_per_week, equipment_required
+                    FROM user_custom_plans
+                    WHERE id = %s AND auth_account_id = %s
+                """, [custom_plan_id, user_id])
+                custom_row = cursor.fetchone()
+                
+                if custom_row:
+                    plan_data = {
+                        "planId": custom_row[0],
+                        "id": custom_row[0],
+                        "customPlanId": custom_row[0],  # 🆕 Oznaczenie że to custom plan
+                        "isCustomPlan": True,  # 🆕 Flaga custom planu
+                        "name": custom_row[1],
+                        "description": custom_row[2],
+                        "goalType": custom_row[3],
+                        "difficultyLevel": custom_row[4],
+                        "trainingDaysPerWeek": custom_row[5],
+                        "equipmentRequired": custom_row[6],
+                        "startDate": start_date.isoformat() if start_date else None,
+                        "rating": rating
+                    }
+                    
+                    logger.info(f"[GetActivePlan] Found active custom plan: {plan_data['name']}")
+                    
+                    return Response({
+                        "success": True,
+                        "has_active_plan": True,
+                        "plan": plan_data
+                    }, status=status.HTTP_200_OK)
+
+            # Jeśli plan_id jest ustawiony, pobierz standardowy plan
+            if plan_id:
+                cursor.execute("""
+                    SELECT 
+                        tp.id, tp.name, tp.description, tp.goal_type, 
+                        tp.difficulty_level, tp.training_days_per_week, tp.equipment_required,
+                        upa.custom_name
+                    FROM training_plans tp
+                    LEFT JOIN user_plan_aliases upa ON (tp.id = upa.plan_id AND upa.auth_account_id = %s)
+                    WHERE tp.id = %s
+                """, [user_id, plan_id])
+                row = cursor.fetchone()
+
+                if row:
+                    custom_name = row[7]  # Alias użytkownika
+                    display_name = custom_name if custom_name else row[1]  # Priorytet: alias > oryginalna nazwa
 
             plan_data = {
                 "planId": row[0],
                 "id": row[0],
-                "name": display_name,  # 🆕 Wyświetl alias jeśli istnieje
-                "originalName": row[1],  # 🆕 Oryginalna nazwa (zawsze dostępna)
-                "customName": custom_name,  # 🆕 Alias (może być null)
+                        "isCustomPlan": False,  # 🆕 Flaga standardowego planu
+                        "name": display_name,
+                        "originalName": row[1],
+                        "customName": custom_name,
                 "description": row[2],
                 "goalType": row[3],
                 "difficultyLevel": row[4],
                 "trainingDaysPerWeek": row[5],
                 "equipmentRequired": row[6],
-                "startDate": row[7].isoformat() if row[7] else None,
-                "rating": row[8]
+                        "startDate": start_date.isoformat() if start_date else None,
+                        "rating": rating
             }
 
             logger.info(f"[GetActivePlan] Found active plan: {plan_data['name']}")
@@ -524,6 +580,13 @@ def get_active_plan(request):
                 "success": True,
                 "has_active_plan": True,
                 "plan": plan_data
+                    }, status=status.HTTP_200_OK)
+
+            # Jeśli nie znaleziono ani custom planu ani standardowego
+            return Response({
+                "success": True,
+                "has_active_plan": False,
+                "plan": None
             }, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -555,27 +618,49 @@ def activate_plan(request):
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         plan_id = request.data.get('planId')
+        is_custom_plan = request.data.get('isCustomPlan', False) or request.data.get('is_custom_plan', False)
+        custom_plan_id = request.data.get('customPlanId') or request.data.get('custom_plan_id')
+        
         if not plan_id:
             return Response({
                 "error": "planId is required",
                 "code": "missing_plan_id"
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        logger.info(f"[ActivatePlan] Plan {plan_id} for user_id: {user_id}")
+        logger.info(f"[ActivatePlan] Plan {plan_id} (custom: {is_custom_plan}, custom_plan_id: {custom_plan_id}) for user_id: {user_id}")
 
         plan_name = None
+        final_plan_id = None
+        final_custom_plan_id = None
 
         with connection.cursor() as cursor:
-            # Check if plan exists
-            cursor.execute("SELECT id, name FROM training_plans WHERE id=%s", [plan_id])
-            row = cursor.fetchone()
-            if not row:
-                return Response({
-                    "error": "Plan does not exist",
-                    "code": "plan_not_found"
-                }, status=status.HTTP_404_NOT_FOUND)
-
-            plan_name = row[1]
+            # Sprawdź czy to custom plan
+            if is_custom_plan or custom_plan_id:
+                final_custom_plan_id = custom_plan_id or plan_id
+                cursor.execute("""
+                    SELECT id, name FROM user_custom_plans 
+                    WHERE id = %s AND auth_account_id = %s
+                """, [final_custom_plan_id, user_id])
+                row = cursor.fetchone()
+                if not row:
+                    return Response({
+                        "error": "Custom plan does not exist or does not belong to user",
+                        "code": "plan_not_found"
+                    }, status=status.HTTP_404_NOT_FOUND)
+                plan_name = row[1]
+                final_plan_id = None  # Dla custom planu plan_id = NULL
+            else:
+                # Standardowy plan
+                cursor.execute("SELECT id, name FROM training_plans WHERE id=%s", [plan_id])
+                row = cursor.fetchone()
+                if not row:
+                    return Response({
+                        "error": "Plan does not exist",
+                        "code": "plan_not_found"
+                    }, status=status.HTTP_404_NOT_FOUND)
+                plan_name = row[1]
+                final_plan_id = plan_id
+                final_custom_plan_id = None
 
             # Check if user_active_plans table exists
             cursor.execute("""
@@ -587,18 +672,47 @@ def activate_plan(request):
             table_exists = cursor.fetchone()[0]
 
             if table_exists:
-                # UPSERT plan activation
+                # Sprawdź czy kolumna custom_plan_id istnieje
                 cursor.execute("""
-                    INSERT INTO user_active_plans (auth_account_id, plan_id, start_date, is_completed)
-                    VALUES (%s, %s, CURRENT_DATE, FALSE)
-                    ON CONFLICT (auth_account_id)
-                    DO UPDATE SET
-                        plan_id = EXCLUDED.plan_id,
-                        start_date = EXCLUDED.start_date,
-                        is_completed = FALSE
-                """, [user_id, plan_id])
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns
+                        WHERE table_name = 'user_active_plans' AND column_name = 'custom_plan_id'
+                    )
+                """)
+                has_custom_plan_id = cursor.fetchone()[0]
                 
-                logger.info(f"[ActivatePlan] Plan '{plan_name}' activated for user {user_id}")
+                if has_custom_plan_id:
+                    # UPSERT plan activation z custom_plan_id
+                    cursor.execute("""
+                        INSERT INTO user_active_plans (auth_account_id, plan_id, custom_plan_id, start_date, is_completed)
+                        VALUES (%s, %s, %s, CURRENT_DATE, FALSE)
+                        ON CONFLICT (auth_account_id)
+                        DO UPDATE SET
+                            plan_id = EXCLUDED.plan_id,
+                            custom_plan_id = EXCLUDED.custom_plan_id,
+                            start_date = EXCLUDED.start_date,
+                            is_completed = FALSE
+                    """, [user_id, final_plan_id, final_custom_plan_id])
+                else:
+                    # Fallback - stara wersja bez custom_plan_id
+                    if final_plan_id:
+                        cursor.execute("""
+                            INSERT INTO user_active_plans (auth_account_id, plan_id, start_date, is_completed)
+                            VALUES (%s, %s, CURRENT_DATE, FALSE)
+                            ON CONFLICT (auth_account_id)
+                            DO UPDATE SET
+                                plan_id = EXCLUDED.plan_id,
+                                start_date = EXCLUDED.start_date,
+                                is_completed = FALSE
+                        """, [user_id, final_plan_id])
+                    else:
+                        logger.error(f"[ActivatePlan] Cannot activate custom plan without custom_plan_id column")
+                        return Response({
+                            "error": "Custom plan activation not supported (missing custom_plan_id column)",
+                            "code": "unsupported_operation"
+                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+                logger.info(f"[ActivatePlan] Plan '{plan_name}' (plan_id: {final_plan_id}, custom_plan_id: {final_custom_plan_id}) activated for user {user_id}")
             else:
                 logger.warning("[ActivatePlan] user_active_plans table does not exist")
 
@@ -631,22 +745,128 @@ def plan_detailed(request, plan_id: int):
         logger.info(f"[PlanDetailed] Request method: {request.method}")
         logger.info(f"[PlanDetailed] Request path: {request.path}")
         logger.info(f"[PlanDetailed] HAS_ENGINE: {HAS_ENGINE}")
-        
+
+        # Pobierz user_id z JWT (potrzebne do custom planów)
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+        logger.info(f"[PlanDetailed] user_id from token: {user_id}")
+
         data = None
 
-        # 1) Spróbuj przez engine (jeśli dostępny)
-        if HAS_ENGINE:
+        # 0) Sprawdź czy to nie jest custom plan użytkownika
+        if user_id:
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT 
+                            id, auth_account_id, name, description,
+                            goal_type, difficulty_level, training_days_per_week,
+                            equipment_required, is_active, created_at, updated_at
+                        FROM user_custom_plans
+                        WHERE id = %s AND auth_account_id = %s
+                    """, [plan_id, user_id])
+                    row = cursor.fetchone()
+
+                    if row:
+                        logger.info(f"[PlanDetailed] Found custom plan {plan_id} for user {user_id}")
+                        plan_data = {
+                            "id": row[0],
+                            "plan_id": row[0],
+                            "auth_account_id": row[1],
+                            "is_custom_plan": True,
+                            "isCustomPlan": True,
+                            "name": row[2],
+                            "description": row[3],
+                            "goal_type": row[4],
+                            "difficulty_level": row[5],
+                            "training_days_per_week": row[6],
+                            "equipment_required": row[7],
+                            "is_active": row[8],
+                            "created_at": row[9].isoformat() if row[9] else None,
+                            "updated_at": row[10].isoformat() if row[10] else None,
+                        }
+
+                        # Pobierz dni i ćwiczenia custom planu (wzorowane na get_custom_plan)
+                        cursor.execute("""
+                            SELECT 
+                                ucpd.id, ucpd.name, ucpd.day_order,
+                                jsonb_agg(
+                                    jsonb_build_object(
+                                        'id', ucpe.id,
+                                        'exercise_id', ucpe.exercise_id,
+                                        'exercise_name', e.name,
+                                        'muscle_group', e.muscle_group,
+                                        'type', e.type,
+                                        'target_sets', ucpe.target_sets,
+                                        'target_reps', ucpe.target_reps,
+                                        'rest_seconds', ucpe.rest_seconds,
+                                        'exercise_order', ucpe.exercise_order
+                                    ) ORDER BY ucpe.exercise_order
+                                ) FILTER (WHERE ucpe.id IS NOT NULL) as exercises
+                            FROM user_custom_plan_days ucpd
+                            LEFT JOIN user_custom_plan_exercises ucpe ON ucpd.id = ucpe.plan_day_id
+                            LEFT JOIN exercises e ON ucpe.exercise_id = e.id
+                            WHERE ucpd.custom_plan_id = %s
+                            GROUP BY ucpd.id, ucpd.name, ucpd.day_order
+                            ORDER BY ucpd.day_order
+                        """, [plan_id])
+
+                        days = []
+                        for day_row in cursor.fetchall():
+                            raw_exercises = day_row[3] or []
+                            exercises = []
+                            for ex in raw_exercises:
+                                # ex jest dict-em z jsonb_agg/jsonb_build_object
+                                ex_id = ex.get('exercise_id') or ex.get('id')
+                                exercises.append({
+                                    "id": ex_id,
+                                    "exercise_id": ex.get('exercise_id'),
+                                    "name": ex.get('exercise_name') or ex.get('name'),
+                                    "exercise_name": ex.get('exercise_name') or ex.get('name'),
+                                    "muscle_group": ex.get('muscle_group'),
+                                    "type": ex.get('type'),
+                                    # mapowanie target_* -> sets/reps dla kompatybilności z frontendem
+                                    "sets": ex.get('target_sets'),
+                                    "target_sets": ex.get('target_sets'),
+                                    "reps": ex.get('target_reps'),
+                                    "target_reps": ex.get('target_reps'),
+                                    "rest_seconds": ex.get('rest_seconds'),
+                                    "exercise_order": ex.get('exercise_order'),
+                                    "superset_group": ex.get('superset_group'),
+                                })
+
+                            day_id, day_name, day_order = day_row[0], day_row[1], day_row[2]
+                            days.append({
+                                "dayNumber": day_order,
+                                "title": day_name or f"Dzień {day_order}",
+                                "name": day_name or f"Dzień {day_order}",
+                                "dayOfWeek": None,
+                                "id": day_id,
+                                "day_order": day_order,
+                                "exercises": exercises,
+                            })
+
+                        plan_data["days"] = days
+                        data = plan_data
+                        logger.info(f"[PlanDetailed] Built custom plan data with {len(days)} days")
+            except Exception as e:
+                logger.warning(f"[PlanDetailed] Error while loading custom plan: {e}")
+                logger.warning(traceback.format_exc())
+
+        # 1) Spróbuj przez engine (jeśli dostępny) – tylko jeśli to nie custom plan
+        if not data and HAS_ENGINE:
             try:
                 logger.info(f"[PlanDetailed] Calling engine.plan_details([{plan_id}])")
                 details = plan_details([plan_id]) or {}
                 logger.info(f"[PlanDetailed] Engine returned: {details}")
                 logger.info(f"[PlanDetailed] Type of details: {type(details)}")
                 logger.info(f"[PlanDetailed] Keys in details: {list(details.keys()) if isinstance(details, dict) else 'N/A'}")
-                
+
                 # engine może zwrócić klucze int lub str
                 data = details.get(plan_id) or details.get(str(plan_id))
                 logger.info(f"[PlanDetailed] Extracted data from engine: {data}")
-                
+
                 if data:
                     logger.info(f"[PlanDetailed] Type of data: {type(data)}")
                     logger.info(f"[PlanDetailed] Keys in data: {list(data.keys()) if isinstance(data, dict) else 'N/A'}")
@@ -658,19 +878,19 @@ def plan_detailed(request, plan_id: int):
                 logger.warning(f"[PlanDetailed] engine.plan_details error: {e}")
                 logger.warning(f"[PlanDetailed] Exception traceback: {traceback.format_exc()}")
 
-        # 2) Fallback – podstawowe meta z bazy (bez dni)
+        # 2) Fallback – podstawowe meta z bazy (bez dni) dla training_plans
         if not data:
-            logger.info(f"[PlanDetailed] No data from engine, using database fallback")
+            logger.info(f"[PlanDetailed] No data from engine/custom, using training_plans fallback")
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT plan_id, name, description, goal_type, difficulty_level,
+                    SELECT id, name, description, goal_type, difficulty_level,
                            training_days_per_week, equipment_required
                     FROM training_plans
-                    WHERE plan_id = %s
+                    WHERE id = %s
                 """, [plan_id])
                 row = cursor.fetchone()
                 logger.info(f"[PlanDetailed] Database row: {row}")
-                
+
                 if row:
                     data = {
                         "plan_id": row[0],
@@ -701,7 +921,7 @@ def plan_detailed(request, plan_id: int):
         logger.info(f"[PlanDetailed] Length of response_data['plan']['days']: {len(response_data['plan']['days'])}")
         logger.info(f"[PlanDetailed] ===== REQUEST END =====")
         logger.info("=" * 80)
-        
+
         return Response(response_data, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -731,16 +951,48 @@ def activate_plan_by_path(request, plan_id: int):
             return Response({"error": "Invalid token", "code": "invalid_token"},
                             status=status.HTTP_401_UNAUTHORIZED)
 
-        logger.info(f"[ActivatePlanAlias] Activate plan {plan_id} for user_id: {user_id}")
+        # Sprawdź czy to custom plan (z request.data)
+        logger.info(f"[ActivatePlanAlias] Request data: {request.data}")
+        logger.info(f"[ActivatePlanAlias] Request data type: {type(request.data)}")
+        logger.info(f"[ActivatePlanAlias] Request data keys: {list(request.data.keys()) if hasattr(request.data, 'keys') else 'N/A'}")
+        
+        is_custom_plan = request.data.get('isCustomPlan', False) or request.data.get('is_custom_plan', False)
+        custom_plan_id = request.data.get('customPlanId') or request.data.get('custom_plan_id')
+        
+        # Jeśli customPlanId jest None/empty, upewnij się że is_custom_plan też jest False
+        if not custom_plan_id:
+            is_custom_plan = False
+        
+        logger.info(f"[ActivatePlanAlias] Activate plan {plan_id} (custom: {is_custom_plan}, custom_plan_id: {custom_plan_id}) for user_id: {user_id}")
+
+        plan_name = None
+        final_plan_id = None
+        final_custom_plan_id = None
 
         with connection.cursor() as cursor:
-            cursor.execute("SELECT id, name FROM training_plans WHERE id=%s", [plan_id])
-            row = cursor.fetchone()
-            if not row:
-                return Response({"error": "Plan does not exist", "code": "plan_not_found"},
-                                status=status.HTTP_404_NOT_FOUND)
-
-            plan_name = row[1]
+            # Sprawdź czy to custom plan
+            if is_custom_plan or custom_plan_id:
+                final_custom_plan_id = custom_plan_id or plan_id
+                cursor.execute("""
+                    SELECT id, name FROM user_custom_plans 
+                    WHERE id = %s AND auth_account_id = %s
+                """, [final_custom_plan_id, user_id])
+                row = cursor.fetchone()
+                if not row:
+                    return Response({"error": "Custom plan does not exist or does not belong to user", "code": "plan_not_found"},
+                                    status=status.HTTP_404_NOT_FOUND)
+                plan_name = row[1]
+                final_plan_id = None
+            else:
+                # Standardowy plan
+                cursor.execute("SELECT id, name FROM training_plans WHERE id=%s", [plan_id])
+                row = cursor.fetchone()
+                if not row:
+                    return Response({"error": "Plan does not exist", "code": "plan_not_found"},
+                                    status=status.HTTP_404_NOT_FOUND)
+                plan_name = row[1]
+                final_plan_id = plan_id
+                final_custom_plan_id = None
 
             # Sprawdź istnienie tabeli user_active_plans
             cursor.execute("""
@@ -752,16 +1004,46 @@ def activate_plan_by_path(request, plan_id: int):
             table_exists = cursor.fetchone()[0]
 
             if table_exists:
+                # Sprawdź czy kolumna custom_plan_id istnieje
                 cursor.execute("""
-                    INSERT INTO user_active_plans (auth_account_id, plan_id, start_date, is_completed)
-                    VALUES (%s, %s, CURRENT_DATE, FALSE)
-                    ON CONFLICT (auth_account_id)
-                    DO UPDATE SET
-                        plan_id = EXCLUDED.plan_id,
-                        start_date = EXCLUDED.start_date,
-                        is_completed = FALSE
-                """, [user_id, plan_id])
-                logger.info(f"[ActivatePlanAlias] Plan '{plan_name}' activated for user {user_id}")
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns
+                        WHERE table_name = 'user_active_plans' AND column_name = 'custom_plan_id'
+                    )
+                """)
+                has_custom_plan_id = cursor.fetchone()[0]
+                
+                if has_custom_plan_id:
+                    cursor.execute("""
+                        INSERT INTO user_active_plans (auth_account_id, plan_id, custom_plan_id, start_date, is_completed)
+                        VALUES (%s, %s, %s, CURRENT_DATE, FALSE)
+                        ON CONFLICT (auth_account_id)
+                        DO UPDATE SET
+                            plan_id = EXCLUDED.plan_id,
+                            custom_plan_id = EXCLUDED.custom_plan_id,
+                            start_date = EXCLUDED.start_date,
+                            is_completed = FALSE
+                    """, [user_id, final_plan_id, final_custom_plan_id])
+                else:
+                    # Fallback - stara wersja
+                    if final_plan_id:
+                        cursor.execute("""
+                            INSERT INTO user_active_plans (auth_account_id, plan_id, start_date, is_completed)
+                            VALUES (%s, %s, CURRENT_DATE, FALSE)
+                            ON CONFLICT (auth_account_id)
+                            DO UPDATE SET
+                                plan_id = EXCLUDED.plan_id,
+                                start_date = EXCLUDED.start_date,
+                                is_completed = FALSE
+                        """, [user_id, final_plan_id])
+                    else:
+                        logger.error(f"[ActivatePlanAlias] Cannot activate custom plan without custom_plan_id column")
+                        return Response({
+                            "error": "Custom plan activation not supported (missing custom_plan_id column)",
+                            "code": "unsupported_operation"
+                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+                logger.info(f"[ActivatePlanAlias] Plan '{plan_name}' (plan_id: {final_plan_id}, custom_plan_id: {final_custom_plan_id}) activated for user {user_id}")
             else:
                 logger.warning("[ActivatePlanAlias] user_active_plans table does not exist")
 
@@ -1467,11 +1749,12 @@ def today_workout(request):
         logger.info(f"[TodayWorkout] Fetching today's workout for user {user_id}")
 
         with connection.cursor() as cursor:
-            # Pobierz aktywny plan użytkownika
+            # Pobierz aktywny plan użytkownika (sprawdź zarówno plan_id jak i custom_plan_id)
             cursor.execute("""
-                SELECT uap.plan_id, tp.name
+                SELECT uap.plan_id, uap.custom_plan_id, tp.name, ucp.name as custom_plan_name
                 FROM user_active_plans uap
-                JOIN training_plans tp ON uap.plan_id = tp.id
+                LEFT JOIN training_plans tp ON uap.plan_id = tp.id
+                LEFT JOIN user_custom_plans ucp ON uap.custom_plan_id = ucp.id
                 WHERE uap.auth_account_id = %s AND uap.is_completed = FALSE
             """, [user_id])
             
@@ -1482,7 +1765,10 @@ def today_workout(request):
                     "message": "No active plan"
                 }, status=status.HTTP_200_OK)
             
-            plan_id, plan_name = active_plan
+            plan_id, custom_plan_id, plan_name, custom_plan_name = active_plan
+            is_custom_plan = custom_plan_id is not None
+            actual_plan_id = custom_plan_id if is_custom_plan else plan_id
+            actual_plan_name = custom_plan_name if is_custom_plan else plan_name
 
             # Pobierz harmonogram użytkownika (z bazy danych)
             cursor.execute("""
@@ -1515,25 +1801,43 @@ def today_workout(request):
             # Znajdź który dzień treningowy to jest (1-based index)
             training_day_index = schedule.index(today_name) + 1
 
-            # Pobierz odpowiedni dzień planu
-            cursor.execute("""
-                SELECT id, name, day_order
-                FROM plan_days
-                WHERE plan_id = %s
-                ORDER BY day_order
-                LIMIT 1 OFFSET %s
-            """, [plan_id, training_day_index - 1])
-            
-            plan_day = cursor.fetchone()
-            if not plan_day:
-                # Jeśli nie ma odpowiedniego dnia, weź pierwszy
+            # Pobierz odpowiedni dzień planu (dla custom plans lub standardowych)
+            if is_custom_plan:
+                cursor.execute("""
+                    SELECT id, name, day_order
+                    FROM user_custom_plan_days
+                    WHERE custom_plan_id = %s
+                    ORDER BY day_order
+                    LIMIT 1 OFFSET %s
+                """, [custom_plan_id, training_day_index - 1])
+            else:
                 cursor.execute("""
                     SELECT id, name, day_order
                     FROM plan_days
                     WHERE plan_id = %s
                     ORDER BY day_order
-                    LIMIT 1
-                """, [plan_id])
+                    LIMIT 1 OFFSET %s
+                """, [plan_id, training_day_index - 1])
+            
+            plan_day = cursor.fetchone()
+            if not plan_day:
+                # Jeśli nie ma odpowiedniego dnia, weź pierwszy
+                if is_custom_plan:
+                    cursor.execute("""
+                        SELECT id, name, day_order
+                        FROM user_custom_plan_days
+                        WHERE custom_plan_id = %s
+                        ORDER BY day_order
+                        LIMIT 1
+                    """, [custom_plan_id])
+                else:
+                    cursor.execute("""
+                        SELECT id, name, day_order
+                        FROM plan_days
+                        WHERE plan_id = %s
+                        ORDER BY day_order
+                        LIMIT 1
+                    """, [plan_id])
                 plan_day = cursor.fetchone()
 
             if not plan_day:
@@ -1544,25 +1848,45 @@ def today_workout(request):
 
             day_id, day_name, day_order = plan_day
 
-            # Pobierz ćwiczenia dla tego dnia
-            cursor.execute("""
-                SELECT 
-                    e.id,
-                    e.name,
-                    e.description,
-                    e.muscle_group,
-                    e.type,
-                    e.video_url,
-                    e.image_url,
-                    pe.target_sets,
-                    pe.target_reps,
-                    pe.rest_seconds,
-                    pe.superset_group
-                FROM plan_exercises pe
-                JOIN exercises e ON pe.exercise_id = e.id
-                WHERE pe.plan_day_id = %s
-                ORDER BY pe.id
-            """, [day_id])
+            # Pobierz ćwiczenia dla tego dnia (dla custom plans lub standardowych)
+            if is_custom_plan:
+                cursor.execute("""
+                    SELECT 
+                        e.id,
+                        e.name,
+                        e.description,
+                        e.muscle_group,
+                        e.type,
+                        e.video_url,
+                        e.image_url,
+                        ucpe.target_sets,
+                        ucpe.target_reps,
+                        ucpe.rest_seconds,
+                        NULL as superset_group
+                    FROM user_custom_plan_exercises ucpe
+                    JOIN exercises e ON ucpe.exercise_id = e.id
+                    WHERE ucpe.plan_day_id = %s
+                    ORDER BY ucpe.exercise_order, ucpe.id
+                """, [day_id])
+            else:
+                cursor.execute("""
+                    SELECT 
+                        e.id,
+                        e.name,
+                        e.description,
+                        e.muscle_group,
+                        e.type,
+                        e.video_url,
+                        e.image_url,
+                        pe.target_sets,
+                        pe.target_reps,
+                        pe.rest_seconds,
+                        pe.superset_group
+                    FROM plan_exercises pe
+                    JOIN exercises e ON pe.exercise_id = e.id
+                    WHERE pe.plan_day_id = %s
+                    ORDER BY pe.id
+                """, [day_id])
             
             exercises = []
             for row in cursor.fetchall():
@@ -1584,8 +1908,8 @@ def today_workout(request):
 
             return Response({
                 "workout": {
-                    "plan_id": plan_id,
-                    "plan_name": plan_name,
+                    "plan_id": actual_plan_id,
+                    "plan_name": actual_plan_name,
                     "day_id": day_id,
                     "name": day_name,
                     "day_order": day_order,
@@ -1599,6 +1923,58 @@ def today_workout(request):
         logger.error(traceback.format_exc())
         return Response({
             "error": "Server error fetching today's workout",
+            "message": str(e),
+            "code": "server_error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_active_session(request):
+    """
+    GET /api/workouts/active-session/
+    Sprawdź czy użytkownik ma aktywną sesję treningową (niezakończoną)
+    """
+    try:
+        user_id = None
+        if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
+            user_id = request.auth.payload.get('user_id')
+
+        if not user_id:
+            return Response({"error": "Invalid token", "code": "invalid_token"},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        with connection.cursor() as cursor:
+            # Znajdź aktywną sesję (bez duration_minutes = NULL oznacza niezakończoną)
+            cursor.execute("""
+                SELECT id, plan_id, session_date
+                FROM training_sessions
+                WHERE auth_account_id = %s 
+                  AND duration_minutes IS NULL
+                ORDER BY session_date DESC
+                LIMIT 1
+            """, [user_id])
+            
+            session = cursor.fetchone()
+            
+            if session:
+                session_id, plan_id, session_date = session
+                return Response({
+                    "has_active_session": True,
+                    "session_id": session_id,
+                    "plan_id": plan_id,
+                    "session_date": session_date.isoformat() if session_date else None
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "has_active_session": False
+                }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[GetActiveSession] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error checking active session",
             "message": str(e),
             "code": "server_error"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1635,6 +2011,26 @@ def start_workout_session(request):
         logger.info(f"[StartSession] User {user_id} starting session for plan {plan_id}")
 
         with connection.cursor() as cursor:
+            # Sprawdź czy użytkownik ma już aktywną sesję (niezakończoną)
+            cursor.execute("""
+                SELECT id
+                FROM training_sessions
+                WHERE auth_account_id = %s 
+                  AND duration_minutes IS NULL
+                ORDER BY session_date DESC
+                LIMIT 1
+            """, [user_id])
+            
+            existing_session = cursor.fetchone()
+            if existing_session:
+                session_id = existing_session[0]
+                logger.info(f"[StartSession] User {user_id} already has active session {session_id}, returning existing session")
+                return Response({
+                    "session_id": session_id,
+                    "message": "Active session already exists",
+                    "existing": True
+                }, status=status.HTTP_200_OK)
+            
             # Utwórz nową sesję treningową
             cursor.execute("""
                 INSERT INTO training_sessions (auth_account_id, plan_id, session_date)

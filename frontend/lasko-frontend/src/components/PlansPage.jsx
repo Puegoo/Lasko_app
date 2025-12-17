@@ -184,15 +184,18 @@ export default function PlansPage() {
             {/* Search input */}
             <div className="md:col-span-2 lg:col-span-3">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                <IconKit.Search size="sm" /> Szukaj planu
+                Szukaj planu
               </label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Wpisz nazwę lub opis planu..."
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-              />
+              <div className="relative">
+                <IconKit.Search size="md" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Wpisz nazwę lub opis planu..."
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+                />
+              </div>
             </div>
 
             {/* Goal filter */}

@@ -9,10 +9,16 @@ services:
       - postgres_data:/var/lib/postgresql/data
       # inicjalizacja struktury przy *pierwszym* starcie wolumenu
       - ./SQL/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      # migracja: dodanie pola is_base_plan
+      - ./SQL/06_add_base_plan_field.sql:/docker-entrypoint-initdb.d/06_add_base_plan_field.sql:ro
+      # schema: system rekomendacji ćwiczeń i custom plany użytkowników
+      - ./SQL/09_exercise_recommendations_system.sql:/docker-entrypoint-initdb.d/09_exercise_recommendations_system.sql:ro
       # opcjonalny pełny backup: jeśli plik istnieje, zostanie zaimportowany przy *pierwszym* starcie wolumenu
       - ./seed/lasko_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
       # dostęp do katalogu seed wewnątrz kontenera (np. do ręcznych dumpów/restore)
-      - ./seed:/seed
+      - ./seed:/seed:ro
+      # statyczny seed danych
+      - ./seed/lasko_seed.sql:/docker-entrypoint-initdb.d/03_lasko_seed.sql:ro
     ports:
       - "5433:5432"   # host:container
     healthcheck:

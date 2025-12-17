@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
 import apiService from '../services/api';
@@ -395,21 +395,7 @@ export default function CommunityPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 30;
-
-  useEffect(() => {
-    if (activeTab === 'similar') {
-      setCurrentPage(1);
-      fetchSimilarUsers(1);
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'similar') {
-      fetchSimilarUsers(currentPage);
-    } else if (activeTab === 'search' && (searchQuery || goalFilter || levelFilter)) {
-      handleSearch(currentPage);
-    }
-  }, [currentPage]);
+  const searchTimeoutRef = useRef(null);
 
   const fetchSimilarUsers = async (page = 1) => {
     try {
@@ -430,7 +416,7 @@ export default function CommunityPage() {
     }
   };
 
-  const handleSearch = async (page = 1) => {
+  const handleSearch = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       if (page === 1) setCurrentPage(1);
@@ -447,14 +433,59 @@ export default function CommunityPage() {
         setSearchResults(response.users);
         const total = response.total || response.users.length;
         setTotalPages(Math.ceil(total / itemsPerPage));
+      } else {
+        setSearchResults([]);
+        setTotalPages(1);
       }
     } catch (error) {
       console.error('[CommunityPage] Error searching users:', error);
       notify.error('Nie udało się wyszukać użytkowników');
+      setSearchResults([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, goalFilter, levelFilter, itemsPerPage, notify]);
+
+  useEffect(() => {
+    if (activeTab === 'similar') {
+      setCurrentPage(1);
+      fetchSimilarUsers(1);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'similar') {
+      fetchSimilarUsers(currentPage);
+    }
+    // For search tab, pagination is handled by the debounced effect below
+  }, [currentPage, activeTab]);
+
+  // Debounced search when searchQuery, goalFilter, or levelFilter changes
+  useEffect(() => {
+    if (activeTab === 'search') {
+      // Clear previous timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      searchTimeoutRef.current = setTimeout(() => {
+        if (searchQuery || goalFilter || levelFilter) {
+          handleSearch(currentPage);
+        } else {
+          setSearchResults([]);
+          setTotalPages(1);
+        }
+      }, 500); // 500ms debounce
+
+      return () => {
+        if (searchTimeoutRef.current) {
+          clearTimeout(searchTimeoutRef.current);
+        }
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, goalFilter, levelFilter, activeTab, currentPage]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -514,8 +545,10 @@ export default function CommunityPage() {
                 : 'bg-white/5 text-gray-400 hover:bg-white/10'
             }`}
           >
-            <IconKit.Search size="sm" className="inline mr-2" />
-            Wyszukaj
+            <span className="inline-flex items-center gap-2">
+              <IconKit.Search size="md" />
+              Wyszukaj
+            </span>
           </button>
         </div>
 
@@ -611,16 +644,19 @@ export default function CommunityPage() {
                 {/* Search input */}
                 <div className="md:col-span-3">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                    <IconKit.Search size="sm" /> Szukaj po nazwie użytkownika
+                    Szukaj po nazwie użytkownika
                   </label>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder="Wpisz nazwę użytkownika..."
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-                  />
+                  <div className="relative">
+                    <IconKit.Search size="md" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                      placeholder="Wpisz nazwę użytkownika..."
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+                    />
+                  </div>
                 </div>
 
                 {/* Goal filter */}
@@ -676,8 +712,10 @@ export default function CommunityPage() {
                     onClick={() => handleSearch(1)}
                     className="flex-1 px-6 py-3 rounded-xl bg-emerald-400 text-black font-bold hover:bg-emerald-500 transition-colors"
                   >
-                    <IconKit.Search size="sm" className="inline mr-2" />
-                    Szukaj
+                    <span className="inline-flex items-center gap-2">
+                      <IconKit.Search size="sm" />
+                      Szukaj
+                    </span>
                   </button>
                   {(searchQuery || goalFilter || levelFilter) && (
                     <button

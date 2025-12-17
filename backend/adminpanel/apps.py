@@ -6,3 +6,6 @@ class AdminPanelConfig(AppConfig):
     name = 'adminpanel'
     verbose_name = 'Admin Panel'
 
+
+
+

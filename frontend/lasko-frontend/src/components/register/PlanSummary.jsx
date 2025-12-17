@@ -108,7 +108,7 @@ const Navbar = ({ showActions = false }) => {
     return null;
   };
 
-  const navbarName = 
+  const navbarName =
     user?.username || 
     user?.first_name ||
     sessionStorage.getItem('lasko_username') || 
@@ -143,10 +143,10 @@ const Navbar = ({ showActions = false }) => {
         <div className="hidden items-center gap-3 md:flex">
           {looksAuthed ? (
             showActions ? (
-              <>
+            <>
                 <span className="text-sm text-gray-300">
-                  Witaj, <span className="font-semibold text-white">{navbarName}</span>!
-                </span>
+                Witaj, <span className="font-semibold text-white">{navbarName}</span>!
+              </span>
                 <SecondaryButton onClick={() => navigate('/dashboard')}>Dashboard</SecondaryButton>
                 <GhostButton onClick={handleLogout}>Wyloguj</GhostButton>
               </>
@@ -178,17 +178,17 @@ const Navbar = ({ showActions = false }) => {
           <div className="flex flex-col gap-2">
             {looksAuthed ? (
               showActions ? (
-                <>
+              <>
                   <div className="px-3 py-2 text-gray-300 border-b border-white/10 mb-2">
                     Witaj, <span className="font-semibold text-white">{navbarName}</span>!
                   </div>
-                  <Link to="/dashboard" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
-                    Dashboard
-                  </Link>
+                <Link to="/dashboard" className="rounded-lg px-3 py-2 text-gray-200 hover:bg-white/5">
+                  Dashboard
+                </Link>
                   <button onClick={handleLogout} className="rounded-lg px-3 py-2 text-left text-gray-200 hover:bg-white/5">
-                    Wyloguj
-                  </button>
-                </>
+                  Wyloguj
+                </button>
+              </>
               ) : (
                 <div className="px-3 py-2 text-gray-300">
                   Witaj, <span className="font-semibold text-white">{navbarName}</span>!
@@ -214,52 +214,192 @@ const Navbar = ({ showActions = false }) => {
 // Cards
 const StatCard = ({ label, value, icon }) => (
   <div className="group relative rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition-all hover:border-emerald-400/40">
-    <div className="flex items-start justify-between">
-      <div>
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex-1 min-w-0">
         <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
-        <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+        <p className="mt-2 text-2xl font-bold text-white break-words line-clamp-2">{value}</p>
       </div>
-      <span className="text-2xl opacity-70">{icon}</span>
+      <span className="text-2xl opacity-70 flex-shrink-0">{icon}</span>
     </div>
     <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 ring-1 ring-emerald-400/30 transition-opacity group-hover:opacity-100" />
   </div>
 );
 
-const ExerciseCard = ({ exercise, index, onRemove, onSwap }) => (
-  <div className="group relative rounded-xl border border-white/10 bg-white/[0.04] p-4 transition-all hover:border-emerald-400/40">
-    <div className="flex items-center gap-4">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300 font-bold">
-        {index + 1}
-      </div>
-      <div className="flex-1">
-        <h4 className="font-semibold text-white">{exercise.name}</h4>
-        {(exercise.sets || exercise.reps || exercise.rest) && (
-          <p className="mt-1 text-sm text-gray-400">
-            {exercise.sets ? `${exercise.sets} serie` : ''}{exercise.sets && exercise.reps ? ' × ' : ''}
-            {exercise.reps ? `${exercise.reps} powtórzeń` : ''}{(exercise.sets || exercise.reps) && exercise.rest ? ' • ' : ''}
-            {exercise.rest ? `przerwy ${exercise.rest}` : ''}
-          </p>
+const ExerciseCard = ({ exercise, index, editable = false, onSwap, onRemove, onUpdate }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const handleChange = (field, value) => {
+    if (!onUpdate) return;
+    onUpdate({ [field]: value });
+  };
+
+  const restValue = exercise.rest ?? exercise.rest_seconds ?? '';
+
+  const handleRestIncrement = () => {
+    if (!onUpdate) return;
+    const current = parseInt(restValue) || 0;
+    const next = current + 1;
+    onUpdate({ rest: String(next) });
+  };
+
+  const handleRestDecrement = () => {
+    if (!onUpdate) return;
+    const current = parseInt(restValue) || 0;
+    const next = Math.max(0, current - 1);
+    onUpdate({ rest: String(next) });
+  };
+
+  return (
+    <div className="group relative rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition-all hover:border-emerald-400/40">
+      <div className="flex items-start gap-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300 font-bold flex-shrink-0 mt-0.5">
+          {index + 1}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-white break-words">{exercise.name}</h4>
+          {(exercise.sets || exercise.reps || restValue) && (
+            <p className="mt-1 text-sm text-gray-400">
+              {exercise.sets ? `${exercise.sets} serie` : ''}
+              {exercise.sets && exercise.reps ? ' × ' : ''}
+              {exercise.reps ? `${exercise.reps} powtórzeń` : ''}
+              {(exercise.sets || exercise.reps) && restValue ? ' • ' : ''}
+              {restValue ? `przerwy ${restValue}s` : ''}
+            </p>
+          )}
+        </div>
+        {editable && (
+          <div className="flex items-center gap-2 ml-2">
+            <button
+              type="button"
+              onClick={() => onSwap && onSwap(exercise)}
+              className="inline-flex items-center justify-center rounded-full border-2 border-emerald-400/60 bg-emerald-500/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20 hover:text-white transition-colors"
+            >
+              Zamień ćwiczenie
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemove && onRemove(exercise)}
+              className="inline-flex items-center justify-center rounded-full border-2 border-red-400/70 bg-red-500/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-red-300 hover:bg-red-500/20 hover:text-white transition-colors"
+            >
+              Usuń
+            </button>
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                aria-label={expanded ? 'Zwiń szczegóły ćwiczenia' : 'Rozwiń szczegóły ćwiczenia'}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+          </div>
         )}
       </div>
-      <div className="flex gap-2">
-        <button
-          onClick={onSwap}
-          className="text-xs rounded-full px-3 py-1 bg-white/[0.04] border border-white/10 hover:bg-white/[0.08]"
-        >
-          Zamień
-        </button>
-        <button
-          onClick={onRemove}
-          className="text-xs rounded-full px-3 py-1 border border-red-500/40 text-red-300 hover:bg-red-900/20"
-        >
-          Usuń
-        </button>
-      </div>
-    </div>
-  </div>
-);
 
-const DayCard = ({ day, index, onRemoveExercise, onSwapExercise }) => (
+      {editable && expanded && (
+        <div className="mt-4 border-t border-white/10 pt-4 space-y-4">
+          {/* Edycja serii / powtórzeń / przerw */}
+          <div className="grid gap-3 md:grid-cols-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">
+                Serie
+              </label>
+              <input
+                type="text"
+                value={exercise.sets ?? ''}
+                onChange={(e) => handleChange('sets', e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-emerald-400/60 focus:ring-1 focus:ring-emerald-400/40 outline-none"
+                placeholder="np. 3"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">
+                Powtórzenia
+              </label>
+              <input
+                type="text"
+                value={exercise.reps ?? ''}
+                onChange={(e) => handleChange('reps', e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-emerald-400/60 focus:ring-1 focus:ring-emerald-400/40 outline-none"
+                placeholder="np. 8–12"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">
+                Przerwa (s)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  value={restValue}
+                  onChange={(e) => handleChange('rest', e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 pr-10 text-sm text-white placeholder:text-gray-500 focus:border-emerald-400/60 focus:ring-1 focus:ring-emerald-400/40 outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                  placeholder="np. 60"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-row gap-0.5">
+                  <button
+                    type="button"
+                    onClick={handleRestIncrement}
+                    className="w-6 h-5 flex items-center justify-center rounded bg-emerald-400/20 hover:bg-emerald-400/40 transition-colors group"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className="text-emerald-400 group-hover:text-emerald-300"
+                    >
+                      <path
+                        d="M6 3L6 9M3 6L9 6"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRestDecrement}
+                    className="w-6 h-5 flex items-center justify-center rounded bg-emerald-400/20 hover:bg-emerald-400/40 transition-colors group"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className="text-emerald-400 group-hover:text-emerald-300"
+                    >
+                      <path
+                        d="M3 6L9 6"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DayCard = ({ day, index, editable = false, onSwapExercise, onRemoveExercise, onUpdateExercise }) => (
   <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
     <div className="mb-4 flex items-center justify-between">
       <h3 className="text-lg font-bold text-white">
@@ -270,14 +410,16 @@ const DayCard = ({ day, index, onRemoveExercise, onSwapExercise }) => (
       </span>
     </div>
     {Array.isArray(day.exercises) && day.exercises.length > 0 ? (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {day.exercises.map((ex, i) => (
           <ExerciseCard
             key={`${ex.id || ex.name}-${i}`}
             exercise={ex}
             index={i}
-            onRemove={() => onRemoveExercise(index, i, ex)}
-            onSwap={() => onSwapExercise(index, ex)}
+            editable={editable}
+            onSwap={(exercise) => onSwapExercise && onSwapExercise(index, i, exercise)}
+            onRemove={(exercise) => onRemoveExercise && onRemoveExercise(index, i, exercise)}
+            onUpdate={(partial) => onUpdateExercise && onUpdateExercise(index, i, partial)}
           />
         ))}
       </div>
@@ -481,8 +623,16 @@ export default function PlanSummary() {
     }
     (async () => {
       try {
-        const res = await apiService.get?.('/api/exercises');
-        setExerciseCatalog(res?.results || res || []);
+        const res = await apiService.request('/api/exercises/?limit=500');
+        if (res?.success && Array.isArray(res.exercises)) {
+          setExerciseCatalog(res.exercises);
+        } else if (Array.isArray(res)) {
+          setExerciseCatalog(res);
+        } else if (Array.isArray(res?.results)) {
+          setExerciseCatalog(res.results);
+        } else {
+          setExerciseCatalog([]);
+        }
       } catch {/* cicho */}
     })();
   }, [state]);
@@ -612,6 +762,22 @@ export default function PlanSummary() {
     });
   };
 
+  const updateExerciseFields = (dayIdx, exIdx, partial) => {
+    setPlanData((p) => {
+      const next = structuredClone(p);
+      const ex = next.recommendedPlan?.days?.[dayIdx]?.exercises?.[exIdx];
+      if (ex) {
+        Object.assign(ex, partial);
+      }
+      try {
+        sessionStorage.setItem('lasko_plan_draft', JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
+
   const openSwap = (dayIdx, exercise) => setSwapModal({ open: true, dayIdx, oldExercise: exercise, q: '' });
   const closeSwap = () => setSwapModal({ open: false, dayIdx: null, oldExercise: null, q: '' });
 
@@ -645,11 +811,11 @@ export default function PlanSummary() {
       return;
     }
 
-    // Dla planów z ID - zapisz do API
+    // Dla planów z ID - zapisz do API (endpoint z recommendations)
     const planId = recommendedPlan.planId || recommendedPlan.id;
     setSavingAlias(true);
     try {
-      const response = await apiService.request(`/api/plans/${planId}/alias/`, {
+      const response = await apiService.request(`/api/recommendations/plans/${planId}/alias/`, {
         method: 'POST',
         body: JSON.stringify({ custom_name: customPlanName.trim() })
       });
@@ -770,6 +936,13 @@ export default function PlanSummary() {
   const RecommendationDetailsModal = ({ open, plan, onClose }) => {
     if (!open || !plan) return null;
     
+    // Określ typ algorytmu na podstawie dostępnych danych
+    const algorithmType = plan.cbWeight !== undefined && plan.cfWeight !== undefined 
+      ? 'hybrid' 
+      : plan.scoreBreakdown 
+        ? 'content_based' 
+        : 'collaborative';
+    
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
         <div className="relative max-w-2xl w-full bg-[#0b0b0b] rounded-3xl border border-white/10 p-6 max-h-[80vh] overflow-y-auto scrollbar-hide" onClick={(e) => e.stopPropagation()}>
@@ -777,7 +950,12 @@ export default function PlanSummary() {
           <div className="flex items-start justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-white mb-1">{plan.name}</h2>
-              <p className="text-gray-400 text-sm">Szczegóły rekomendacji AI</p>
+              <p className="text-gray-400 text-sm">
+                Szczegóły rekomendacji AI
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-400/20 text-blue-300 text-xs font-semibold">
+                  {algorithmType === 'hybrid' ? 'Hybrydowy' : algorithmType === 'content_based' ? 'Content-Based' : 'Collaborative'}
+                </span>
+              </p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -794,6 +972,11 @@ export default function PlanSummary() {
                 {plan.score ? `${Math.round(plan.score)}%` : 'N/A'}
               </span>
             </div>
+            {algorithmType === 'collaborative' && (
+              <p className="text-xs text-gray-400 mt-2">
+                Score oparty na popularności wśród podobnych użytkowników
+              </p>
+            )}
           </div>
           
           {/* Match Reasons */}
@@ -813,9 +996,64 @@ export default function PlanSummary() {
             </div>
           )}
           
+          {/* 🆕 Informacje o algorytmie Collaborative */}
+          {algorithmType === 'collaborative' && (
+            <div className="mb-6 p-4 rounded-2xl bg-purple-400/10 border border-purple-400/20">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-purple-400">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Rekomendacja oparta na społeczności
+              </h3>
+              <p className="text-sm text-gray-300 mb-3">
+                Ten plan został wybrany na podstawie wyborów podobnych użytkowników. 
+                Algorytm analizuje użytkowników o podobnych celach, poziomie i preferencjach sprzętowych.
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Metoda:</span>
+                  <span className="text-white font-semibold">Collaborative Filtering</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Bazuje na:</span>
+                  <span className="text-white font-semibold">Popularności wśród podobnych użytkowników</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* 🆕 Informacje o algorytmie Content-Based */}
+          {algorithmType === 'content_based' && (
+            <div className="mb-6 p-4 rounded-2xl bg-blue-400/10 border border-blue-400/20">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-blue-400">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Rekomendacja oparta na preferencjach
+              </h3>
+              <p className="text-sm text-gray-300 mb-3">
+                Ten plan został wybrany na podstawie Twoich preferencji i celów treningowych. 
+                Algorytm analizuje charakterystykę planu i dopasowuje go do Twojego profilu.
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Metoda:</span>
+                  <span className="text-white font-semibold">Content-Based Filtering</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Bazuje na:</span>
+                  <span className="text-white font-semibold">Dopasowaniu planu do Twoich preferencji</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Metadane algorytmu */}
           <div className="mb-6">
-            <h3 className="text-lg font-bold text-white mb-3">Parametry algorytmu</h3>
+            <h3 className="text-lg font-bold text-white mb-3">Parametry planu</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-xs text-gray-400 mb-1">Cel treningowy</p>
@@ -833,6 +1071,18 @@ export default function PlanSummary() {
                 <p className="text-xs text-gray-400 mb-1">Sprzęt</p>
                 <p className="text-white font-semibold">{plan.equipmentRequired || 'N/A'}</p>
               </div>
+              {plan.intensityLevel && (
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-xs text-gray-400 mb-1">Intensywność</p>
+                  <p className="text-white font-semibold">{plan.intensityLevel}</p>
+                </div>
+              )}
+              {plan.planType && (
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-xs text-gray-400 mb-1">Typ planu</p>
+                  <p className="text-white font-semibold">{plan.planType}</p>
+                </div>
+              )}
             </div>
           </div>
           
@@ -849,7 +1099,7 @@ export default function PlanSummary() {
               {/* 🆕 Suma punktów (wycentrowana) */}
               <div className="mb-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-400/20 to-teal-400/20 border-2 border-emerald-400/40">
                 <div className="text-center">
-                  <p className="text-sm text-gray-300 mb-1">Łączna punktacja</p>
+                  <p className="text-sm text-gray-300 mb-1">Punktacja Content-Based (część składowa)</p>
                   <div className="flex items-center justify-center gap-2">
                     <span className="text-4xl font-black text-white">
                       {(() => {
@@ -866,8 +1116,53 @@ export default function PlanSummary() {
                     </span>
                     <span className="text-2xl text-gray-400">/</span>
                     <span className="text-2xl font-bold text-gray-400">64</span>
+                    <span className="text-lg text-gray-500 ml-2">
+                      ({((() => {
+                        const total = 
+                          (plan.scoreBreakdown.goal?.points || 0) +
+                          (plan.scoreBreakdown.level?.points || 0) +
+                          (plan.scoreBreakdown.days?.points || 0) +
+                          (plan.scoreBreakdown.equipment?.points || 0) +
+                          (plan.scoreBreakdown.popularity?.points || 0) +
+                          (plan.scoreBreakdown.bmi?.points || 0) +
+                          (plan.scoreBreakdown.health_safety?.points || 0);
+                        return ((total / 64) * 100).toFixed(1);
+                      })())}%)
+                    </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">maksymalnie możliwych punktów (z BMI + zdrowie)</p>
+                  {plan.cbWeight && plan.cfWeight ? (
+                    <>
+                      <p className="text-xs text-gray-300 mt-2 font-semibold">
+                        ⚠️ To NIE jest finalny wynik!
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Finalny score: <span className="text-emerald-300 font-bold">{plan.score}%</span> = {Math.round(plan.cbWeight * 100)}% × {((() => {
+                          const total = 
+                            (plan.scoreBreakdown.goal?.points || 0) +
+                            (plan.scoreBreakdown.level?.points || 0) +
+                            (plan.scoreBreakdown.days?.points || 0) +
+                            (plan.scoreBreakdown.equipment?.points || 0) +
+                            (plan.scoreBreakdown.popularity?.points || 0) +
+                            (plan.scoreBreakdown.bmi?.points || 0) +
+                            (plan.scoreBreakdown.health_safety?.points || 0);
+                          return ((total / 64) * 100).toFixed(1);
+                        })())}% (CB) + {Math.round(plan.cfWeight * 100)}% × {plan.cfScore !== undefined && plan.cfScore !== null ? `${Number(plan.cfScore).toFixed(1)}%` : 'N/A'} (CF)
+                      </p>
+                      {plan.wasBoosted ? (
+                        <p className="text-xs text-yellow-400 mt-1 italic">
+                          ⚡ Wynik został podniesiony do minimum (80% CB), bo Collaborative Filtering miał zbyt niski score
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-500 mt-1 italic">
+                          Collaborative Filtering ma niski score, dlatego finalny wynik jest niższy niż CB
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-1">
+                      maksymalnie możliwych punktów (z BMI + zdrowie)
+                    </p>
+                  )}
                 </div>
               </div>
               
@@ -1065,22 +1360,8 @@ export default function PlanSummary() {
           <Kicker>Podsumowanie planu treningowego</Kicker>
           <div className="flex items-center gap-4 mt-4">
             <h1 className="text-4xl font-black text-white md:text-5xl">
-              {name || 'Twój spersonalizowany plan'}
-            </h1>
-            {/* 🆕 Ikona edycji nazwy (minimalistyczna, bez tła) */}
-            <button
-              onClick={() => {
-                setCustomPlanName(name || recommendedPlan?.name || '');
-                setEditNameModal(true);
-              }}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-              title="Zmień nazwę planu"
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-current">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+              {recommendedPlan?.originalName || recommendedPlan?.name || 'Twój spersonalizowany plan'}
+          </h1>
           </div>
           <p className="mt-3 text-lg text-gray-300">
             {fromCopy ? (
@@ -1229,16 +1510,25 @@ export default function PlanSummary() {
           
           {activeTab === 'overview' && recommendedPlan && (
             <div className="space-y-8">
-              {/* opis */}
-              <div>
-                <h2 className="mb-3 text-2xl font-bold text-white">
-                  {name || recommendedPlan.name || 'Plan treningowy'}
+              {/* Tytuł planu */}
+              <div className="flex items-center gap-3 mb-3">
+                <h2 className="text-2xl font-bold text-white">
+                  {recommendedPlan?.name || recommendedPlan?.originalName || name || 'Plan treningowy'}
                 </h2>
-                {recommendedPlan.description && (
-                  <p className="text-gray-300 leading-relaxed">
-                    {recommendedPlan.description}
-                  </p>
-                )}
+                {/* Przycisk zmiany nazwy planu */}
+                <button
+                  onClick={() => {
+                    setCustomPlanName(name || recommendedPlan?.name || '');
+                    setEditNameModal(true);
+                  }}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Zmień nazwę planu"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-current">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
               </div>
 
               {/* 🆕 Health Warnings */}
@@ -1265,7 +1555,7 @@ export default function PlanSummary() {
                       <p className="text-xs text-yellow-300/70 mt-3 italic">
                         Te informacje mają charakter pomocniczy i nie zastępują porady medycznej.
                       </p>
-                    </div>
+              </div>
                   </div>
                 </div>
               )}
@@ -1314,7 +1604,11 @@ export default function PlanSummary() {
                         <span className="font-semibold text-white">Score dopasowania</span>
                       </div>
                       <p className="text-sm text-gray-300">
-                        Ten plan został wybrany na podstawie Twoich preferencji i celów treningowych
+                        {recommendedPlan?.cbWeight && recommendedPlan?.cfWeight ? (
+                          <>Finalny wynik kombinacji algorytmów: {Math.round(recommendedPlan.cbWeight * 100)}% preferencje + {Math.round(recommendedPlan.cfWeight * 100)}% społeczność</>
+                        ) : (
+                          <>Ten plan został wybrany na podstawie Twoich preferencji i celów treningowych</>
+                        )}
                       </p>
                     </div>
                     <div className="text-right">
@@ -1410,7 +1704,19 @@ export default function PlanSummary() {
                             onClick={() => {
                               const alt = altPlans[idx];
                               if (alt) {
-                                const updated = { ...planData, recommendedPlan: alt, name: alt.name || planData.name };
+                                // 🆕 Przenieś aktualny recommendedPlan do altPlans
+                                const currentPlan = recommendedPlan;
+                                const newAltPlans = altPlans.filter((_, i) => i !== idx); // Usuń wybrany plan
+                                if (currentPlan) {
+                                  newAltPlans.push(currentPlan); // Dodaj aktualny plan do alternatyw
+                                }
+                                
+                                const updated = { 
+                                  ...planData, 
+                                  recommendedPlan: alt, 
+                                  name: alt.name || planData.name,
+                                  altPlans: newAltPlans // 🆕 Zaktualizuj altPlans
+                                };
                                 setPlanData(updated);
                                 sessionStorage.setItem('lasko_plan_draft', JSON.stringify(updated));
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1457,7 +1763,7 @@ export default function PlanSummary() {
                   <div className="mb-6">
                     <h2 className="text-2xl font-bold text-white">Szczegółowy plan treningowy</h2>
                     <p className="mt-1 text-gray-400">
-                      Pełny rozkład ćwiczeń na każdy dzień. Możesz usuwać i zamieniać ćwiczenia.
+                      Pełny rozkład ćwiczeń na każdy dzień. Możesz usuwać lub zamieniać ćwiczenia według własnych preferencji.
                     </p>
                   </div>
                   <div className="grid gap-6">
@@ -1466,8 +1772,10 @@ export default function PlanSummary() {
                         key={idx}
                         day={day}
                         index={idx}
-                        onRemoveExercise={removeExercise}
-                        onSwapExercise={openSwap}
+                        editable
+                        onSwapExercise={(dayIdx, _exIdx, exercise) => openSwap(dayIdx, exercise)}
+                        onRemoveExercise={(dayIdx, exIdx, exercise) => removeExercise(dayIdx, exIdx, exercise)}
+                        onUpdateExercise={(dayIdx, exIdx, partial) => updateExerciseFields(dayIdx, exIdx, partial)}
                       />
                     ))}
                   </div>
@@ -1533,9 +1841,11 @@ export default function PlanSummary() {
                 })}
               </div>
 
-              <div className="rounded-2xl bg-blue-400/10 border border-blue-400/20 p-6">
+              <div className="rounded-2xl bg-yellow-400/10 border border-yellow-400/20 p-6">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">💡</span>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-yellow-400 flex-shrink-0 mt-0.5">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
+                  </svg>
                   <div>
                     <h4 className="font-semibold text-white">Wskazówka</h4>
                     <p className="mt-1 text-sm text-gray-300">
@@ -1549,7 +1859,9 @@ export default function PlanSummary() {
               {/* Powiadomienia */}
               <div className="rounded-2xl bg-purple-400/10 border border-purple-400/20 p-6">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">🔔</span>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-purple-400 flex-shrink-0 mt-0.5">
+                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" fill="currentColor"/>
+                  </svg>
                   <div>
                     <h4 className="font-semibold text-white">Powiadomienia</h4>
                     <p className="mt-1 text-sm text-gray-300">
@@ -1572,9 +1884,11 @@ export default function PlanSummary() {
               </div>
 
               {/* Przycisk zapisz harmonogram */}
-              <div className="rounded-xl bg-yellow-400/10 border border-yellow-400/20 p-4 mb-4">
+              <div className="rounded-xl bg-blue-400/10 border border-blue-400/20 p-4 mb-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">ℹ️</span>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-blue-400 flex-shrink-0 mt-0.5">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/>
+                  </svg>
                   <div>
                     <h4 className="font-semibold text-white mb-1">Informacja</h4>
                     <p className="text-sm text-gray-300">
@@ -1596,51 +1910,161 @@ export default function PlanSummary() {
           <PrimaryButton
             onClick={async () => {
               try {
-                const planId = planData?.recommendedPlan?.planId || planData?.recommendedPlan?.id;
-                if (!planId) {
-                  error('Brak ID planu do aktywacji.');
+                const recommended = planData?.recommendedPlan;
+
+                if (!recommended) {
+                  error('Brak danych planu do zapisania.');
                   return;
                 }
-                
-                console.log('[PlanSummary] Aktywuję plan:', planId);
-                
-                // KROK 1: Aktywuj plan (tworzy rekord w user_active_plans)
-                await apiService.request(`/api/recommendations/plans/${planId}/activate/`, {
-                  method: 'POST'
-                });
-                
-                console.log('[PlanSummary] Plan aktywowany, zapisuję harmonogram:', schedule);
-                
-                // KROK 2: Zapisz harmonogram (aktualizuje user_active_plans.training_schedule)
-                const notificationsEnabled = document.getElementById('notifications')?.checked || false;
-                await apiService.request('/api/auth/schedule/save/', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    schedule,
-                    notifications_enabled: notificationsEnabled
+
+                // Zbuduj strukturę dni i ćwiczeń na podstawie ZMIENIONEGO planu
+                const days = (recommended.days || [])
+                  .map((day, dayIdx) => {
+                    const exercises = (day.exercises || [])
+                      .map((ex, exIdx) => {
+                        const exerciseId =
+                          ex.exercise_id || // z planu bazowego
+                          ex.base_exercise_id || // inne możliwe pola
+                          ex.id; // z katalogu ćwiczeń (zamiana)
+
+                        if (!exerciseId) return null;
+
+                        const sets =
+                          ex.sets ??
+                          ex.target_sets ??
+                          ex.targetSets ??
+                          ex.series ??
+                          '3';
+
+                        const reps =
+                          ex.reps ??
+                          ex.target_reps ??
+                          ex.targetReps ??
+                          ex.repetitions ??
+                          '10-12';
+
+                        const restSeconds =
+                          ex.rest_seconds ??
+                          ex.rest ??
+                          ex.restSeconds ??
+                          60;
+
+                        const order =
+                          ex.exercise_order ??
+                          ex.order ??
+                          exIdx + 1;
+
+                        return {
+                          exercise_id: exerciseId,
+                          target_sets: String(sets),
+                          target_reps: String(reps),
+                          rest_seconds: Number(restSeconds) || 60,
+                          exercise_order: order,
+                        };
+                      })
+                      .filter(Boolean);
+
+                    return {
+                      name: day.title || day.name || day.dayName || `Dzień ${dayIdx + 1}`,
+                      day_order: day.day_order || day.dayNumber || dayIdx + 1,
+                      exercises,
+                    };
                   })
-                });
-                
-                console.log('[PlanSummary] Harmonogram zapisany, przekierowuję do Dashboard');
-                
-                success('Plan został aktywowany!');
-                
-                // KROK 3: Przekieruj do Dashboard
+                  .filter((d) => d.exercises && d.exercises.length > 0);
+
+                // Jeśli z jakiegoś powodu nie mamy dni/ćwiczeń – fallback do starej logiki aktywacji
+                if (!days.length) {
+                  const fallbackPlanId = recommended.planId || recommended.id;
+                  if (!fallbackPlanId) {
+                    error('Brak ID planu do aktywacji.');
+                    return;
+                  }
+
+                  console.warn('[PlanSummary] Brak szczegółowych dni – używam fallbacku aktywacji planu:', fallbackPlanId);
+
+                  await apiService.request(`/api/recommendations/plans/${fallbackPlanId}/activate/`, {
+                    method: 'POST',
+                  });
+
+                  const notificationsEnabled = document.getElementById('notifications')?.checked || false;
+                  await apiService.request('/api/auth/schedule/save/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      schedule,
+                      notifications_enabled: notificationsEnabled,
+                    }),
+                  });
+
+                  success('Plan został aktywowany!');
+                  navigate('/dashboard');
+                  return;
+                }
+
+                // Zbuduj payload dla custom-plans – plan zapisze się jako NASZ
+                const payload = {
+                  name:
+                    planData?.name ||
+                    recommended.name ||
+                    recommended.originalName ||
+                    'Mój plan treningowy',
+                  description:
+                    recommended.description ||
+                    planData?.description ||
+                    `Plan treningowy: ${planData?.name || recommended.name || 'Plan'}`,
+                  goal_type:
+                    recommended.goalType ||
+                    planData?.goal ||
+                    planData?.recommendedPlan?.goalType,
+                  difficulty_level:
+                    recommended.difficultyLevel ||
+                    planData?.level ||
+                    planData?.recommendedPlan?.difficultyLevel,
+                  training_days_per_week:
+                    recommended.trainingDaysPerWeek ||
+                    planData?.trainingDaysPerWeek ||
+                    days.length,
+                  equipment_required:
+                    recommended.equipmentRequired ||
+                    planData?.equipment ||
+                    planData?.equipment_preference ||
+                    'silownia',
+                  days,
+                };
+
+                console.log('[PlanSummary] Tworzę custom plan z payload:', payload);
+
+                // KROK 1: Utwórz custom plan na backendzie (user_custom_plans) – plan od razu staje się aktywny
+                const customResult = await recApi.createCustomPlanFromExercises(payload);
+                console.log('[PlanSummary] Custom plan utworzony:', customResult);
+
+                // KROK 2: Zapisz harmonogram (aktualizuje user_active_plans.training_schedule dla AKTYWNEGO planu)
+                try {
+                  const notificationsEnabled = document.getElementById('notifications')?.checked || false;
+                  console.log('[PlanSummary] Zapisuję harmonogram dla custom planu:', schedule);
+                  await apiService.request('/api/auth/schedule/save/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      schedule,
+                      notifications_enabled: notificationsEnabled,
+                    }),
+                  });
+                } catch (scheduleErr) {
+                  console.warn('[PlanSummary] Nie udało się zapisać harmonogramu:', scheduleErr);
+                  // nie blokujemy aktywacji planu
+                }
+
+                success('Twój plan został zapisany jako własny i aktywowany!');
+
+                // KROK 3: Przekieruj do Dashboard (aktywny plan zostanie wczytany z /active-plan/)
                 navigate('/dashboard', {
                   state: {
-                    activePlan: {
-                      planId: planId,
-                      id: planId,
-                      name: planData?.name || planData?.recommendedPlan?.name,
-                      trainingDaysPerWeek,
-                      sessionDuration: timePerSession,
-                      description: planData?.recommendedPlan?.description,
-                    }
-                  }
+                    planCreated: true,
+                    message: 'Twój plan został zapisany jako własny i aktywowany!',
+                  },
                 });
               } catch (err) {
-                console.error('[PlanSummary] Failed to activate plan:', err);
-                error('Nie udało się aktywować planu: ' + (err.message || 'Nieznany błąd'));
+                console.error('[PlanSummary] Failed to activate custom plan:', err);
+                error('Nie udało się zapisać planu: ' + (err.message || 'Nieznany błąd'));
               }
             }}
           >
@@ -1753,17 +2177,6 @@ export default function PlanSummary() {
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {customPlanName.length}/200 znaków
-                </p>
-              </div>
-
-              {/* Info */}
-              <div className="p-3 rounded-xl bg-blue-400/10 border border-blue-400/20">
-                <p className="text-xs text-blue-300">
-                  {fromCopy ? (
-                    <>💡 Nazwa zostanie zapisana lokalnie i użyta po aktywacji planu.</>
-                  ) : (
-                    <>💡 Twoja nazwa będzie widoczna tylko dla Ciebie. Inni użytkownicy nadal zobaczą oryginalną nazwę planu.</>
-                  )}
                 </p>
               </div>
 

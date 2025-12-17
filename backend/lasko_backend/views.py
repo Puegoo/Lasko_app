@@ -261,6 +261,7 @@ def create_custom_plan(request):
     """
     Tworzy prosty, niestandardowy plan użytkownika i od razu ustawia go jako aktywny.
     Wymagane pola: name, goal, trainingDays (lub training_days_per_week), equipment.
+    Opcjonalne: basePlanId - jeśli podane, plan będzie skopiowany z planu bazowego.
     """
     user_id = _get_user_id_from_jwt(request)
     if not user_id:
@@ -271,6 +272,13 @@ def create_custom_plan(request):
     except json.JSONDecodeError:
         data = {}
 
+    base_plan_id = data.get("basePlanId") or data.get("base_plan_id")
+    
+    # Jeśli kopiujemy z planu bazowego
+    if base_plan_id:
+        return copy_and_customize_plan(request, user_id, base_plan_id, data)
+    
+    # Standardowe tworzenie nowego planu
     name = (data.get("name") or "").strip()
     goal = (data.get("goal") or "").strip()
     training_days = data.get("trainingDays") or data.get("training_days_per_week")
@@ -281,20 +289,169 @@ def create_custom_plan(request):
         return JsonResponse({"message": "Wymagane pola: name, goal, trainingDays, equipment"}, status=400)
 
     with connection.cursor() as cur:
+        # Sprawdź czy kolumny istnieją
         cur.execute("""
-            INSERT INTO training_plans
-              (name, description, auth_account_id, goal_type, difficulty_level,
-               training_days_per_week, equipment_required, is_active)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE)
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'training_plans'
+        """)
+        cols_set = {row[0] for row in cur.fetchall()}
+        has_base_plan = 'is_base_plan' in cols_set
+        has_base_plan_id = 'base_plan_id' in cols_set
+        
+        plan_cols = ["name", "description", "auth_account_id", "goal_type", "difficulty_level",
+                    "training_days_per_week", "equipment_required", "is_active"]
+        plan_vals = [name, notes, user_id, goal, "niestandardowy", training_days, equipment, True]
+        
+        if has_base_plan:
+            plan_cols.append("is_base_plan")
+            plan_vals.append(False)  # Niestandardowy plan użytkownika
+        if has_base_plan_id:
+            plan_cols.append("base_plan_id")
+            plan_vals.append(None)
+        
+        plan_cols_str = ', '.join(plan_cols)
+        placeholders = ', '.join(['%s'] * len(plan_cols))
+        
+        cur.execute(f"""
+            INSERT INTO training_plans ({plan_cols_str})
+            VALUES ({placeholders})
             RETURNING id
-        """, [
-            name, notes, user_id, goal, "niestandardowy", training_days, equipment
-        ])
+        """, plan_vals)
         new_plan_id = cur.fetchone()[0]
 
         cur.execute("""
             INSERT INTO user_active_plans (auth_account_id, plan_id, start_date)
             VALUES (%s, %s, CURRENT_DATE)
+            ON CONFLICT (auth_account_id) DO UPDATE SET plan_id = EXCLUDED.plan_id, start_date = CURRENT_DATE
         """, [user_id, new_plan_id])
 
     return JsonResponse({"success": True, "planId": new_plan_id}, status=201)
+
+
+def copy_and_customize_plan(request, user_id, base_plan_id, customization_data):
+    """
+    Kopiuje plan bazowy i pozwala na personalizację przez użytkownika.
+    """
+    with connection.cursor() as cur:
+        # Pobierz plan bazowy
+        cur.execute("""
+            SELECT id, name, description, goal_type, difficulty_level,
+                   training_days_per_week, equipment_required, is_base_plan
+            FROM training_plans
+            WHERE id = %s AND COALESCE(is_base_plan, TRUE) = TRUE
+        """, [base_plan_id])
+        
+        base_plan = cur.fetchone()
+        if not base_plan:
+            return JsonResponse({"message": "Plan bazowy nie został znaleziony"}, status=404)
+        
+        # Przygotuj dane nowego planu (można nadpisać wartościami z customization_data)
+        new_name = (customization_data.get("name") or "").strip() or f"Kopia - {base_plan[1]}"
+        new_description = customization_data.get("description") or base_plan[2] or ""
+        new_goal = (customization_data.get("goal") or "").strip() or base_plan[3]
+        new_level = (customization_data.get("level") or "").strip() or base_plan[4]
+        new_days = customization_data.get("trainingDays") or customization_data.get("training_days_per_week") or base_plan[5]
+        new_equipment = (customization_data.get("equipment") or "").strip() or base_plan[6]
+        
+        # Sprawdź kolumny
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'training_plans'
+        """)
+        cols_set = {row[0] for row in cur.fetchall()}
+        has_base_plan = 'is_base_plan' in cols_set
+        has_base_plan_id = 'base_plan_id' in cols_set
+        
+        # Utwórz nowy plan
+        plan_cols = ["name", "description", "auth_account_id", "goal_type", "difficulty_level",
+                    "training_days_per_week", "equipment_required", "is_active"]
+        plan_vals = [new_name, new_description, user_id, new_goal, new_level, new_days, new_equipment, True]
+        
+        if has_base_plan:
+            plan_cols.append("is_base_plan")
+            plan_vals.append(False)  # To jest niestandardowy plan użytkownika
+        if has_base_plan_id:
+            plan_cols.append("base_plan_id")
+            plan_vals.append(base_plan_id)  # Link do planu bazowego
+        
+        plan_cols_str = ', '.join(plan_cols)
+        placeholders = ', '.join(['%s'] * len(plan_cols))
+        
+        cur.execute(f"""
+            INSERT INTO training_plans ({plan_cols_str})
+            VALUES ({placeholders})
+            RETURNING id
+        """, plan_vals)
+        new_plan_id = cur.fetchone()[0]
+        
+        # Skopiuj dni planu
+        cur.execute("""
+            INSERT INTO plan_days (plan_id, name, day_order, day_of_week)
+            SELECT %s, name, day_order, day_of_week
+            FROM plan_days
+            WHERE plan_id = %s
+            ORDER BY day_order
+            RETURNING id
+        """, [new_plan_id, base_plan_id])
+        
+        new_day_ids = [row[0] for row in cur.fetchall()]
+        
+        # Skopiuj ćwiczenia z dni
+        cur.execute("""
+            SELECT pd.id as old_day_id, pd.day_order
+            FROM plan_days pd
+            WHERE pd.plan_id = %s
+            ORDER BY pd.day_order
+        """, [base_plan_id])
+        
+        old_days = cur.fetchall()
+        day_mapping = {}
+        for old_day_id, day_order in old_days:
+            # Znajdź odpowiadający nowy dzień
+            day_idx = day_order - 1
+            if day_idx < len(new_day_ids):
+                day_mapping[old_day_id] = new_day_ids[day_idx]
+        
+        # Kopiuj ćwiczenia dla każdego dnia
+        for old_day_id, new_day_id in day_mapping.items():
+            cur.execute("""
+                INSERT INTO plan_exercises (plan_day_id, exercise_id, target_sets, target_reps, rest_seconds, superset_group)
+                SELECT %s, exercise_id, target_sets, target_reps, rest_seconds, superset_group
+                FROM plan_exercises
+                WHERE plan_day_id = %s
+            """, [new_day_id, old_day_id])
+        
+        # Opcjonalnie: Zapisz historię zmian
+        try:
+            cur.execute("""
+                INSERT INTO plan_history (plan_id, changed_by, changes)
+                VALUES (%s, %s, %s::jsonb)
+            """, [new_plan_id, user_id, json.dumps({
+                'action': 'copied_from_base',
+                'base_plan_id': base_plan_id,
+                'customizations': {
+                    'name': new_name != base_plan[1],
+                    'goal': new_goal != base_plan[3],
+                    'level': new_level != base_plan[4],
+                    'days': new_days != base_plan[5],
+                    'equipment': new_equipment != base_plan[6],
+                }
+            })])
+        except Exception as e:
+            # Jeśli tabela plan_history nie istnieje, po prostu kontynuuj
+            pass
+        
+        # Ustaw jako aktywny plan
+        cur.execute("""
+            INSERT INTO user_active_plans (auth_account_id, plan_id, start_date)
+            VALUES (%s, %s, CURRENT_DATE)
+            ON CONFLICT (auth_account_id) DO UPDATE 
+            SET plan_id = EXCLUDED.plan_id, start_date = CURRENT_DATE
+        """, [user_id, new_plan_id])
+    
+    return JsonResponse({
+        "success": True, 
+        "planId": new_plan_id,
+        "message": "Plan został skopiowany i dostosowany",
+        "basePlanId": base_plan_id
+    }, status=201)

@@ -48,3 +48,7 @@ COMMENT ON COLUMN user_plan_aliases.auth_account_id IS 'ID użytkownika, który 
 COMMENT ON COLUMN user_plan_aliases.plan_id IS 'ID planu treningowego';
 
 
+
+
+
+

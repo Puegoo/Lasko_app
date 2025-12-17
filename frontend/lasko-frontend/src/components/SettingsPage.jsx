@@ -84,7 +84,7 @@ const NumberInputField = ({ label, icon, value, onChange, min, max, placeholder 
           placeholder={placeholder}
           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] pr-10"
         />
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5">
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-row gap-0.5">
           <button
             type="button"
             onClick={handleIncrement}
@@ -409,7 +409,7 @@ export default function SettingsPage() {
                     : 'bg-white/5 text-gray-400 hover:bg-white/10'
                 }`}
               >
-                <IconKit.Star size="sm" className="inline mr-2" />
+                <IconKit.User size="sm" className="inline mr-2" />
                 Profil
               </button>
               <button
@@ -420,7 +420,7 @@ export default function SettingsPage() {
                     : 'bg-white/5 text-gray-400 hover:bg-white/10'
                 }`}
               >
-                <IconKit.Settings size="sm" className="inline mr-2" />
+                <IconKit.Lock size="sm" className="inline mr-2" />
                 Hasło
               </button>
               <button
@@ -431,7 +431,7 @@ export default function SettingsPage() {
                     : 'bg-white/5 text-gray-400 hover:bg-white/10'
                 }`}
               >
-                <IconKit.Close size="sm" className="inline mr-2" />
+                <IconKit.Skull size="sm" className="inline mr-2" />
                 Strefa Niebezpieczna
               </button>
             </div>
@@ -597,37 +597,39 @@ export default function SettingsPage() {
             {activeTab === 'password' && (
               <div className="space-y-6">
                 <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-                  <h2 className="text-xl font-bold text-white mb-6">Zmiana Hasła</h2>
-                  <div className="space-y-4 max-w-md">
-                    <InputField
-                      label="Obecne hasło"
-                      icon={<IconKit.Settings size="sm" />}
-                      type="password"
-                      value={passwordForm.current_password}
-                      onChange={(e) => setPasswordForm(prev => ({ ...prev, current_password: e.target.value }))}
-                      placeholder="••••••••"
-                    />
-                    <InputField
-                      label="Nowe hasło"
-                      icon={<IconKit.Settings size="sm" />}
-                      type="password"
-                      value={passwordForm.new_password}
-                      onChange={(e) => setPasswordForm(prev => ({ ...prev, new_password: e.target.value }))}
-                      placeholder="••••••••"
-                    />
-                    <InputField
-                      label="Potwierdź nowe hasło"
-                      icon={<IconKit.Settings size="sm" />}
-                      type="password"
-                      value={passwordForm.confirm_password}
-                      onChange={(e) => setPasswordForm(prev => ({ ...prev, confirm_password: e.target.value }))}
-                      placeholder="••••••••"
-                    />
-                    <div className="pt-4">
-                      <PrimaryButton onClick={handlePasswordChange} className="w-full">
-                        <IconKit.Settings size="sm" className="inline mr-2" />
-                        Zmień hasło
-                      </PrimaryButton>
+                  <div className="flex flex-col items-center">
+                    <h2 className="text-xl font-bold text-white mb-6">Zmiana Hasła</h2>
+                    <div className="space-y-4 max-w-sm w-full">
+                      <InputField
+                        label="Obecne hasło"
+                        icon={<IconKit.Settings size="sm" />}
+                        type="password"
+                        value={passwordForm.current_password}
+                        onChange={(e) => setPasswordForm(prev => ({ ...prev, current_password: e.target.value }))}
+                        placeholder="••••••••"
+                      />
+                      <InputField
+                        label="Nowe hasło"
+                        icon={<IconKit.Settings size="sm" />}
+                        type="password"
+                        value={passwordForm.new_password}
+                        onChange={(e) => setPasswordForm(prev => ({ ...prev, new_password: e.target.value }))}
+                        placeholder="••••••••"
+                      />
+                      <InputField
+                        label="Potwierdź nowe hasło"
+                        icon={<IconKit.Settings size="sm" />}
+                        type="password"
+                        value={passwordForm.confirm_password}
+                        onChange={(e) => setPasswordForm(prev => ({ ...prev, confirm_password: e.target.value }))}
+                        placeholder="••••••••"
+                      />
+                      <div className="pt-4">
+                        <PrimaryButton onClick={handlePasswordChange} className="w-full">
+                          <IconKit.Settings size="sm" className="inline mr-2" />
+                          Zmień hasło
+                        </PrimaryButton>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -638,34 +640,35 @@ export default function SettingsPage() {
             {activeTab === 'danger' && (
               <div className="space-y-6">
                 <div className="rounded-2xl bg-red-500/10 border border-red-500/30 p-6">
-                  <h2 className="text-xl font-bold text-red-400 mb-2">Usuń Konto</h2>
-                  <p className="text-gray-400 mb-6">
-                    Ta akcja jest nieodwracalna. Wszystkie Twoje dane, treningi i postępy zostaną trwale usunięte.
-                  </p>
-                  <div className="space-y-4 max-w-md">
-                    <InputField
-                      label="Potwierdź hasło"
-                      icon={<IconKit.Settings size="sm" />}
-                      type="password"
-                      value={deleteForm.password}
-                      onChange={(e) => setDeleteForm(prev => ({ ...prev, password: e.target.value }))}
-                      placeholder="••••••••"
-                    />
-                    <InputField
-                      label='Wpisz "DELETE" aby potwierdzić'
-                      icon={<IconKit.Close size="sm" />}
-                      value={deleteForm.confirmation}
-                      onChange={(e) => setDeleteForm(prev => ({ ...prev, confirmation: e.target.value }))}
-                      placeholder="DELETE"
-                    />
-                    <div className="pt-4">
-                      <button
-                        onClick={handleDeleteAccount}
-                        className="w-full px-7 py-3 rounded-full bg-red-500 text-white font-bold hover:bg-red-600 transition-colors"
-                      >
-                        <IconKit.Close size="sm" className="inline mr-2" />
-                        Usuń konto trwale
-                      </button>
+                  <div className="flex flex-col items-center">
+                    <h2 className="text-xl font-bold text-red-400 mb-2">Usuń Konto</h2>
+                    <p className="text-gray-400 mb-6 text-center">
+                      Ta akcja jest nieodwracalna. Wszystkie Twoje dane, treningi i postępy zostaną trwale usunięte.
+                    </p>
+                    <div className="space-y-4 max-w-md w-full">
+                      <InputField
+                        label="Potwierdź hasło"
+                        icon={<IconKit.Settings size="sm" />}
+                        type="password"
+                        value={deleteForm.password}
+                        onChange={(e) => setDeleteForm(prev => ({ ...prev, password: e.target.value }))}
+                        placeholder="••••••••"
+                      />
+                      <InputField
+                        label='Wpisz "DELETE" aby potwierdzić'
+                        value={deleteForm.confirmation}
+                        onChange={(e) => setDeleteForm(prev => ({ ...prev, confirmation: e.target.value }))}
+                        placeholder="DELETE"
+                      />
+                      <div className="pt-4">
+                        <button
+                          onClick={handleDeleteAccount}
+                          className="w-full px-7 py-3 rounded-full bg-red-500 text-white font-bold hover:bg-red-600 transition-colors"
+                        >
+                          <IconKit.Close size="sm" className="inline mr-2" />
+                          Usuń konto trwale
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -677,4 +680,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

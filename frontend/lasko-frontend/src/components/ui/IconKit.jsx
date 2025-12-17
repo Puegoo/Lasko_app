@@ -33,6 +33,12 @@ export const CloseIcon = ({ size = 'md', className = '' }) => (
   </svg>
 );
 
+export const CheckIcon = ({ size = 'md', className = '' }) => (
+  <svg width={iconSizes[size]} height={iconSizes[size]} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
 export const DownloadIcon = ({ size = 'md', className = '' }) => (
   <svg width={iconSizes[size]} height={iconSizes[size]} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -56,12 +62,9 @@ export const BellIcon = ({ size = 'md', className = '' }) => (
 );
 
 export const SettingsIcon = ({ size = 'md', className = '' }) => (
-  <svg width={iconSizes[size]} height={iconSizes[size]} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg width={iconSizes[size]} height={iconSizes[size]} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
     <circle cx="12" cy="12" r="3" />
-    <path d="M12 1v6m0 6v6" />
-    <path d="m4.93 4.93 4.24 4.24m5.66 5.66 4.24 4.24" />
-    <path d="M1 12h6m6 0h6" />
-    <path d="m4.93 19.07 4.24-4.24m5.66-5.66 4.24-4.24" />
   </svg>
 );
 
@@ -207,6 +210,28 @@ export const ChevronRightIcon = ({ size = 'md', className = '' }) => (
   </svg>
 );
 
+export const LockIcon = ({ size = 'md', className = '' }) => (
+  <svg width={iconSizes[size]} height={iconSizes[size]} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className={className}>
+    <path d="M12 14V16M8.11972 5.02477C8.55509 3.28699 10.1272 2 12 2C14.2091 2 16 3.79086 16 6V9M7 21H17C18.1046 21 19 20.1046 19 19V11C19 9.89543 18.1046 9 17 9H7C5.89543 9 5 9.89543 5 11V19C5 20.1046 5.89543 21 7 21Z" />
+  </svg>
+);
+
+export const SkullIcon = ({ size = 'md', className = '' }) => (
+  <svg width={iconSizes[size]} height={iconSizes[size]} fill="currentColor" viewBox="0 0 512 512" className={className}>
+    <path d="M437.914,74.078C392.43,27,326.117,0,255.992,0C185.883,0,119.57,27,74.102,74.063 c-42.5,44-64.703,102.828-62.531,165.688l6.609,83.875c6.031,84.75,55.234,93.906,76.094,93.906c7.563,0,15.531-1.094,23.625-3.188 c1.094,7.938,1,21.859,0.922,32.688l-0.078,15.063c-0.141,10.938-0.359,27.5,11.234,39.234c4.797,4.875,13.563,10.672,28,10.672 h196.047c14.438,0,23.188-5.797,28-10.656c11.578-11.75,11.375-28.297,11.234-39.25l-0.094-15.031 c-0.063-10.844-0.172-24.781,0.938-32.719c8.172,2.109,16.094,3.188,23.625,3.188c20.859,0,70.047-9.156,76.094-93.75l6.563-83.156 l0.047-0.875C502.602,176.891,480.398,118.063,437.914,74.078z M459.961,237.906l-6.516,82.844 c-2.672,37.344-14.703,56.281-35.719,56.281c-4.844,0-10.266-0.891-16.297-2.688c-14.406-4.156-26.891-1.375-35.703,7.5 c-13.406,13.5-13.266,35.313-13.047,65.5l0.078,15.281c0.031,2.5,0.078,6.188-0.141,8.875h-42.75v-50.016h-32.406V471.5h-42.938 v-50.016h-32.391V471.5h-42.766c-0.203-2.688-0.156-6.375-0.125-8.906l0.078-15.297c0.219-30.156,0.359-51.953-13.047-65.453 c-8.766-8.844-20.953-11.75-35.875-7.453c-5.859,1.75-11.281,2.641-16.125,2.641c-21.031,0-33.031-18.938-35.719-56.438 l-6.531-82.688c-1.656-51.609,16.5-99.781,51.203-135.688C141.117,63,196.805,40.5,255.992,40.5 c59.203,0,114.891,22.5,152.781,61.719C443.477,138.125,461.648,186.297,459.961,237.906z"/>
+    <path d="M256.008,309.656c-9.719,0-31.125,46.688-35.031,54.469c-3.875,7.781,3.906,19.469,15.578,15.563 c11.672-3.875,19.453-13.609,19.453-13.609s7.781,9.734,19.453,13.609c11.656,3.906,19.453-7.781,15.563-15.563 C287.117,356.344,265.742,309.656,256.008,309.656z"/>
+    <path d="M171.586,183.281c-30.891-3.25-58.578,19.188-61.828,50.094l-4.188,29.422 c-3.25,30.922,19.188,58.578,50.078,61.828c30.922,3.25,58.609-19.172,61.844-50.094l4.188-29.422 C224.914,214.188,202.508,186.531,171.586,183.281z"/>
+    <path d="M402.242,233.375c-3.234-30.906-30.938-53.344-61.828-50.094c-30.922,3.25-53.328,30.906-50.094,61.828 l4.172,29.422c3.25,30.922,30.938,53.344,61.844,50.094s53.344-30.906,50.094-61.828L402.242,233.375z"/>
+  </svg>
+);
+
+export const UserIcon = ({ size = 'md', className = '' }) => (
+  <svg width={iconSizes[size]} height={iconSizes[size]} fill="currentColor" viewBox="0 0 512 512" className={className}>
+    <path d="M458.159,404.216c-18.93-33.65-49.934-71.764-100.409-93.431c-28.868,20.196-63.938,32.087-101.745,32.087 c-37.828,0-72.898-11.89-101.767-32.087c-50.474,21.667-81.479,59.782-100.398,93.431C28.731,448.848,48.417,512,91.842,512 c43.426,0,164.164,0,164.164,0s120.726,0,164.153,0C463.583,512,483.269,448.848,458.159,404.216z"/>
+    <path d="M256.005,300.641c74.144,0,134.231-60.108,134.231-134.242v-32.158C390.236,60.108,330.149,0,256.005,0 c-74.155,0-134.252,60.108-134.252,134.242V166.4C121.753,240.533,181.851,300.641,256.005,300.641z"/>
+  </svg>
+);
+
 // ============================================================================
 // EKSPORT WSZYSTKICH IKON
 // ============================================================================
@@ -215,6 +240,7 @@ const IconKit = {
   // Nawigacja i akcje
   Plus: PlusIcon,
   Close: CloseIcon,
+  Check: CheckIcon,
   Download: DownloadIcon,
   Search: SearchIcon,
   Bell: BellIcon,
@@ -246,6 +272,9 @@ const IconKit = {
   Info: InfoIcon,
   ChevronLeft: ChevronLeftIcon,
   ChevronRight: ChevronRightIcon,
+  Lock: LockIcon,
+  Skull: SkullIcon,
+  User: UserIcon,
 };
 
 export default IconKit;

@@ -9,6 +9,7 @@ urlpatterns = [
     path('login/', views.login, name='login'),
     path('logout/', views.logout, name='logout'),
     path('token/refresh/', views.refresh_token, name='token-refresh'),
+    path('forgot-password/', views.forgot_password, name='forgot-password'),
     path('profile/', views.profile, name='profile'),
     path('profile/update/', views.update_profile, name='profile-update'),
     path('set-recommendation-method/', views.set_recommendation_method, name='set-reco-method'),

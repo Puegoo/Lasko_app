@@ -330,15 +330,18 @@ export default function ExerciseCatalogPage() {
             {/* Search */}
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                <IconKit.Search size="sm" /> Szukaj
+                Szukaj
               </label>
-              <input
-                type="text"
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                placeholder="Wpisz nazwę ćwiczenia..."
-                className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
-              />
+              <div className="relative">
+                <IconKit.Search size="md" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                  placeholder="Wpisz nazwę ćwiczenia..."
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                />
+              </div>
             </div>
 
             {/* Muscle Group */}
@@ -359,12 +362,12 @@ export default function ExerciseCatalogPage() {
                   }}
                 >
                   <option value="" className="bg-gray-900 text-white">Wszystkie partie</option>
-                  <option value="klatka" className="bg-gray-900 text-white">💪 Klatka piersiowa</option>
-                  <option value="plecy" className="bg-gray-900 text-white">🦾 Plecy</option>
-                  <option value="nogi" className="bg-gray-900 text-white">🦵 Nogi</option>
-                  <option value="ramiona" className="bg-gray-900 text-white">💪 Ramiona</option>
-                  <option value="brzuch" className="bg-gray-900 text-white">🔥 Brzuch</option>
-                  <option value="barki" className="bg-gray-900 text-white">🏋️ Barki</option>
+                  <option value="klatka" className="bg-gray-900 text-white">Klatka piersiowa</option>
+                  <option value="plecy" className="bg-gray-900 text-white">Plecy</option>
+                  <option value="nogi" className="bg-gray-900 text-white">Nogi</option>
+                  <option value="ramiona" className="bg-gray-900 text-white">Ramiona</option>
+                  <option value="brzuch" className="bg-gray-900 text-white">Brzuch</option>
+                  <option value="barki" className="bg-gray-900 text-white">Barki</option>
                 </select>
               </div>
             </div>
@@ -387,11 +390,11 @@ export default function ExerciseCatalogPage() {
                   }}
                 >
                   <option value="" className="bg-gray-900 text-white">Wszystkie typy</option>
-                  <option value="strength" className="bg-gray-900 text-white">💪 Siła</option>
-                  <option value="hypertrophy" className="bg-gray-900 text-white">📈 Hipertrofia</option>
-                  <option value="endurance" className="bg-gray-900 text-white">⚡ Wytrzymałość</option>
-                  <option value="power" className="bg-gray-900 text-white">🚀 Moc</option>
-                  <option value="cardio" className="bg-gray-900 text-white">❤️ Cardio</option>
+                  <option value="strength" className="bg-gray-900 text-white">Siła</option>
+                  <option value="hypertrophy" className="bg-gray-900 text-white">Hipertrofia</option>
+                  <option value="endurance" className="bg-gray-900 text-white">Wytrzymałość</option>
+                  <option value="power" className="bg-gray-900 text-white">Moc</option>
+                  <option value="cardio" className="bg-gray-900 text-white">Cardio</option>
                 </select>
               </div>
             </div>
@@ -443,9 +446,6 @@ export default function ExerciseCatalogPage() {
                   {/* Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3 flex-1">
-                      <span className="text-3xl">
-                        {getMuscleGroupEmoji(exercise.muscle_group)}
-                      </span>
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">
                           {exercise.name}

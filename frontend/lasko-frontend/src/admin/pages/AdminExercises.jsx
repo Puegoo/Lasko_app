@@ -106,3 +106,6 @@ const AdminExercises = () => {
 
 export default AdminExercises;
 
+
+
+

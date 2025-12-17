@@ -3,6 +3,7 @@ from io import StringIO
 from django.db import connection, transaction
 from django.db.models import Q
 from django.http import HttpResponse
+from django.contrib.auth.hashers import make_password
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -346,6 +347,35 @@ def update_user_status(request, user_id: int):
     account.save(update_fields=list(allowed_fields.keys()))
 
     return Response(_serialize_account(account))
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdmin])
+def reset_user_password(request, user_id: int):
+    """Reset hasła użytkownika przez admina"""
+    try:
+        account = AuthAccount.objects.get(id=user_id)
+    except AuthAccount.DoesNotExist:
+        return Response({"detail": "Użytkownik nie istnieje"}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Domyślne hasło po resecie
+    new_password = request.data.get('new_password', 'password123')
+    
+    # Minimalna walidacja
+    if len(new_password) < 8:
+        return Response({
+            "detail": "Hasło musi mieć minimum 8 znaków"
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Zresetuj hasło
+    account.set_password(new_password)
+    account.save()
+    
+    return Response({
+        "success": True,
+        "message": f"Hasło zostało zresetowane dla użytkownika {account.username}",
+        "user": _serialize_account(account)
+    })
 
 
 # =========================

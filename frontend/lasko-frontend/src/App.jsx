@@ -1,7 +1,7 @@
 // frontend/lasko-frontend/src/App.jsx
 // ✅ LOGIKA BEZ ZMIAN – tylko warstwa UI/UX
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 
@@ -12,10 +12,12 @@ import EnhancedPlanCreator from './components/register/EnhancedPlanCreator';
 import DashboardPage from './components/DashboardPage';
 import PlanCreatorPreview from './components/PlanCreatorPreview';
 import LoginPage from './components/auth/LoginPage';
+import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
 import PlanSummary from './components/register/PlanSummary.jsx';
 import PlanDetailsPage from './components/PlanDetailsPage.jsx';
 import WorkoutPage from './components/WorkoutPage.jsx';
 import ExerciseCatalogPage from './components/ExerciseCatalogPage.jsx';
+import ExercisePlanCreator from './components/exercises/ExercisePlanCreator.jsx';
 import ProgressPage from './components/ProgressPage.jsx';
 import JournalPage from './components/JournalPage.jsx';
 import StatisticsPage from './components/StatisticsPage.jsx';
@@ -24,6 +26,15 @@ import SettingsPage from './components/SettingsPage.jsx';
 import CalendarPage from './components/CalendarPage.jsx';
 import PlansPage from './components/PlansPage.jsx';
 import AdminApp from './admin/AdminApp.jsx';
+import Error400Page from './components/ErrorPages/Error400Page.jsx';
+import Error403Page from './components/ErrorPages/Error403Page.jsx';
+import Error404Page from './components/ErrorPages/Error404Page.jsx';
+import Error500Page from './components/ErrorPages/Error500Page.jsx';
+import Error503Page from './components/ErrorPages/Error503Page.jsx';
+import TermsPage from './components/StaticPages/TermsPage.jsx';
+import PrivacyPolicyPage from './components/StaticPages/PrivacyPolicyPage.jsx';
+import ContactPage from './components/StaticPages/ContactPage.jsx';
+import PlanCreatorBlank from './components/PlanCreatorBlank.jsx';
 
 // Assets
 import laskoHi from './assets/Lasko_pose/Lasko_Hi.png';
@@ -130,13 +141,63 @@ const AdminRoute = ({ children }) => {
 const HomePage = () => {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [showPlanDropdown, setShowPlanDropdown] = useState(false);
+  const planButtonRef = useRef(null);
+
+  // Lokalny IconButton spójny z dashboardem
+  const IconButton = ({ icon, tooltip, onClick, to, className = '' }) => {
+    const baseClasses =
+      'relative flex items-center justify-center w-10 h-10 rounded-lg text-gray-300 hover:text-white transition-all duration-200 hover:bg-white/5 hover:border-white/10 border border-transparent group';
+    const content = (
+      <>
+        {icon}
+        {tooltip && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1.5 text-xs font-medium text-white bg-gray-900/95 backdrop-blur-sm border border-white/20 rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50">
+            {tooltip}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-0 border-4 border-transparent border-b-gray-900/95" />
+          </div>
+        )}
+      </>
+    );
+
+    if (to) {
+      return (
+        <Link to={to} className={`${baseClasses} ${className}`}>
+          {content}
+        </Link>
+      );
+    }
+
+    return (
+      <button onClick={onClick} className={`${baseClasses} ${className}`}>
+        {content}
+      </button>
+    );
+  };
+
+  // Zamknij dropdown "Nowy plan" po kliknięciu poza
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (planButtonRef.current && !planButtonRef.current.contains(event.target)) {
+        setShowPlanDropdown(false);
+      }
+    };
+
+    if (showPlanDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPlanDropdown]);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
       <GradientGridBg />
 
       {/* Navbar */}
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/60 backdrop-blur-md">
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-xl">
         <div className="flex items-center justify-between px-4 py-4">
           <Link to="/" className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
             Lasko
@@ -145,13 +206,128 @@ const HomePage = () => {
           <div className="hidden items-center gap-3 md:flex">
             {user ? (
               <>
-                <span className="hidden text-sm text-gray-300 lg:inline">Witaj, <span className="font-semibold text-white">{user.username}</span>!</span>
-                {user?.is_admin ? (
-                  <PrimaryButton to="/admin">Panel admina</PrimaryButton>
-                ) : (
-                  <PrimaryButton to="/dashboard">Dashboard</PrimaryButton>
-                )}
-                <button onClick={logout} className="text-sm text-gray-300 hover:text-white">Wyloguj</button>
+                {/* User chip */}
+                <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                  <svg
+                    width="20"
+                    height="20"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-emerald-400"
+                  >
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <span className="text-sm text-gray-300">
+                    <span className="font-semibold text-white">{user.username}</span>
+                  </span>
+                </div>
+
+                {/* Akcje */}
+                <div className="relative" ref={planButtonRef}>
+                  <IconButton
+                    icon={
+                      <svg
+                        width="20"
+                        height="20"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-emerald-400"
+                      >
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    }
+                    tooltip="Nowy plan"
+                    onClick={() => setShowPlanDropdown(!showPlanDropdown)}
+                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                  />
+                  {showPlanDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowPlanDropdown(false)} />
+                      <div
+                        className="absolute top-full right-0 mt-2 z-50 w-64 rounded-lg border border-white/10 bg-black/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="p-1">
+                          <button
+                            onClick={() => {
+                              setShowPlanDropdown(false);
+                              window.location.href = '/enhanced-plan-creator';
+                            }}
+                            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10 text-left"
+                          >
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold text-white">Na podstawie preferencji</div>
+                              <div className="text-xs text-gray-400 mt-0.5">System dobierze plan</div>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowPlanDropdown(false);
+                              window.location.href = '/plan-creator-blank';
+                            }}
+                            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10 text-left"
+                          >
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold text-white">Stwórz od zera</div>
+                              <div className="text-xs text-gray-400 mt-0.5">Wybierz ćwiczenia ręcznie</div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <IconButton
+                  icon={
+                    <svg
+                      width="20"
+                      height="20"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  }
+                  tooltip="Ustawienia"
+                  to="/settings"
+                />
+                <IconButton
+                  icon={
+                    <svg
+                      width="20"
+                      height="20"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                  }
+                  tooltip="Wyloguj"
+                  onClick={logout}
+                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                />
               </>
             ) : (
               <>
@@ -182,11 +358,7 @@ const HomePage = () => {
               <div className="mt-2 flex items-center gap-2">
                 {user ? (
                   <>
-                    {user?.is_admin ? (
-                      <PrimaryButton to="/admin">Panel admina</PrimaryButton>
-                    ) : (
-                      <PrimaryButton to="/dashboard">Dashboard</PrimaryButton>
-                    )}
+                    <PrimaryButton to="/dashboard">Dashboard</PrimaryButton>
                     <button onClick={logout} className="rounded-full px-4 py-2 text-gray-300 hover:text-white">Wyloguj</button>
                   </>
                 ) : (
@@ -443,8 +615,9 @@ const HomePage = () => {
           </div>
           <div className="mt-8 grid gap-4 text-center text-sm text-gray-500 md:grid-cols-3 md:text-left">
             <div className="flex justify-center gap-4 md:justify-start">
-              <a href="#" className="hover:text-white">Regulamin</a>
-              <a href="#" className="hover:text-white">Polityka prywatności</a>
+              <Link to="/terms" className="hover:text-white transition-colors">Regulamin</Link>
+              <Link to="/privacy-policy" className="hover:text-white transition-colors">Polityka prywatności</Link>
+              <Link to="/contact" className="hover:text-white transition-colors">Kontakt</Link>
             </div>
             <div className="order-first md:order-none">© {new Date().getFullYear()} Lasko. Wszystkie prawa zastrzeżone.</div>
             <div />
@@ -464,6 +637,7 @@ const App = () => {
 
       {/* Logowanie */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
       {/* Rejestracja */}
       <Route path="/register" element={<RegistrationContainer />} />
@@ -473,6 +647,16 @@ const App = () => {
 
       {/* Kreator planu (rozszerzony) */}
       <Route path="/enhanced-plan-creator" element={<EnhancedPlanCreator />} />
+      
+      {/* Kreator planu od zera */}
+      <Route 
+        path="/plan-creator-blank" 
+        element={
+          <ProtectedRoute>
+            <PlanCreatorBlank />
+          </ProtectedRoute>
+        } 
+      />
 
       {/* Chronione trasy */}
       <Route
@@ -488,6 +672,14 @@ const App = () => {
         element={
           <ProtectedRoute>
             <PlanSummary />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exercise-recommendations"
+        element={
+          <ProtectedRoute>
+            <ExercisePlanCreator />
           </ProtectedRoute>
         }
       />
@@ -595,8 +787,20 @@ const App = () => {
           </AdminRoute>
         } />
 
+      {/* Strony statyczne */}
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+
+      {/* Strony błędów */}
+      <Route path="/400" element={<Error400Page />} />
+      <Route path="/403" element={<Error403Page />} />
+      <Route path="/404" element={<Error404Page />} />
+      <Route path="/500" element={<Error500Page />} />
+      <Route path="/503" element={<Error503Page />} />
+
       {/* Przekierowanie nieznanych tras */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Error404Page />} />
     </Routes>
   );
 };

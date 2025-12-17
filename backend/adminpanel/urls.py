@@ -7,6 +7,7 @@ urlpatterns = [
     path('users/', views.list_users, name='admin-users-list'),
     path('users/<int:user_id>/', views.retrieve_user, name='admin-users-detail'),
     path('users/<int:user_id>/status/', views.update_user_status, name='admin-users-status'),
+    path('users/<int:user_id>/reset-password/', views.reset_user_password, name='admin-users-reset-password'),
     path('users/export/', views.export_users_csv, name='admin-users-export'),
     path('exercises/', views.exercises_collection, name='admin-exercises-list-create'),
     path('exercises/<int:exercise_id>/', views.exercise_detail, name='admin-exercises-detail'),

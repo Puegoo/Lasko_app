@@ -121,3 +121,7 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 COMMENT ON FUNCTION get_bmi_category IS 'Zwraca kategorię BMI: niedowaga, norma, nadwaga, otyłość';
 
 
+
+
+
+

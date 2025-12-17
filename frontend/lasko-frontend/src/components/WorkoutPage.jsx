@@ -147,7 +147,19 @@ export default function WorkoutPage() {
 
   useEffect(() => {
     fetchTodayWorkout();
+    checkActiveSession();
   }, []);
+
+  const checkActiveSession = async () => {
+    try {
+      const response = await apiService.request('/api/workouts/active-session/');
+      if (response.has_active_session && response.session_id) {
+        setSessionId(response.session_id);
+      }
+    } catch (error) {
+      console.error('[WorkoutPage] Error checking active session:', error);
+    }
+  };
 
   const fetchTodayWorkout = async () => {
     try {
@@ -189,11 +201,21 @@ export default function WorkoutPage() {
       
       if (activePlanResponse.has_active_plan && activePlanResponse.plan) {
         const planId = activePlanResponse.plan.planId || activePlanResponse.plan.id;
+        const isCustomPlan = activePlanResponse.plan.isCustomPlan || activePlanResponse.plan.is_custom_plan || false;
+        const customPlanId = activePlanResponse.plan.customPlanId || activePlanResponse.plan.custom_plan_id;
         
         // Pobierz szczegóły planu
         const { RecommendationService } = await import('../services/recommendationService');
         const recApi = new RecommendationService();
-        const planDetails = await recApi.getPlanDetailed(planId);
+        
+        let planDetails;
+        if (isCustomPlan && customPlanId) {
+          // Dla custom plans użyj getCustomPlan
+          planDetails = await recApi.getCustomPlan(customPlanId);
+        } else {
+          // Dla standardowych planów użyj getPlanDetailed
+          planDetails = await recApi.getPlanDetailed(planId);
+        }
         
         const plan = planDetails.plan || planDetails;
         if (plan.days && Array.isArray(plan.days)) {
@@ -406,6 +428,9 @@ export default function WorkoutPage() {
       });
 
       notify.success('🎉 Trening zakończony! Świetna robota!');
+      
+      // Oznacz że sesja została zakończona (dla DashboardPage)
+      localStorage.setItem('workout_finished', 'true');
       
       // Pokaż modal notatki treningowej
       setTimeout(() => setShowJournalModal(true), 500);
@@ -698,40 +723,47 @@ export default function WorkoutPage() {
       {/* Modale */}
       {/* Journal Note Modal */}
       {showJournalModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg mx-4 rounded-2xl bg-gradient-to-br from-gray-900 to-black border border-white/20 p-8 shadow-2xl">
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
-                <IconKit.Notebook size="lg" /> Jak minął trening?
-              </h3>
-              <p className="text-gray-400 text-sm">
-                Dodaj notatkę o treningu - jak się czułeś, co chcesz poprawić, co poszło dobrze
-              </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowJournalModal(false)}>
+          <div className="relative w-full max-w-lg rounded-3xl border border-white/10 bg-[#0b0b0b] p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">Jak minął trening?</h3>
+                <p className="text-gray-400 text-sm">
+                  Dodaj notatkę o treningu - jak się czułeś, co chcesz poprawić, co poszło dobrze
+                </p>
+              </div>
+              <button
+                onClick={() => setShowJournalModal(false)}
+                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
+              >
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
             <textarea
               value={journalNote}
               onChange={(e) => setJournalNote(e.target.value)}
               placeholder="Np. Świetny trening! Udało mi się podnieść więcej na wyciskaniu. Czuję się zmęczony, ale zadowolony. #PR #motywacja"
-              className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 resize-none mb-4"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20 resize-none mb-4"
               rows="6"
               autoFocus
             />
 
-            <div className="text-xs text-gray-400 mb-4">
-              💡 Wskazówka: Możesz używać tagów jak #PR, #zmęczenie, #świetnytrening
-            </div>
-
             <div className="flex gap-3">
               <button
                 onClick={skipJournalNote}
-                className="flex-1 px-6 py-3 rounded-xl border-2 border-white/20 text-gray-300 font-medium hover:bg-white/5 transition-colors"
+                className="flex-1 rounded-lg border-2 border-white/20 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200"
               >
                 Pomiń
               </button>
-              <PrimaryButton onClick={saveJournalNote} className="flex-1">
-                <IconKit.Document size="sm" className="inline" /> Zapisz notatkę
-              </PrimaryButton>
+              <button
+                onClick={saveJournalNote}
+                className="flex-1 rounded-lg border-2 border-emerald-400/60 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 px-4 py-3 text-sm font-semibold text-emerald-300 hover:from-emerald-500/30 hover:to-teal-500/30 hover:border-emerald-400 transition-all duration-200"
+              >
+                Zapisz notatkę
+              </button>
             </div>
           </div>
         </div>
