@@ -66,9 +66,70 @@ const ErrorState = ({ message }) => (
   </div>
 );
 
+// Komponent wykresu słupkowego
+const BarChart = ({ data, color = '#10B981', height = 200, title }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center" style={{ height: `${height}px` }}>
+        <p className="text-gray-500">Brak danych</p>
+      </div>
+    );
+  }
+
+  const maxCount = Math.max(...data.map(d => d.count || 0));
+  const chartHeight = height - 50; // miejsce na osie i etykiety
+
+  return (
+    <div className="relative" style={{ height: `${height}px` }}>
+      {/* Oś Y - wartości */}
+      {maxCount > 0 && (
+        <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-gray-500 w-10 pr-2 text-right">
+          <span>{maxCount}</span>
+          <span>{Math.round(maxCount / 2)}</span>
+          <span>0</span>
+        </div>
+      )}
+      
+      {/* Wykres */}
+      <div className="absolute left-10 right-0 bottom-8 top-0 flex items-end justify-between gap-0.5">
+        {data.map((item, index) => {
+          const barHeight = maxCount > 0 ? ((item.count || 0) / maxCount) * chartHeight : 0;
+          const date = item.date ? new Date(item.date) : null;
+          const dateLabel = date ? `${date.getDate()}/${date.getMonth() + 1}` : '';
+          const showLabel = index % Math.max(1, Math.ceil(data.length / 10)) === 0;
+          
+          return (
+            <div 
+              key={index} 
+              className="flex-1 flex flex-col items-center justify-end group relative h-full"
+            >
+              <div 
+                className="w-full rounded-t transition-all duration-200 hover:opacity-90 cursor-pointer border-t border-white/20"
+                style={{ 
+                  height: `${Math.max(barHeight, 2)}px`,
+                  background: `linear-gradient(to top, ${color}, ${color}80)`,
+                  minHeight: item.count > 0 ? '3px' : '0'
+                }}
+                title={`${item.date?.split('T')[0] || 'N/A'}: ${item.count}`}
+              />
+              {showLabel && (
+                <span className="text-[10px] text-gray-500 mt-1 whitespace-nowrap">
+                  {dateLabel}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const AdminDashboard = () => {
   const [summary, setSummary] = useState(null);
   const [recoStats, setRecoStats] = useState(null);
+  const [trainingStats, setTrainingStats] = useState(null);
+  const [activityStats, setActivityStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -76,12 +137,16 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [summaryData, statsData] = await Promise.all([
+        const [summaryData, statsData, trainingData, activityData] = await Promise.all([
           adminApi.getDashboardSummary(),
           adminApi.getRecommendationStats(),
+          adminApi.getTrainingStatistics().catch(() => null),
+          adminApi.getUserActivityStatistics().catch(() => null),
         ]);
         setSummary(summaryData?.summary || summaryData);
         setRecoStats(statsData);
+        setTrainingStats(trainingData);
+        setActivityStats(activityData);
       } catch (err) {
         console.error('[AdminDashboard] Błąd pobierania danych:', err);
         setError(err.message || 'Nie udało się załadować danych');
@@ -177,55 +242,164 @@ const AdminDashboard = () => {
             />
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-3">
-            <TrendCard
-              title="Rekomendacje – łączna liczba"
-              value={recoStats?.total_logs ?? '—'}
-              change={recoStats?.total_logs ? Math.round((recoStats?.activations_last_week ?? 0) / Math.max(recoStats?.total_logs || 1, 1) * 100) : 0}
-              help="Odsetek aktywacji planu względem wszystkich rekomendacji w ostatnich 7 dniach"
-              icon={
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
-                </svg>
-              }
-            />
-            <TrendCard
-              title="Średni score rekomendacji"
-              value={recoStats?.average_score ? `${recoStats.average_score.toFixed(1)} / 100` : '—'}
-              change={0}
-              help="Średni wynik dopasowania – wyższy oznacza lepsze rekomendacje"
-              icon={
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                </svg>
-              }
-            />
-            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-black/40 to-black/60 px-6 py-5 hover:border-white/20 transition-all duration-300">
-              <div className="flex items-center gap-2 mb-4">
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
-                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-                <p className="text-sm text-gray-400 font-medium">Wersje algorytmu</p>
-              </div>
-              <div className="space-y-2">
-                {recoStats?.versions?.length ? (
-                  recoStats.versions.map((item) => (
-                    <div key={item.algorithm_version} className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm hover:bg-white/10 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <span className="font-black text-emerald-400">v{item.algorithm_version}</span>
-                        <span className="text-gray-400 text-xs">•</span>
-                        <span className="text-gray-300">{item.count} logów</span>
+          {/* Statystyki rekomendacji */}
+          {recoStats && (
+            <section className="grid gap-4 md:grid-cols-2">
+              <TrendCard
+                title="Rekomendacje – łączna liczba"
+                value={recoStats?.total_logs ?? '—'}
+                change={recoStats?.total_logs && recoStats.total_logs > 0 ? Math.round((recoStats?.activations_last_week ?? 0) / recoStats.total_logs * 100) : 0}
+                help="Odsetek aktywacji planu względem wszystkich rekomendacji w ostatnich 7 dniach"
+                icon={
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
+                  </svg>
+                }
+              />
+              {recoStats?.average_score !== null && recoStats?.average_score !== undefined && recoStats.average_score > 0 && (
+                <TrendCard
+                  title="Średni score rekomendacji"
+                  value={`${recoStats.average_score.toFixed(1)} / 100`}
+                  change={0}
+                  help="Średni wynik dopasowania – wyższy oznacza lepsze rekomendacje"
+                  icon={
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    </svg>
+                  }
+                />
+              )}
+            </section>
+          )}
+
+          {/* Statystyki treningów */}
+          {trainingStats && (
+            <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <StatCard 
+                title="Sesje treningowe" 
+                value={trainingStats.total_sessions ?? '—'} 
+                sublabel={`Ostatnie 7 dni: ${trainingStats.sessions_last_7_days ?? 0}`}
+                icon={
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                }
+              />
+              <StatCard 
+                title="Łączny czas" 
+                value={trainingStats.total_duration_minutes ? `${Math.round(trainingStats.total_duration_minutes / 60)}h` : '—'} 
+                sublabel={`Średnio: ${trainingStats.avg_session_duration ? Math.round(trainingStats.avg_session_duration) : 0}min`}
+                icon={
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                }
+              />
+              <StatCard 
+                title="Wolumen treningowy" 
+                value={trainingStats.total_volume_kg ? `${Math.round(trainingStats.total_volume_kg / 1000)}t` : '—'} 
+                sublabel="Łączna masa (kg × powtórzenia)"
+                icon={
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400">
+                    <path d="M6 3h12l4 6-10 13L2 9z" />
+                  </svg>
+                }
+              />
+              <StatCard 
+                title="Aktywni trenujący" 
+                value={trainingStats.users_with_sessions ?? '—'} 
+                sublabel="Użytkownicy z co najmniej 1 sesją"
+                icon={
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                }
+              />
+            </section>
+          )}
+
+          {/* Top ćwiczenia */}
+          {trainingStats?.top_exercises && trainingStats.top_exercises.length > 0 && (
+            <section>
+              <h2 className="text-xl font-bold text-white mb-4">Top 10 Ćwiczeń</h2>
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-black/40 to-black/60 p-6">
+                <div className="grid gap-3">
+                  {trainingStats.top_exercises.map((exercise, index) => (
+                    <div key={exercise.id} className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3 hover:bg-white/10 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-sm font-bold text-emerald-400">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white">{exercise.name}</div>
+                          <div className="text-xs text-gray-400">{exercise.muscle_group}</div>
+                        </div>
                       </div>
-                      <span className="font-bold text-emerald-300 tabular-nums">{item.average_score?.toFixed(1) ?? '—'}</span>
+                      <div className="flex items-center gap-6 text-sm">
+                        <div className="text-right">
+                          <div className="text-gray-400 text-xs">Sesje</div>
+                          <div className="font-bold text-white">{exercise.session_count}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-gray-400 text-xs">Serie</div>
+                          <div className="font-bold text-white">{exercise.set_count}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-gray-400 text-xs">Wolumen</div>
+                          <div className="font-bold text-emerald-400">{Math.round(exercise.total_volume / 1000)}t</div>
+                        </div>
+                      </div>
                     </div>
-                  ))
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Wykresy aktywności */}
+          <section className="grid gap-6 lg:grid-cols-2">
+            {/* Wykres rejestracji użytkowników */}
+            {activityStats?.registrations_by_day ? (
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-black/40 to-black/60 p-6">
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold text-white">Zarejestrowani użytkownicy</h3>
+                  <p className="text-sm text-gray-400 mt-1">Rejestracje w ostatnich 30 dniach</p>
+                </div>
+                {activityStats.registrations_by_day.length > 0 ? (
+                  <BarChart 
+                    data={activityStats.registrations_by_day} 
+                    color="#10B981" 
+                    height={280}
+                  />
                 ) : (
-                  <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-6 text-center">
-                    <p className="text-xs text-gray-500">Brak danych o wersjach algorytmu.</p>
-                  </div>
+                  <div className="text-center text-gray-500 py-12">Brak danych</div>
                 )}
               </div>
-            </div>
+            ) : null}
+
+            {/* Wykres sesji treningowych */}
+            {trainingStats?.sessions_by_day ? (
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-black/40 to-black/60 p-6">
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold text-white">Sesje treningowe</h3>
+                  <p className="text-sm text-gray-400 mt-1">Sesje w ostatnich 30 dniach</p>
+                </div>
+                {trainingStats.sessions_by_day.length > 0 ? (
+                  <BarChart 
+                    data={trainingStats.sessions_by_day} 
+                    color="#3B82F6" 
+                    height={280}
+                  />
+                ) : (
+                  <div className="text-center text-gray-500 py-12">Brak danych</div>
+                )}
+              </div>
+            ) : null}
           </section>
         </>
       )}

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import adminApi from '../../services/adminApi';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const PlanRow = ({ plan, onSelect }) => (
   <tr className="border-b border-white/5 hover:bg-white/5">
@@ -58,6 +59,7 @@ const PlanDetail = ({ plan }) => (
 );
 
 const AdminPlans = () => {
+  const notify = useNotification();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,7 +95,15 @@ const AdminPlans = () => {
     fetchPlans();
   }, [page, pageSize, filters]);
 
-  const handleExport = () => adminApi.exportPlansCsv();
+  const handleExport = async () => {
+    try {
+      await adminApi.exportPlansCsv();
+      notify.success('Plik CSV został pobrany');
+    } catch (error) {
+      console.error('[AdminPlans] Błąd eksportu:', error);
+      notify.error(error.message || 'Nie udało się pobrać pliku CSV');
+    }
+  };
 
   const handleSelectPlan = async (planId) => {
     try {

@@ -77,6 +77,7 @@ statistics_urlpatterns = [
     path('heatmap/', statistics_views.get_training_heatmap, name='get-training-heatmap'),
     path('general/', statistics_views.get_general_statistics, name='get-general-statistics'),
     path('exercises/', statistics_views.get_exercise_statistics, name='get-exercise-statistics'),
+    path('public/', statistics_views.get_public_statistics, name='get-public-statistics'),
 ]
 
 # Community URLs (mapped under /api/community/)

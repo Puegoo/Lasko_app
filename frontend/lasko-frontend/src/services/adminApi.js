@@ -1,4 +1,5 @@
 import apiService from './api';
+import { getAccessToken } from './authService';
 
 const buildQueryString = (params = {}) => {
   const entries = Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '');
@@ -78,15 +79,61 @@ const adminApi = {
     });
   },
 
-  // CSV exports
-  exportUsersCsv() {
-    window.open('/api/admin/users/export/', '_blank', 'noopener');
+  // CSV exports - helper function to download CSV
+  async _downloadCsv(endpoint, filename) {
+    try {
+      const token = getAccessToken();
+      if (!token) {
+        throw new Error('Brak tokenu autoryzacji');
+      }
+
+      // Użyj tego samego base URL co apiService (pusty string = używa proxy Vite)
+      const baseURL = '';
+      const url = `${baseURL}${endpoint}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Błąd pobierania pliku' }));
+        throw new Error(errorData.detail || 'Błąd pobierania pliku');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(blobUrl);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('[adminApi] Błąd eksportu CSV:', error);
+      throw error;
+    }
   },
-  exportExercisesCsv() {
-    window.open('/api/admin/exercises/export/', '_blank', 'noopener');
+
+  async exportUsersCsv() {
+    await this._downloadCsv('/api/admin/users/export/', 'users.csv');
   },
-  exportPlansCsv() {
-    window.open('/api/admin/plans/export/', '_blank', 'noopener');
+  async exportExercisesCsv() {
+    await this._downloadCsv('/api/admin/exercises/export/', 'exercises.csv');
+  },
+  async exportPlansCsv() {
+    await this._downloadCsv('/api/admin/plans/export/', 'training_plans.csv');
+  },
+
+  // Statistics
+  async getTrainingStatistics() {
+    return apiService.request('/api/admin/statistics/training/');
+  },
+  async getUserActivityStatistics() {
+    return apiService.request('/api/admin/statistics/user-activity/');
   },
 };
 

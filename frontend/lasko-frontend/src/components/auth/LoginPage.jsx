@@ -227,7 +227,7 @@ const LoginPage = () => {
         <div className="text-center mt-6">
           <p className="text-gray-500 text-sm">
             Masz problemy z logowaniem?{' '}
-            <Link to="/help" className="text-[#1DCD9F] hover:text-white transition-colors">
+            <Link to="/contact" className="text-[#1DCD9F] hover:text-white transition-colors">
               Skontaktuj się z nami
             </Link>
           </p>

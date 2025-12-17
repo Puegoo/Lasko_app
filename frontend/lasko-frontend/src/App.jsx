@@ -4,6 +4,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import apiService from './services/api';
 
 // Komponenty
 import RegistrationContainer from './components/register/RegistrationContainer.jsx';
@@ -143,6 +144,11 @@ const HomePage = () => {
   const [open, setOpen] = useState(false);
   const [showPlanDropdown, setShowPlanDropdown] = useState(false);
   const planButtonRef = useRef(null);
+  const [stats, setStats] = useState({
+    users: '10k+',
+    plans: '1 200',
+    exercises: '46'
+  });
 
   // Lokalny IconButton spójny z dashboardem
   const IconButton = ({ icon, tooltip, onClick, to, className = '' }) => {
@@ -191,6 +197,40 @@ const HomePage = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showPlanDropdown]);
+
+  // Pobierz statystyki publiczne
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await apiService.request('/api/statistics/public/');
+        if (response.success && response.stats) {
+          const { users, plans, exercises } = response.stats;
+          
+          // Formatuj liczby
+          const formatUsers = users >= 10000 
+            ? `${Math.floor(users / 1000)}k+` 
+            : users.toLocaleString('pl-PL');
+          
+          const formatPlans = plans >= 1000 
+            ? plans.toLocaleString('pl-PL').replace(',', ' ')
+            : plans.toString();
+          
+          const formatExercises = exercises.toString();
+          
+          setStats({
+            users: formatUsers,
+            plans: formatPlans,
+            exercises: formatExercises
+          });
+        }
+      } catch (error) {
+        console.error('[HomePage] Error fetching public statistics:', error);
+        // Zostaw domyślne wartości w przypadku błędu
+      }
+    };
+    
+    fetchStats();
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black">
@@ -407,9 +447,9 @@ const HomePage = () => {
 
             <div className="mt-4 grid grid-cols-3 gap-4 max-w-lg">
               {[
-                { v: '10k+', l: 'użytkowników' },
-                { v: '1 200', l: 'planów' },
-                { v: '46', l: 'ćwiczeń' },
+                { v: stats.users, l: 'użytkowników' },
+                { v: stats.plans, l: 'planów' },
+                { v: stats.exercises, l: 'ćwiczeń' },
               ].map((s, i) => (
                 <div key={i} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
                   <div className="text-xl font-extrabold text-white">{s.v}</div>

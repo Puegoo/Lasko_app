@@ -793,6 +793,145 @@ def recommendation_stats(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdmin])
+def training_statistics(request):
+    """Statystyki treningów - sesje, wolumen, aktywność w czasie"""
+    stats = {
+        "total_sessions": 0,
+        "total_duration_minutes": 0,
+        "avg_session_duration": 0.0,
+        "total_volume_kg": 0.0,
+        "sessions_last_7_days": 0,
+        "users_with_sessions": 0,
+        "sessions_by_day": [],
+        "top_exercises": [],
+    }
+    
+    last_7_days = datetime.utcnow() - timedelta(days=7)
+    last_30_days = datetime.utcnow() - timedelta(days=30)
+
+    with connection.cursor() as cursor:
+        # Podstawowe statystyki sesji
+        cursor.execute("SELECT COUNT(*), SUM(duration_minutes), AVG(duration_minutes) FROM training_sessions")
+        row = cursor.fetchone()
+        stats["total_sessions"] = row[0] or 0
+        stats["total_duration_minutes"] = int(row[1] or 0)
+        stats["avg_session_duration"] = float(row[2] or 0.0)
+
+        # Sesje w ostatnich 7 dniach
+        cursor.execute(
+            "SELECT COUNT(*) FROM training_sessions WHERE session_date >= %s",
+            [last_7_days]
+        )
+        stats["sessions_last_7_days"] = cursor.fetchone()[0]
+
+        # Użytkownicy z sesjami
+        cursor.execute("SELECT COUNT(DISTINCT auth_account_id) FROM training_sessions")
+        stats["users_with_sessions"] = cursor.fetchone()[0]
+
+        # Wolumen treningowy (weight * reps)
+        cursor.execute("""
+            SELECT COALESCE(SUM(weight_kg * reps), 0)
+            FROM logged_sets
+        """)
+        volume_row = cursor.fetchone()
+        stats["total_volume_kg"] = float(volume_row[0] or 0.0)
+
+        # Sesje w ostatnich 30 dniach (dla wykresu)
+        cursor.execute("""
+            SELECT DATE(session_date) as day, COUNT(*) as count
+            FROM training_sessions
+            WHERE session_date >= %s
+            GROUP BY DATE(session_date)
+            ORDER BY day
+        """, [last_30_days])
+        stats["sessions_by_day"] = [
+            {"date": row[0].isoformat() if row[0] else None, "count": row[1]}
+            for row in cursor.fetchall()
+        ]
+
+        # Top 10 ćwiczeń (najczęściej trenowane)
+        cursor.execute("""
+            SELECT e.id, e.name, e.muscle_group, COUNT(DISTINCT ls.session_id) as session_count,
+                   COUNT(ls.id) as set_count, SUM(ls.weight_kg * ls.reps) as total_volume
+            FROM exercises e
+            JOIN logged_sets ls ON e.id = ls.exercise_id
+            GROUP BY e.id, e.name, e.muscle_group
+            ORDER BY session_count DESC
+            LIMIT 10
+        """)
+        stats["top_exercises"] = [
+            {
+                "id": row[0],
+                "name": row[1],
+                "muscle_group": row[2],
+                "session_count": row[3],
+                "set_count": row[4],
+                "total_volume": float(row[5] or 0.0),
+            }
+            for row in cursor.fetchall()
+        ]
+
+    return Response(stats)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdmin])
+def user_activity_statistics(request):
+    """Statystyki aktywności użytkowników - rejestracje w czasie"""
+    stats = {
+        "registrations_by_day": [],
+        "registrations_by_month": [],
+        "active_users_count": 0,
+        "new_users_last_7_days": 0,
+        "new_users_last_30_days": 0,
+    }
+
+    last_30_days = datetime.utcnow() - timedelta(days=30)
+    last_7_days = datetime.utcnow() - timedelta(days=7)
+    last_12_months = datetime.utcnow() - timedelta(days=365)
+
+    with connection.cursor() as cursor:
+        # Aktywni użytkownicy
+        cursor.execute("SELECT COUNT(*) FROM auth_accounts WHERE is_active = TRUE")
+        stats["active_users_count"] = cursor.fetchone()[0]
+
+        # Nowi użytkownicy w ostatnich 7 i 30 dniach
+        cursor.execute("SELECT COUNT(*) FROM auth_accounts WHERE date_joined >= %s", [last_7_days])
+        stats["new_users_last_7_days"] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM auth_accounts WHERE date_joined >= %s", [last_30_days])
+        stats["new_users_last_30_days"] = cursor.fetchone()[0]
+
+        # Rejestracje w ostatnich 30 dniach (dla wykresu dziennego)
+        cursor.execute("""
+            SELECT DATE(date_joined) as day, COUNT(*) as count
+            FROM auth_accounts
+            WHERE date_joined >= %s AND (is_admin = FALSE OR is_admin IS NULL)
+            GROUP BY DATE(date_joined)
+            ORDER BY day
+        """, [last_30_days])
+        stats["registrations_by_day"] = [
+            {"date": row[0].isoformat() if row[0] else None, "count": row[1]}
+            for row in cursor.fetchall()
+        ]
+
+        # Rejestracje w ostatnich 12 miesiącach (dla wykresu miesięcznego)
+        cursor.execute("""
+            SELECT DATE_TRUNC('month', date_joined) as month, COUNT(*) as count
+            FROM auth_accounts
+            WHERE date_joined >= %s AND (is_admin = FALSE OR is_admin IS NULL)
+            GROUP BY DATE_TRUNC('month', date_joined)
+            ORDER BY month
+        """, [last_12_months])
+        stats["registrations_by_month"] = [
+            {"date": row[0].isoformat() if row[0] else None, "count": row[1]}
+            for row in cursor.fetchall()
+        ]
+
+    return Response(stats)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdmin])
 def recommendation_logs(request):
     page = max(int(request.query_params.get('page', 1)), 1)
     page_size = min(max(int(request.query_params.get('page_size', 20)), 1), 100)

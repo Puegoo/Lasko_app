@@ -131,8 +131,14 @@ const AdminUsers = () => {
     fetchUsers();
   }, [page, pageSize, search, statusFilter]);
 
-  const handleExport = () => {
-    adminApi.exportUsersCsv();
+  const handleExport = async () => {
+    try {
+      await adminApi.exportUsersCsv();
+      notify.success('Plik CSV został pobrany');
+    } catch (error) {
+      console.error('[AdminUsers] Błąd eksportu:', error);
+      notify.error(error.message || 'Nie udało się pobrać pliku CSV');
+    }
   };
 
   return (

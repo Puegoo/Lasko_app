@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import adminApi from '../../services/adminApi';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const ExerciseCard = ({ exercise }) => (
   <div className="rounded-2xl border border-white/10 bg-black/30 p-4 transition-shadow hover:shadow-[0_15px_40px_rgba(16,185,129,0.15)]">
@@ -16,6 +17,7 @@ const ExerciseCard = ({ exercise }) => (
 );
 
 const AdminExercises = () => {
+  const notify = useNotification();
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,8 +41,14 @@ const AdminExercises = () => {
     fetchExercises();
   }, [search, group, type]);
 
-  const handleExport = () => {
-    adminApi.exportExercisesCsv();
+  const handleExport = async () => {
+    try {
+      await adminApi.exportExercisesCsv();
+      notify.success('Plik CSV został pobrany');
+    } catch (error) {
+      console.error('[AdminExercises] Błąd eksportu:', error);
+      notify.error(error.message || 'Nie udało się pobrać pliku CSV');
+    }
   };
 
   return (

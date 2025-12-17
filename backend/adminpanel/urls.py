@@ -17,4 +17,6 @@ urlpatterns = [
     path('plans/export/', views.export_plans_csv, name='admin-plans-export'),
     path('recommendations/stats/', views.recommendation_stats, name='admin-recommendations-stats'),
     path('recommendations/logs/', views.recommendation_logs, name='admin-recommendations-logs'),
+    path('statistics/training/', views.training_statistics, name='admin-statistics-training'),
+    path('statistics/user-activity/', views.user_activity_statistics, name='admin-statistics-user-activity'),
 ]

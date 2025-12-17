@@ -4,7 +4,7 @@ Wykresy wolumenu, częstotliwości, heatmap kalendarz
 """
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import connection
@@ -412,6 +412,64 @@ def get_exercise_statistics(request):
         logger.error(traceback.format_exc())
         return Response({
             "error": "Server error fetching exercise statistics",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# PUBLIC STATISTICS - Statystyki Publiczne (bez autoryzacji)
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_public_statistics(request):
+    """
+    GET /api/statistics/public/
+    Pobierz publiczne statystyki (liczba użytkowników, planów, ćwiczeń)
+    Nie wymaga autoryzacji
+    """
+    try:
+        with connection.cursor() as cursor:
+            # Liczba użytkowników (bez adminów)
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM auth_accounts 
+                WHERE (is_admin = FALSE OR is_admin IS NULL) 
+                  AND (is_superuser = FALSE OR is_superuser IS NULL)
+            """)
+            users_count = cursor.fetchone()[0] or 0
+            
+            # Liczba planów treningowych (tylko bazowe)
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM training_plans 
+                WHERE is_base_plan = TRUE AND is_active = TRUE
+            """)
+            plans_count = cursor.fetchone()[0] or 0
+            
+            # Liczba ćwiczeń
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM exercises
+            """)
+            exercises_count = cursor.fetchone()[0] or 0
+            
+            logger.info(f"[GetPublicStatistics] Users: {users_count}, Plans: {plans_count}, Exercises: {exercises_count}")
+            
+            return Response({
+                "success": True,
+                "stats": {
+                    "users": users_count,
+                    "plans": plans_count,
+                    "exercises": exercises_count
+                }
+            }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"[GetPublicStatistics] Exception: {e}")
+        logger.error(traceback.format_exc())
+        return Response({
+            "error": "Server error fetching public statistics",
             "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

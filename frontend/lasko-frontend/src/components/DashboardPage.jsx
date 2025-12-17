@@ -92,8 +92,9 @@ const GhostButton = ({ onClick, children, className = '' }) => (
 
 
 // Navbar
-const Navbar = ({ username }) => {
+const Navbar = ({ username, user }) => {
   const { logout } = useAuth();
+  const isAdmin = user?.is_admin || user?.is_superuser;
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [showPlanDropdown, setShowPlanDropdown] = useState(false);
@@ -228,16 +229,18 @@ const Navbar = ({ username }) => {
               </>
             )}
           </div>
-          <IconButton
-            icon={
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            }
-            tooltip="Ustawienia"
-            to="/settings"
-          />
+          {!isAdmin && (
+            <IconButton
+              icon={
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              }
+              tooltip="Ustawienia"
+              to="/settings"
+            />
+          )}
           <IconButton
             icon={
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -332,17 +335,19 @@ const Navbar = ({ username }) => {
                 </div>
               )}
             </div>
-            <Link 
-              to="/settings" 
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10"
-            >
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <span>Ustawienia</span>
-            </Link>
+            {!isAdmin && (
+              <Link 
+                to="/settings" 
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-200 hover:bg-white/5 hover:text-white transition-colors border border-transparent hover:border-white/10"
+              >
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Ustawienia</span>
+              </Link>
+            )}
             <button 
               onClick={() => {
                 setOpen(false);
@@ -614,6 +619,10 @@ const DashboardPage = () => {
   const [previousPlanId, setPreviousPlanId] = useState(null); // 🆕 Śledź poprzedni plan ID
   const [weeklyProgress, setWeeklyProgress] = useState(0); // 🆕 Lokalny progress (może być zresetowany)
   const [hasActiveSession, setHasActiveSession] = useState(false); // 🆕 Czy istnieje aktywna sesja treningowa
+  const [hideProfilePrompt, setHideProfilePrompt] = useState(() => {
+    // Sprawdź localStorage przy inicjalizacji
+    return localStorage.getItem('hide_profile_prompt') === 'true';
+  });
 
   // plany przekazane przez nawigację (po aktywacji) - tymczasowe
   const tempActivePlan = location.state?.activePlan;
@@ -850,7 +859,7 @@ const DashboardPage = () => {
       <GlowOrb className="left-[15%] top-32 h-64 w-64 bg-emerald-400/20" />
       <GlowOrb className="right-[20%] bottom-40 h-52 w-52 bg-teal-400/20" />
 
-      <Navbar username={username} />
+      <Navbar username={username} user={user} />
 
       <div className="mx-auto max-w-7xl px-6 pt-28 pb-16">
         {/* Header */}
@@ -1183,7 +1192,7 @@ const DashboardPage = () => {
                   </SecondaryButton>
                 </div>
               </div>
-            ) : (
+            ) : !hideProfilePrompt ? (
               /* 🆕 Komunikat dla użytkowników bez profilu */
               <div className="rounded-3xl border border-yellow-400/20 bg-yellow-400/5 p-8">
                 <div className="flex items-start gap-4">
@@ -1195,13 +1204,24 @@ const DashboardPage = () => {
                     <p className="text-gray-300 mb-4">
                       Wypełnij ankietę z preferencjami treningowymi, a system AI wygeneruje dla Ciebie spersonalizowane plany treningowe.
                     </p>
-                    <PrimaryButton onClick={() => navigate('/enhanced-plan-creator')}>
-                      Wypełnij ankietę →
-                    </PrimaryButton>
+                    <div className="flex items-center gap-3">
+                      <PrimaryButton onClick={() => navigate('/enhanced-plan-creator')}>
+                        Wypełnij ankietę →
+                      </PrimaryButton>
+                      <button
+                        onClick={() => {
+                          setHideProfilePrompt(true);
+                          localStorage.setItem('hide_profile_prompt', 'true');
+                        }}
+                        className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                      >
+                        Nie dziękuję
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Right column - Profile and Stats */}
@@ -1380,24 +1400,6 @@ const DashboardPage = () => {
                 Otwórz dziennik →
               </SecondaryButton>
             </div>
-
-            {/* Motivational card */}
-            <div className="rounded-3xl bg-gradient-to-br from-emerald-400/10 to-teal-400/10 border border-emerald-400/20 p-6">
-              <h3 className="mb-3 text-lg font-bold text-white flex items-center gap-2">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-yellow-400">
-                  <path d="M9 21h6M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Wskazówka dnia
-              </h3>
-              <p className="text-sm text-gray-300">
-                Regularność jest kluczem do sukcesu. Nawet krótki trening jest lepszy niż żaden!
-              </p>
-              <div className="mt-4">
-                <SecondaryButton to="/tips">
-                  Więcej porad →
-                </SecondaryButton>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -1405,7 +1407,7 @@ const DashboardPage = () => {
         <footer className="mt-16 text-center">
           <p className="text-sm text-gray-500">
             Potrzebujesz pomocy?{' '}
-            <Link to="/help" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+            <Link to="/contact" className="text-emerald-400 hover:text-emerald-300 transition-colors">
               Skontaktuj się z nami
             </Link>
           </p>
