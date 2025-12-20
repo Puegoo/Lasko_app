@@ -298,13 +298,12 @@ export default function PlansPage() {
             </div>
 
             {/* Clear filters button */}
-            {(searchQuery || goalFilter || levelFilter || daysFilter || equipmentFilter) && (
+            {equipmentFilter && (
               <div className="flex items-end">
                 <button
-                  onClick={clearFilters}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-gray-400 hover:text-white"
+                  onClick={() => setEquipmentFilter('')}
+                  className="w-full px-4 py-3 rounded-xl bg-emerald-400 text-black font-semibold hover:bg-emerald-500 transition-colors"
                 >
-                  <IconKit.Close size="xs" className="inline mr-2" />
                   Wyczyść filtry
                 </button>
               </div>

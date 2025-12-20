@@ -1496,7 +1496,7 @@ const generateRecommendedPlan = async () => {
     <div className="sticky top-28">
       <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
         <h3 className="mb-6 text-xl font-bold text-white flex items-center gap-2">
-          <span>📊</span> Podsumowanie planu
+          Podsumowanie planu
         </h3>
 
         <div className="space-y-4">
@@ -1641,7 +1641,7 @@ const generateRecommendedPlan = async () => {
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-2">
-                      <span>🚀</span> Wygeneruj plan
+                      Wygeneruj plan
                     </span>
                   )}
                 </PrimaryButton>

@@ -10,6 +10,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer  # DODANE!
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
 
 from .models import AuthAccount, UserProfile
 from .serializers import (
@@ -27,6 +29,33 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # REJESTRACJA - NAPRAWIONA WERSJA
 # ============================================================================
+@extend_schema(
+    request=UserRegistrationSerializer,
+    responses={
+        201: OpenApiTypes.OBJECT,
+        400: OpenApiTypes.OBJECT,
+        500: OpenApiTypes.OBJECT,
+    },
+    examples=[
+        OpenApiExample(
+            'Przykład rejestracji',
+            value={
+                'username': 'test_user',
+                'email': 'test@example.com',
+                'password': 'test123456',
+                'password_confirm': 'test123456',
+                'first_name': 'Test',
+                'goal': 'masa_mięśniowa',
+                'level': 'początkujący',
+                'training_days_per_week': 3,
+                'equipment_preference': 'siłownia'
+            },
+            request_only=True,
+        ),
+    ],
+    summary='Rejestracja nowego użytkownika',
+    description='Rejestracja nowego użytkownika z opcjonalnym profilem treningowym. Zwraca tokeny JWT po pomyślnej rejestracji.'
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
@@ -98,6 +127,34 @@ def register(request):
 # ============================================================================
 # LOGOWANIE - NAPRAWIONA WERSJA
 # ============================================================================
+@extend_schema(
+    request=UserLoginSerializer,
+    responses={
+        200: OpenApiTypes.OBJECT,
+        400: OpenApiTypes.OBJECT,
+        401: OpenApiTypes.OBJECT,
+    },
+    examples=[
+        OpenApiExample(
+            'Przykład logowania',
+            value={
+                'username': 'test_user',
+                'password': 'test123456'
+            },
+            request_only=True,
+        ),
+        OpenApiExample(
+            'Przykład logowania przez email',
+            value={
+                'email': 'test@example.com',
+                'password': 'test123456'
+            },
+            request_only=True,
+        ),
+    ],
+    summary='Logowanie użytkownika',
+    description='Logowanie użytkownika przez username lub email. Zwraca tokeny JWT (access i refresh).'
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):

@@ -11,6 +11,8 @@ from django.db import connection
 from datetime import datetime
 import logging
 import traceback
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,40 @@ logger = logging.getLogger(__name__)
 # SIMILAR USERS - Podobni Użytkownicy
 # ============================================================================
 
+@extend_schema(
+    summary='Podobni użytkownicy',
+    description='Pobierz listę podobnych użytkowników na podstawie algorytmu k-NN z obsługą paginacji.',
+    parameters=[
+        OpenApiParameter(
+            name='page',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Numer strony (domyślnie: 1)',
+            required=False
+        ),
+        OpenApiParameter(
+            name='limit',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Liczba elementów na stronę (domyślnie: 20)',
+            required=False
+        ),
+        OpenApiParameter(
+            name='min_score',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Minimalny wynik podobieństwa (0-100, domyślnie: 50)',
+            required=False,
+            examples=[OpenApiExample('Minimum 50%', value=50), OpenApiExample('Minimum 70%', value=70)]
+        ),
+    ],
+    responses={
+        200: {
+            'description': 'Lista podobnych użytkowników z metadanymi paginacji',
+        }
+    },
+    tags=['Społeczność']
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_similar_users(request):
@@ -122,6 +158,65 @@ def get_similar_users(request):
 # SEARCH USERS - Wyszukiwanie Użytkowników
 # ============================================================================
 
+@extend_schema(
+    summary='Wyszukiwanie użytkowników z SFWP',
+    description='Wyszukaj użytkowników w społeczności z obsługą Sortowania, Filtrowania, Wyszukiwania i Paginacji (SFWP).',
+    parameters=[
+        OpenApiParameter(
+            name='q',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Wyszukiwanie po username lub first_name (case-insensitive)',
+            required=False,
+            examples=[OpenApiExample('Wyszukaj "john"', value='john')]
+        ),
+        OpenApiParameter(
+            name='goal',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Filtrowanie po celu treningowym',
+            required=False,
+            examples=[OpenApiExample('Masa mięśniowa', value='masa_mięśniowa'), OpenApiExample('Redukcja wagi', value='redukcja_wagi')]
+        ),
+        OpenApiParameter(
+            name='level',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Filtrowanie po poziomie zaawansowania',
+            required=False,
+            examples=[OpenApiExample('Początkujący', value='początkujący'), OpenApiExample('Zaawansowany', value='zaawansowany')]
+        ),
+        OpenApiParameter(
+            name='page',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Numer strony (domyślnie: 1)',
+            required=False
+        ),
+        OpenApiParameter(
+            name='limit',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Liczba elementów na stronę (domyślnie: 20)',
+            required=False
+        ),
+        OpenApiParameter(
+            name='ordering',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Sortowanie (format: field lub -field)',
+            required=False,
+            enum=['username', '-username', 'first_name', '-first_name', 'goal', '-goal', 'level', '-level', 'total_workouts', '-total_workouts'],
+            examples=[OpenApiExample('Alfabetycznie', value='username'), OpenApiExample('Najwięcej treningów', value='-total_workouts')]
+        ),
+    ],
+    responses={
+        200: {
+            'description': 'Lista użytkowników z metadanymi paginacji',
+        }
+    },
+    tags=['Społeczność']
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_users(request):
@@ -139,12 +234,33 @@ def search_users(request):
         if not user_id:
             return Response({"error": "Invalid token"}, status=status.HTTP_401_UNAUTHORIZED)
 
+        # Wyszukiwanie (W)
         query = request.query_params.get('q', '').strip()
+        
+        # Filtrowanie (F)
         goal_filter = request.query_params.get('goal', '').strip()
         level_filter = request.query_params.get('level', '').strip()
+        
+        # Paginacja (P)
         limit = int(request.query_params.get('limit', 20))
         page = int(request.query_params.get('page', 1))
         offset = (page - 1) * limit
+        
+        # Sortowanie (S)
+        ordering = request.query_params.get('ordering', 'username').strip()
+        allowed_ordering_fields = {
+            'username': 'aa.username ASC',
+            '-username': 'aa.username DESC',
+            'first_name': 'up.first_name ASC',
+            '-first_name': 'up.first_name DESC',
+            'goal': 'up.goal ASC',
+            '-goal': 'up.goal DESC',
+            'level': 'up.level ASC',
+            '-level': 'up.level DESC',
+            'total_workouts': 'total_workouts DESC',
+            '-total_workouts': 'total_workouts ASC',
+        }
+        order_by_clause = allowed_ordering_fields.get(ordering, 'aa.username ASC')
         
         # Build dynamic query
         where_clauses = ["aa.id != %s"]  # Exclude current user
@@ -200,7 +316,7 @@ def search_users(request):
                 WHERE {where_sql}
                 GROUP BY aa.id, aa.username, up.first_name, up.goal, up.level, 
                          up.training_days_per_week, up.equipment_preference, up.profile_picture
-                ORDER BY total_workouts DESC
+                ORDER BY {order_by_clause}
                 LIMIT %s OFFSET %s
             """, params)
             

@@ -104,10 +104,16 @@ export default function ExerciseCatalogPage() {
         const params = new URLSearchParams({
           page: pagination.page,
           limit: pagination.limit,
-          muscle_group: filters.muscle_group,
-          type: filters.type,
           search: filters.search
         });
+        
+        if (filters.muscle_group) {
+          params.append('muscle_group', filters.muscle_group);
+        }
+        
+        if (filters.type) {
+          params.append('type', filters.type);
+        }
 
         const response = await apiService.request(`/api/exercises/?${params}`);
         
@@ -362,12 +368,13 @@ export default function ExerciseCatalogPage() {
                   }}
                 >
                   <option value="" className="bg-gray-900 text-white">Wszystkie partie</option>
-                  <option value="klatka" className="bg-gray-900 text-white">Klatka piersiowa</option>
-                  <option value="plecy" className="bg-gray-900 text-white">Plecy</option>
-                  <option value="nogi" className="bg-gray-900 text-white">Nogi</option>
-                  <option value="ramiona" className="bg-gray-900 text-white">Ramiona</option>
-                  <option value="brzuch" className="bg-gray-900 text-white">Brzuch</option>
-                  <option value="barki" className="bg-gray-900 text-white">Barki</option>
+                  <option value="chest" className="bg-gray-900 text-white">Klatka piersiowa</option>
+                  <option value="back" className="bg-gray-900 text-white">Plecy</option>
+                  <option value="legs" className="bg-gray-900 text-white">Nogi</option>
+                  <option value="shoulders" className="bg-gray-900 text-white">Barki</option>
+                  <option value="biceps" className="bg-gray-900 text-white">Biceps</option>
+                  <option value="triceps" className="bg-gray-900 text-white">Triceps</option>
+                  <option value="core" className="bg-gray-900 text-white">Core / Brzuch</option>
                 </select>
               </div>
             </div>
@@ -390,10 +397,8 @@ export default function ExerciseCatalogPage() {
                   }}
                 >
                   <option value="" className="bg-gray-900 text-white">Wszystkie typy</option>
-                  <option value="strength" className="bg-gray-900 text-white">Siła</option>
-                  <option value="hypertrophy" className="bg-gray-900 text-white">Hipertrofia</option>
-                  <option value="endurance" className="bg-gray-900 text-white">Wytrzymałość</option>
-                  <option value="power" className="bg-gray-900 text-white">Moc</option>
+                  <option value="compound" className="bg-gray-900 text-white">Wielostawowe</option>
+                  <option value="isolation" className="bg-gray-900 text-white">Izolowane</option>
                   <option value="cardio" className="bg-gray-900 text-white">Cardio</option>
                 </select>
               </div>

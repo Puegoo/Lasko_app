@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import IconKit from './ui/IconKit';
 
@@ -224,6 +225,7 @@ const ProfilePictureUpload = ({ currentPicture, onUpload }) => {
 export default function SettingsPage() {
   const navigate = useNavigate();
   const notify = useNotification();
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
@@ -359,6 +361,7 @@ export default function SettingsPage() {
         notify.success('Konto zostało usunięte');
         localStorage.clear();
         sessionStorage.clear();
+        await logout(); // Wywołaj logout aby zaktualizować navbar
         navigate('/');
       }
     } catch (error) {

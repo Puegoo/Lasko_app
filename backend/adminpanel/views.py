@@ -8,6 +8,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
 
 from accounts.models import AuthAccount, UserProfile
 from adminpanel.permissions import IsAdmin
@@ -252,6 +254,84 @@ def dashboard_summary(request):
 # =========================
 
 
+@extend_schema(
+    summary='Lista użytkowników z SFWP',
+    description='Pobierz listę użytkowników z obsługą Sortowania, Filtrowania, Wyszukiwania i Paginacji (SFWP).',
+    parameters=[
+        OpenApiParameter(
+            name='page',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Numer strony (domyślnie: 1)',
+            required=False,
+            examples=[OpenApiExample('Strona 1', value=1), OpenApiExample('Strona 2', value=2)]
+        ),
+        OpenApiParameter(
+            name='page_size',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Liczba elementów na stronę (domyślnie: 20, max: 100)',
+            required=False,
+            examples=[OpenApiExample('20 elementów', value=20), OpenApiExample('50 elementów', value=50)]
+        ),
+        OpenApiParameter(
+            name='search',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Wyszukiwanie po username lub email (case-insensitive, częściowe dopasowanie)',
+            required=False,
+            examples=[OpenApiExample('Wyszukaj "john"', value='john')]
+        ),
+        OpenApiParameter(
+            name='status',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Filtrowanie po statusie konta',
+            required=False,
+            enum=['active', 'inactive'],
+            examples=[OpenApiExample('Tylko aktywni', value='active'), OpenApiExample('Tylko nieaktywni', value='inactive')]
+        ),
+        OpenApiParameter(
+            name='ordering',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Sortowanie (format: field lub -field dla malejącego)',
+            required=False,
+            enum=['username', '-username', 'date_joined', '-date_joined', 'email', '-email', 'id', '-id'],
+            examples=[
+                OpenApiExample('Alfabetycznie A-Z', value='username'),
+                OpenApiExample('Najnowsi najpierw', value='-date_joined'),
+                OpenApiExample('Najstarsi najpierw', value='date_joined')
+            ]
+        ),
+    ],
+    responses={
+        200: {
+            'description': 'Lista użytkowników z metadanymi paginacji',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'results': [
+                            {
+                                'id': 1,
+                                'username': 'user1',
+                                'email': 'user1@example.com',
+                                'is_active': True,
+                                'date_joined': '2025-01-01T00:00:00Z'
+                            }
+                        ],
+                        'pagination': {
+                            'page': 1,
+                            'page_size': 20,
+                            'total': 150
+                        }
+                    }
+                }
+            }
+        }
+    },
+    tags=['Admin - Użytkownicy']
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def list_users(request):
@@ -259,18 +339,30 @@ def list_users(request):
     page_size = min(max(int(request.query_params.get('page_size', 20)), 1), 100)
     search = (request.query_params.get('search') or '').strip()
     status_filter = request.query_params.get('status')
+    ordering = request.query_params.get('ordering', '-date_joined').strip()
 
-    queryset = AuthAccount.objects.all().order_by('-date_joined')
+    queryset = AuthAccount.objects.all()
+    
+    # Wyszukiwanie (W)
     if search:
         queryset = queryset.filter(
             Q(username__icontains=search) | Q(email__icontains=search)
         )
 
+    # Filtrowanie (F)
     if status_filter == 'active':
         queryset = queryset.filter(is_active=True)
     elif status_filter == 'inactive':
         queryset = queryset.filter(is_active=False)
 
+    # Sortowanie (S) - dozwolone pola z walidacją
+    allowed_ordering_fields = ['date_joined', '-date_joined', 'username', '-username', 'email', '-email', 'id', '-id']
+    if ordering in allowed_ordering_fields:
+        queryset = queryset.order_by(ordering)
+    else:
+        queryset = queryset.order_by('-date_joined')  # domyślne sortowanie
+
+    # Paginacja (P)
     subset, total = _paginate_queryset(queryset, page, page_size)
     items = [_serialize_account(acc) for acc in subset]
 
@@ -462,13 +554,222 @@ def _fetch_exercise(exercise_id: int):
     return exercise
 
 
+@extend_schema(
+    summary=' Lista ćwiczeń z pełnym SFWP',
+    description='''
+    **Kompletna demonstracja SFWP (Sorting, Filtering, Searching, Pagination)**
+    
+    Ten endpoint pokazuje wszystkie możliwości SFWP w jednym miejscu:
+    
+    - **S (Sortowanie)**: Sortuj po nazwie, ID, grupie mięśniowej lub typie (rosnąco/malejąco)
+    - **F (Filtrowanie)**: Filtruj po grupie mięśniowej (chest, legs, back, arms, shoulders, core) lub typie (strength, cardio, flexibility)
+    - **W (Wyszukiwanie)**: Wyszukuj po nazwie lub opisie ćwiczenia (case-insensitive, częściowe dopasowanie)
+    - **P (Paginacja)**: Dziel wyniki na strony (page, page_size max 100)
+    
+    **Wszystkie parametry można łączyć w jednym zapytaniu!**
+    
+    **Przykład pełnej kombinacji SFWP:**
+    ```
+    GET /api/admin/exercises/?muscle_group=chest&search=press&ordering=name&page=1&page_size=20
+    ```
+    ''',
+    parameters=[
+        OpenApiParameter(
+            name='page',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='📄 **PAGINACJA (P)**: Numer strony (domyślnie: 1, minimum: 1)',
+            required=False,
+            examples=[
+                OpenApiExample('Strona 1', value=1),
+                OpenApiExample('Strona 2', value=2),
+                OpenApiExample('Strona 3', value=3)
+            ]
+        ),
+        OpenApiParameter(
+            name='page_size',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='📄 **PAGINACJA (P)**: Liczba elementów na stronę (domyślnie: 20, max: 100, minimum: 1)',
+            required=False,
+            examples=[
+                OpenApiExample('10 elementów', value=10),
+                OpenApiExample('20 elementów (domyślnie)', value=20),
+                OpenApiExample('50 elementów', value=50),
+                OpenApiExample('100 elementów (max)', value=100)
+            ]
+        ),
+        OpenApiParameter(
+            name='search',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='🔍 **WYSZUKIWANIE (W)**: Wyszukiwanie po nazwie lub opisie ćwiczenia (case-insensitive, częściowe dopasowanie)',
+            required=False,
+            examples=[
+                OpenApiExample('Wyszukaj "bench"', value='bench'),
+                OpenApiExample('Wyszukaj "press"', value='press'),
+                OpenApiExample('Wyszukaj "squat"', value='squat'),
+                OpenApiExample('Wyszukaj "deadlift"', value='deadlift')
+            ]
+        ),
+        OpenApiParameter(
+            name='muscle_group',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='🔽 **FILTROWANIE (F)**: Filtrowanie po grupie mięśniowej (case-insensitive)',
+            required=False,
+            examples=[
+                OpenApiExample('Klatka piersiowa', value='chest'),
+                OpenApiExample('Nogi', value='legs'),
+                OpenApiExample('Plecy', value='back'),
+                OpenApiExample('Ramiona', value='arms'),
+                OpenApiExample('Barki', value='shoulders'),
+                OpenApiExample('Brzuch', value='core')
+            ]
+        ),
+        OpenApiParameter(
+            name='type',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='🔽 **FILTROWANIE (F)**: Filtrowanie po typie ćwiczenia (case-insensitive)',
+            required=False,
+            examples=[
+                OpenApiExample('Siłowe', value='strength'),
+                OpenApiExample('Cardio', value='cardio'),
+                OpenApiExample('Rozciąganie', value='flexibility'),
+                OpenApiExample('Funkcjonalne', value='functional')
+            ]
+        ),
+        OpenApiParameter(
+            name='ordering',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='📊 **SORTOWANIE (S)**: Sortowanie wyników (format: `field` dla rosnąco, `-field` dla malejąco). Whitelist dozwolonych pól zapewnia bezpieczeństwo.',
+            required=False,
+            enum=['name', '-name', 'id', '-id', 'muscle_group', '-muscle_group', 'type', '-type'],
+            examples=[
+                OpenApiExample('Alfabetycznie A-Z', value='name'),
+                OpenApiExample('Alfabetycznie Z-A', value='-name'),
+                OpenApiExample('Najstarsze najpierw (ID)', value='id'),
+                OpenApiExample('Najnowsze najpierw (ID)', value='-id'),
+                OpenApiExample('Grupa mięśniowa A-Z', value='muscle_group'),
+                OpenApiExample('Typ ćwiczenia A-Z', value='type')
+            ]
+        ),
+    ],
+    responses={
+        200: {
+            'description': 'Lista ćwiczeń z metadanymi paginacji',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'results': [
+                            {
+                                'id': 1,
+                                'name': 'Bench Press',
+                                'muscle_group': 'chest',
+                                'type': 'strength',
+                                'average_rating': 4.5,
+                                'favorite_count': 25
+                            },
+                            {
+                                'id': 2,
+                                'name': 'Incline Bench Press',
+                                'muscle_group': 'chest',
+                                'type': 'strength',
+                                'average_rating': 4.3,
+                                'favorite_count': 18
+                            }
+                        ],
+                        'pagination': {
+                            'page': 1,
+                            'page_size': 20,
+                            'total': 150
+                        }
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Błąd walidacji parametrów',
+        },
+        401: {
+            'description': 'Brak autoryzacji - wymagany token JWT',
+        },
+        403: {
+            'description': 'Brak uprawnień - wymagane uprawnienia administratora',
+        }
+    },
+    examples=[
+        OpenApiExample(
+            'Przykład 1: Podstawowa paginacja',
+            value={
+                'page': 1,
+                'page_size': 20
+            },
+            request_only=True,
+            summary='Tylko paginacja - pierwsza strona, 20 elementów'
+        ),
+        OpenApiExample(
+            'Przykład 2: Wyszukiwanie',
+            value={
+                'search': 'bench'
+            },
+            request_only=True,
+            summary='Wyszukaj wszystkie ćwiczenia zawierające "bench"'
+        ),
+        OpenApiExample(
+            'Przykład 3: Filtrowanie + Sortowanie',
+            value={
+                'muscle_group': 'chest',
+                'ordering': 'name'
+            },
+            request_only=True,
+            summary='Ćwiczenia na klatkę piersiową, posortowane alfabetycznie'
+        ),
+        OpenApiExample(
+            'Przykład 4: Pełna kombinacja SFWP',
+            value={
+                'muscle_group': 'chest',
+                'search': 'press',
+                'ordering': 'name',
+                'page': 1,
+                'page_size': 20
+            },
+            request_only=True,
+            summary=' PEŁNA KOMBINACJA: Filtruj (chest) + Wyszukaj (press) + Sortuj (name) + Paginacja (page 1, 20 elementów)'
+        ),
+    ],
+    tags=['Admin - Ćwiczenia', 'SFWP - Demonstracja']
+)
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def exercises_collection(request):
     if request.method == 'GET':
+        # Paginacja (P)
+        page = max(int(request.query_params.get('page', 1)), 1)
+        page_size = min(max(int(request.query_params.get('page_size', 20)), 1), 100)
+        
+        # Wyszukiwanie (W)
         search = (request.query_params.get('search') or '').strip()
+        
+        # Filtrowanie (F)
         muscle_group = (request.query_params.get('muscle_group') or '').strip()
         exercise_type = (request.query_params.get('type') or '').strip()
+        
+        # Sortowanie (S)
+        ordering = request.query_params.get('ordering', 'name').strip()
+        allowed_ordering_fields = {
+            'name': 'e.name ASC',
+            '-name': 'e.name DESC',
+            'id': 'e.id ASC',
+            '-id': 'e.id DESC',
+            'muscle_group': 'e.muscle_group ASC',
+            '-muscle_group': 'e.muscle_group DESC',
+            'type': 'e.type ASC',
+            '-type': 'e.type DESC',
+        }
+        order_by_clause = allowed_ordering_fields.get(ordering, 'e.name ASC')
 
         query = """
             SELECT e.id, e.name, e.muscle_group, e.type, 
@@ -478,6 +779,7 @@ def exercises_collection(request):
             LEFT JOIN (
                 SELECT exercise_id, AVG(rating) AS avg_rating
                 FROM exercise_feedback
+                WHERE rating IS NOT NULL
                 GROUP BY exercise_id
             ) avg_stats ON avg_stats.exercise_id = e.id
             LEFT JOIN (
@@ -499,9 +801,33 @@ def exercises_collection(request):
         if exercise_type:
             query += " AND LOWER(e.type) = LOWER(%s)"
             params.append(exercise_type)
-        query += " ORDER BY e.name"
+        
+        # Sortowanie
+        query += f" ORDER BY {order_by_clause}"
 
         with connection.cursor() as cursor:
+            # Count total - uproszczona wersja
+            count_params = []
+            count_where = "WHERE 1=1"
+            if search:
+                count_where += " AND (LOWER(e.name) LIKE LOWER(%s) OR LOWER(e.description) LIKE LOWER(%s))"
+                like_term = f"%{search}%"
+                count_params.extend([like_term, like_term])
+            if muscle_group:
+                count_where += " AND LOWER(e.muscle_group) = LOWER(%s)"
+                count_params.append(muscle_group)
+            if exercise_type:
+                count_where += " AND LOWER(e.type) = LOWER(%s)"
+                count_params.append(exercise_type)
+            
+            cursor.execute(f"SELECT COUNT(*) FROM exercises e {count_where}", count_params)
+            total = cursor.fetchone()[0]
+            
+            # Add pagination
+            offset = (page - 1) * page_size
+            query += " LIMIT %s OFFSET %s"
+            params.extend([page_size, offset])
+            
             cursor.execute(query, params)
             rows = cursor.fetchall()
 
@@ -517,7 +843,14 @@ def exercises_collection(request):
             for row in rows
         ]
 
-        return Response({"results": items})
+        return Response({
+            "results": items,
+            "pagination": {
+                "page": page,
+                "page_size": page_size,
+                "total": total,
+            }
+        })
 
     payload = request.data
     required_fields = ['name', 'muscle_group', 'type']
@@ -618,15 +951,91 @@ def exercise_detail(request, exercise_id: int):
 # =========================
 
 
+@extend_schema(
+    summary='Lista planów treningowych z SFWP',
+    description='Pobierz listę planów treningowych z obsługą Sortowania, Filtrowania, Wyszukiwania i Paginacji (SFWP).',
+    parameters=[
+        OpenApiParameter(
+            name='page',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Numer strony (domyślnie: 1)',
+            required=False
+        ),
+        OpenApiParameter(
+            name='page_size',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Liczba elementów na stronę (domyślnie: 20, max: 100)',
+            required=False
+        ),
+        OpenApiParameter(
+            name='search',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Wyszukiwanie po nazwie planu',
+            required=False,
+            examples=[OpenApiExample('Wyszukaj "beginner"', value='beginner')]
+        ),
+        OpenApiParameter(
+            name='goal',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Filtrowanie po typie celu',
+            required=False,
+            examples=[OpenApiExample('Redukcja wagi', value='weight_loss'), OpenApiExample('Masa mięśniowa', value='muscle_gain')]
+        ),
+        OpenApiParameter(
+            name='level',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Filtrowanie po poziomie trudności',
+            required=False,
+            examples=[OpenApiExample('Początkujący', value='beginner'), OpenApiExample('Zaawansowany', value='advanced')]
+        ),
+        OpenApiParameter(
+            name='status',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Filtrowanie po statusie planu',
+            required=False,
+            enum=['active', 'inactive'],
+            examples=[OpenApiExample('Tylko aktywne', value='active')]
+        ),
+        OpenApiParameter(
+            name='ordering',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Sortowanie (format: field lub -field)',
+            required=False,
+            enum=['created_at', '-created_at', 'name', '-name', 'id', '-id', 'goal_type', '-goal_type', 'difficulty_level', '-difficulty_level'],
+            examples=[OpenApiExample('Najnowsze najpierw', value='-created_at'), OpenApiExample('Alfabetycznie', value='name')]
+        ),
+    ],
+    responses={
+        200: {
+            'description': 'Lista planów z metadanymi paginacji',
+        }
+    },
+    tags=['Admin - Plany']
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def plans_collection(request):
+    # Paginacja (P)
+    page = max(int(request.query_params.get('page', 1)), 1)
+    page_size = min(max(int(request.query_params.get('page_size', 20)), 1), 100)
+    
+    # Wyszukiwanie (W)
     search = (request.query_params.get('search') or '').strip()
+    
+    # Filtrowanie (F)
     goal = (request.query_params.get('goal') or '').strip()
     level = (request.query_params.get('level') or '').strip()
     status_filter = request.query_params.get('status')
-    page = max(int(request.query_params.get('page', 1)), 1)
-    page_size = min(max(int(request.query_params.get('page_size', 20)), 1), 100)
+    
+    # Sortowanie (S)
+    ordering = request.query_params.get('ordering', '-created_at').strip()
 
     query = """
         SELECT
@@ -671,7 +1080,21 @@ def plans_collection(request):
     elif status_filter == 'inactive':
         query += " AND tp.is_active = FALSE"
 
-    query += " ORDER BY tp.created_at DESC, tp.id DESC"
+    # Sortowanie (S) - dozwolone pola
+    allowed_ordering_fields = {
+        'created_at': 'tp.created_at ASC',
+        '-created_at': 'tp.created_at DESC',
+        'name': 'tp.name ASC',
+        '-name': 'tp.name DESC',
+        'id': 'tp.id ASC',
+        '-id': 'tp.id DESC',
+        'goal_type': 'tp.goal_type ASC',
+        '-goal_type': 'tp.goal_type DESC',
+        'difficulty_level': 'tp.difficulty_level ASC',
+        '-difficulty_level': 'tp.difficulty_level DESC',
+    }
+    order_by_clause = allowed_ordering_fields.get(ordering, 'tp.created_at DESC, tp.id DESC')
+    query += f" ORDER BY {order_by_clause}"
 
     with connection.cursor() as cursor:
         cursor.execute(query, params)
@@ -930,29 +1353,125 @@ def user_activity_statistics(request):
     return Response(stats)
 
 
+@extend_schema(
+    summary='Logi rekomendacji z SFWP',
+    description='Pobierz logi rekomendacji AI z obsługą Sortowania, Filtrowania, Wyszukiwania i Paginacji (SFWP).',
+    parameters=[
+        OpenApiParameter(
+            name='page',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Numer strony (domyślnie: 1)',
+            required=False
+        ),
+        OpenApiParameter(
+            name='page_size',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Liczba elementów na stronę (domyślnie: 20, max: 100)',
+            required=False
+        ),
+        OpenApiParameter(
+            name='search',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Wyszukiwanie po username lub nazwie planu',
+            required=False,
+            examples=[OpenApiExample('Wyszukaj "user123"', value='user123')]
+        ),
+        OpenApiParameter(
+            name='algorithm_version',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Filtrowanie po wersji algorytmu rekomendacji',
+            required=False,
+            examples=[OpenApiExample('Wersja 2.0', value='v2.0'), OpenApiExample('Wersja 3.0', value='v3.0')]
+        ),
+        OpenApiParameter(
+            name='ordering',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Sortowanie (format: field lub -field)',
+            required=False,
+            enum=['created_at', '-created_at', 'score', '-score', 'username', '-username', 'algorithm_version', '-algorithm_version'],
+            examples=[OpenApiExample('Najnowsze najpierw', value='-created_at'), OpenApiExample('Najwyższy score', value='-score')]
+        ),
+    ],
+    responses={
+        200: {
+            'description': 'Lista logów rekomendacji z metadanymi paginacji',
+        }
+    },
+    tags=['Admin - Rekomendacje']
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def recommendation_logs(request):
+    # Paginacja (P)
     page = max(int(request.query_params.get('page', 1)), 1)
     page_size = min(max(int(request.query_params.get('page_size', 20)), 1), 100)
     offset = (page - 1) * page_size
+    
+    # Wyszukiwanie (W)
+    search = (request.query_params.get('search') or '').strip()
+    
+    # Filtrowanie (F)
+    algorithm_version = (request.query_params.get('algorithm_version') or '').strip()
+    
+    # Sortowanie (S)
+    ordering = request.query_params.get('ordering', '-created_at').strip()
+    allowed_ordering_fields = {
+        'created_at': 'rl.created_at ASC',
+        '-created_at': 'rl.created_at DESC',
+        'score': 'rl.recommendation_score ASC',
+        '-score': 'rl.recommendation_score DESC',
+        'username': 'aa.username ASC',
+        '-username': 'aa.username DESC',
+        'algorithm_version': 'rl.algorithm_version ASC',
+        '-algorithm_version': 'rl.algorithm_version DESC',
+    }
+    order_by_clause = allowed_ordering_fields.get(ordering, 'rl.created_at DESC')
+
+    where_clauses = ["1=1"]
+    params = []
+    
+    # Wyszukiwanie (W) - po username lub plan name
+    if search:
+        where_clauses.append("(aa.username ILIKE %s OR tp.name ILIKE %s)")
+        params.extend([f'%{search}%', f'%{search}%'])
+    
+    # Filtrowanie (F) - po wersji algorytmu
+    if algorithm_version:
+        where_clauses.append("rl.algorithm_version = %s")
+        params.append(algorithm_version)
+    
+    where_sql = " AND ".join(where_clauses)
 
     with connection.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM recommendation_logs")
+        # Count total
+        count_query = f"""
+            SELECT COUNT(*) 
+            FROM recommendation_logs rl
+            LEFT JOIN auth_accounts aa ON aa.id = rl.auth_account_id
+            LEFT JOIN training_plans tp ON tp.id = rl.plan_id
+            WHERE {where_sql}
+        """
+        cursor.execute(count_query, params)
         total = cursor.fetchone()[0]
 
-        cursor.execute(
-            """
+        # Get paginated results
+        query = f"""
             SELECT rl.id, rl.auth_account_id, aa.username, rl.plan_id, tp.name,
                    rl.recommendation_score, rl.algorithm_version, rl.created_at
             FROM recommendation_logs rl
             LEFT JOIN auth_accounts aa ON aa.id = rl.auth_account_id
             LEFT JOIN training_plans tp ON tp.id = rl.plan_id
-            ORDER BY rl.created_at DESC
+            WHERE {where_sql}
+            ORDER BY {order_by_clause}
             LIMIT %s OFFSET %s
-            """,
-            [page_size, offset]
-        )
+        """
+        params.extend([page_size, offset])
+        cursor.execute(query, params)
         rows = cursor.fetchall()
 
     items = [

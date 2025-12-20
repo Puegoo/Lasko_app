@@ -713,7 +713,7 @@ export default function CommunityPage() {
                     className="flex-1 px-6 py-3 rounded-xl bg-emerald-400 text-black font-bold hover:bg-emerald-500 transition-colors"
                   >
                     <span className="inline-flex items-center gap-2">
-                      <IconKit.Search size="sm" />
+                      <IconKit.Search size="xs" />
                       Szukaj
                     </span>
                   </button>

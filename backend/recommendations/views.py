@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db import connection
 from accounts.models import UserProfile, AuthAccount
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
 import logging
 import traceback
 
@@ -214,7 +216,7 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 cb_pct = int(meta.get('cb_weight', 0.75) * 100)
                 cf_pct = int(meta.get('cf_weight', 0.25) * 100)
                 if cb_pct >= 70:
-                    match_reasons.append(f"🎯 Bazuje głównie na Twoich preferencjach ({cb_pct}% treść, {cf_pct}% społeczność)")
+                    match_reasons.append(f"Bazuje głównie na Twoich preferencjach ({cb_pct}% treść, {cf_pct}% społeczność)")
                 elif cf_pct >= 40:
                     match_reasons.append(f"👥 Bazuje na społeczności i preferencjach ({cb_pct}% treść, {cf_pct}% społeczność)")
                 else:
@@ -704,7 +706,7 @@ def activate_plan(request):
                                 plan_id = EXCLUDED.plan_id,
                                 start_date = EXCLUDED.start_date,
                                 is_completed = FALSE
-                        """, [user_id, final_plan_id])
+                            """, [user_id, final_plan_id])
                     else:
                         logger.error(f"[ActivatePlan] Cannot activate custom plan without custom_plan_id column")
                         return Response({
@@ -751,7 +753,7 @@ def plan_detailed(request, plan_id: int):
         if hasattr(request, 'auth') and hasattr(request.auth, 'payload'):
             user_id = request.auth.payload.get('user_id')
         logger.info(f"[PlanDetailed] user_id from token: {user_id}")
-
+        
         data = None
 
         # 0) Sprawdź czy to nie jest custom plan użytkownika
@@ -862,11 +864,11 @@ def plan_detailed(request, plan_id: int):
                 logger.info(f"[PlanDetailed] Engine returned: {details}")
                 logger.info(f"[PlanDetailed] Type of details: {type(details)}")
                 logger.info(f"[PlanDetailed] Keys in details: {list(details.keys()) if isinstance(details, dict) else 'N/A'}")
-
+                
                 # engine może zwrócić klucze int lub str
                 data = details.get(plan_id) or details.get(str(plan_id))
                 logger.info(f"[PlanDetailed] Extracted data from engine: {data}")
-
+                
                 if data:
                     logger.info(f"[PlanDetailed] Type of data: {type(data)}")
                     logger.info(f"[PlanDetailed] Keys in data: {list(data.keys()) if isinstance(data, dict) else 'N/A'}")
@@ -890,7 +892,7 @@ def plan_detailed(request, plan_id: int):
                 """, [plan_id])
                 row = cursor.fetchone()
                 logger.info(f"[PlanDetailed] Database row: {row}")
-
+                
                 if row:
                     data = {
                         "plan_id": row[0],
@@ -921,7 +923,7 @@ def plan_detailed(request, plan_id: int):
         logger.info(f"[PlanDetailed] Length of response_data['plan']['days']: {len(response_data['plan']['days'])}")
         logger.info(f"[PlanDetailed] ===== REQUEST END =====")
         logger.info("=" * 80)
-
+        
         return Response(response_data, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -1035,7 +1037,7 @@ def activate_plan_by_path(request, plan_id: int):
                                 plan_id = EXCLUDED.plan_id,
                                 start_date = EXCLUDED.start_date,
                                 is_completed = FALSE
-                        """, [user_id, final_plan_id])
+                            """, [user_id, final_plan_id])
                     else:
                         logger.error(f"[ActivatePlanAlias] Cannot activate custom plan without custom_plan_id column")
                         return Response({
@@ -1512,6 +1514,183 @@ def add_plan_exercise(request, plan_id: int, day_id: int):
 # EXERCISE CATALOG ENDPOINTS
 # ============================================================================
 
+@extend_schema(
+    summary='Lista ćwiczeń z pełnym SFWP',
+    description='',
+    parameters=[
+        OpenApiParameter(
+            name='page',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='**PAGINACJA (P)**: Numer strony (domyślnie: 1, minimum: 1)',
+            required=False,
+            examples=[
+                OpenApiExample('Strona 1', value=1),
+                OpenApiExample('Strona 2', value=2),
+                OpenApiExample('Strona 3', value=3)
+            ]
+        ),
+        OpenApiParameter(
+            name='limit',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='**PAGINACJA (P)**: Liczba elementów na stronę (domyślnie: 50, max: 100, minimum: 1)',
+            required=False,
+            examples=[
+                OpenApiExample('10 elementów', value=10),
+                OpenApiExample('20 elementów', value=20),
+                OpenApiExample('50 elementów (domyślnie)', value=50),
+                OpenApiExample('100 elementów (max)', value=100)
+            ]
+        ),
+        OpenApiParameter(
+            name='search',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='**WYSZUKIWANIE (W)**: Wyszukiwanie po nazwie lub opisie ćwiczenia (case-insensitive, częściowe dopasowanie)',
+            required=False,
+            examples=[
+                OpenApiExample('Wyszukaj "bench"', value='bench'),
+                OpenApiExample('Wyszukaj "press"', value='press'),
+                OpenApiExample('Wyszukaj "squat"', value='squat'),
+                OpenApiExample('Wyszukaj "deadlift"', value='deadlift')
+            ]
+        ),
+        OpenApiParameter(
+            name='muscle_group',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='**FILTROWANIE (F)**: Filtrowanie po grupie mięśniowej (case-insensitive)',
+            required=False,
+            examples=[
+                OpenApiExample('Klatka piersiowa', value='chest'),
+                OpenApiExample('Nogi', value='legs'),
+                OpenApiExample('Plecy', value='back'),
+                OpenApiExample('Ramiona', value='arms'),
+                OpenApiExample('Barki', value='shoulders'),
+                OpenApiExample('Brzuch', value='core')
+            ]
+        ),
+        OpenApiParameter(
+            name='type',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='**FILTROWANIE (F)**: Filtrowanie po typie ćwiczenia (case-insensitive)',
+            required=False,
+            examples=[
+                OpenApiExample('Siłowe', value='strength'),
+                OpenApiExample('Cardio', value='cardio'),
+                OpenApiExample('Rozciąganie', value='flexibility'),
+                OpenApiExample('Funkcjonalne', value='functional')
+            ]
+        ),
+        OpenApiParameter(
+            name='ordering',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='**SORTOWANIE (S)**: Sortowanie wyników (format: `field` dla rosnąco, `-field` dla malejąco). Whitelist dozwolonych pól zapewnia bezpieczeństwo.',
+            required=False,
+            enum=['name', '-name', 'id', '-id', 'muscle_group', '-muscle_group', 'type', '-type'],
+            examples=[
+                OpenApiExample('Alfabetycznie A-Z', value='name'),
+                OpenApiExample('Alfabetycznie Z-A', value='-name'),
+                OpenApiExample('Najstarsze najpierw (ID)', value='id'),
+                OpenApiExample('Najnowsze najpierw (ID)', value='-id'),
+                OpenApiExample('Grupa mięśniowa A-Z', value='muscle_group'),
+                OpenApiExample('Typ ćwiczenia A-Z', value='type')
+            ]
+        ),
+    ],
+    responses={
+        200: {
+            'description': 'Lista ćwiczeń z metadanymi paginacji i informacjami o ulubionych',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'success': True,
+                        'exercises': [
+                            {
+                                'id': 1,
+                                'name': 'Bench Press',
+                                'description': 'Ćwiczenie na klatkę piersiową',
+                                'muscle_group': 'chest',
+                                'type': 'strength',
+                                'video_url': 'https://example.com/video.mp4',
+                                'image_url': 'https://example.com/image.jpg',
+                                'is_favorite': True,
+                                'user_rating': 5
+                            },
+                            {
+                                'id': 2,
+                                'name': 'Incline Bench Press',
+                                'description': 'Ćwiczenie na górną część klatki',
+                                'muscle_group': 'chest',
+                                'type': 'strength',
+                                'video_url': None,
+                                'image_url': None,
+                                'is_favorite': False,
+                                'user_rating': None
+                            }
+                        ],
+                        'pagination': {
+                            'page': 1,
+                            'limit': 20,
+                            'total': 150,
+                            'total_pages': 8
+                        }
+                    }
+                }
+            }
+        },
+        401: {
+            'description': 'Brak autoryzacji - wymagany token JWT',
+        },
+        500: {
+            'description': 'Błąd serwera',
+        }
+    },
+    examples=[
+        OpenApiExample(
+            'Przykład 1: Podstawowa paginacja',
+            value={
+                'page': 1,
+                'limit': 20
+            },
+            request_only=True,
+            summary='Tylko paginacja - pierwsza strona, 20 elementów'
+        ),
+        OpenApiExample(
+            'Przykład 2: Wyszukiwanie',
+            value={
+                'search': 'bench'
+            },
+            request_only=True,
+            summary='Wyszukaj wszystkie ćwiczenia zawierające "bench"'
+        ),
+        OpenApiExample(
+            'Przykład 3: Filtrowanie + Sortowanie',
+            value={
+                'muscle_group': 'chest',
+                'ordering': 'name'
+            },
+            request_only=True,
+            summary='Ćwiczenia na klatkę piersiową, posortowane alfabetycznie'
+        ),
+        OpenApiExample(
+            'Przykład 4: Pełna kombinacja SFWP',
+            value={
+                'muscle_group': 'chest',
+                'search': 'press',
+                'ordering': 'name',
+                'page': 1,
+                'limit': 20
+            },
+            request_only=True,
+            summary='PEŁNA KOMBINACJA: Filtruj (chest) + Wyszukaj (press) + Sortuj (name) + Paginacja (page 1, 20 elementów)'
+        ),
+    ],
+    tags=['Ćwiczenia', 'SFWP - Demonstracja']
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_exercises(request):
@@ -1524,6 +1703,7 @@ def get_exercises(request):
         - search: str (optional) - wyszukaj po nazwie
         - page: int (optional) - numer strony (default: 1)
         - limit: int (optional) - liczba wyników na stronę (default: 50)
+        - ordering: str (optional) - sortowanie (name, -name, id, -id, muscle_group, -muscle_group, type, -type)
     """
     try:
         user_id = None
@@ -1534,15 +1714,29 @@ def get_exercises(request):
             return Response({"error": "Invalid token", "code": "invalid_token"},
                             status=status.HTTP_401_UNAUTHORIZED)
 
-        logger.info(f"[GetExercises] Fetching exercises for user {user_id}")
-
         # Get query parameters
         muscle_group = request.query_params.get('muscle_group')
         exercise_type = request.query_params.get('type')
         search = request.query_params.get('search')
-        page = int(request.query_params.get('page', 1))
-        limit = int(request.query_params.get('limit', 50))
+        page = max(int(request.query_params.get('page', 1)), 1)
+        limit = min(max(int(request.query_params.get('limit', 50)), 1), 100)
         offset = (page - 1) * limit
+        
+        # Sortowanie (S)
+        ordering = request.query_params.get('ordering', 'name').strip()
+        allowed_ordering_fields = {
+            'name': 'e.name ASC',
+            '-name': 'e.name DESC',
+            'id': 'e.id ASC',
+            '-id': 'e.id DESC',
+            'muscle_group': 'e.muscle_group ASC',
+            '-muscle_group': 'e.muscle_group DESC',
+            'type': 'e.type ASC',
+            '-type': 'e.type DESC',
+        }
+        order_by_clause = allowed_ordering_fields.get(ordering, 'e.name ASC')
+
+        logger.info(f"[GetExercises] User {user_id} - Filters: muscle_group={muscle_group}, type={exercise_type}, search={search}, ordering={ordering}, page={page}, limit={limit}")
 
         with connection.cursor() as cursor:
             # Build query dynamically - dodajemy is_favorite i rating dla użytkownika
@@ -1566,26 +1760,34 @@ def get_exercises(request):
             if muscle_group:
                 query += " AND LOWER(e.muscle_group) = LOWER(%s)"
                 params.append(muscle_group)
+                logger.info(f"[GetExercises] Added muscle_group filter: {muscle_group}")
 
             if exercise_type:
                 query += " AND LOWER(e.type) = LOWER(%s)"
                 params.append(exercise_type)
+                logger.info(f"[GetExercises] Added type filter: {exercise_type}")
 
             if search:
                 query += " AND (LOWER(e.name) LIKE LOWER(%s) OR LOWER(e.description) LIKE LOWER(%s))"
                 search_pattern = f"%{search}%"
                 params.append(search_pattern)
                 params.append(search_pattern)
+                logger.info(f"[GetExercises] Added search filter: {search}")
 
             # Get total count
             count_query = f"SELECT COUNT(*) FROM ({query}) as filtered"
+            logger.debug(f"[GetExercises] Count query: {count_query}")
+            logger.debug(f"[GetExercises] Count params: {params}")
             cursor.execute(count_query, params)
             total_count = cursor.fetchone()[0]
+            logger.info(f"[GetExercises] Total count: {total_count}")
 
-            # Add pagination
-            query += " ORDER BY e.name LIMIT %s OFFSET %s"
+            # Add sorting and pagination
+            query += f" ORDER BY {order_by_clause} LIMIT %s OFFSET %s"
             params.append(limit)
             params.append(offset)
+            logger.debug(f"[GetExercises] Final query: {query}")
+            logger.debug(f"[GetExercises] Final params: {params}")
 
             cursor.execute(query, params)
             exercises = []
@@ -1604,6 +1806,17 @@ def get_exercises(request):
                 })
 
             logger.info(f"[GetExercises] Found {len(exercises)} exercises (total: {total_count})")
+            
+            # Dodaj informacje o zastosowanych filtrach w odpowiedzi (dla debugowania)
+            applied_filters = {}
+            if muscle_group:
+                applied_filters['muscle_group'] = muscle_group
+            if exercise_type:
+                applied_filters['type'] = exercise_type
+            if search:
+                applied_filters['search'] = search
+            if ordering:
+                applied_filters['ordering'] = ordering
 
             return Response({
                 "success": True,
@@ -1613,7 +1826,8 @@ def get_exercises(request):
                     "limit": limit,
                     "total": total_count,
                     "total_pages": (total_count + limit - 1) // limit
-                }
+                },
+                "applied_filters": applied_filters if applied_filters else None
             }, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -1836,8 +2050,8 @@ def today_workout(request):
                         FROM plan_days
                         WHERE plan_id = %s
                         ORDER BY day_order
-                        LIMIT 1
-                    """, [plan_id])
+                    LIMIT 1
+                """, [plan_id])
                 plan_day = cursor.fetchone()
 
             if not plan_day:
@@ -1886,7 +2100,7 @@ def today_workout(request):
                     JOIN exercises e ON pe.exercise_id = e.id
                     WHERE pe.plan_day_id = %s
                     ORDER BY pe.id
-                """, [day_id])
+            """, [day_id])
             
             exercises = []
             for row in cursor.fetchall():
