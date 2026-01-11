@@ -14,6 +14,7 @@ import traceback
 import base64
 import os
 import uuid
+import json
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -172,6 +173,28 @@ def update_profile(request):
         if 'preferred_session_duration' in data:
             profile_fields.append("preferred_session_duration = %s")
             profile_values.append(data['preferred_session_duration'])
+        
+        # Dane biometryczne
+        if 'weight_kg' in data:
+            profile_fields.append("weight_kg = %s")
+            profile_values.append(data['weight_kg'])
+        
+        if 'height_cm' in data:
+            profile_fields.append("height_cm = %s")
+            profile_values.append(data['height_cm'])
+        
+        # Dane zdrowotne
+        if 'injuries' in data:
+            profile_fields.append("injuries = %s")
+            profile_values.append(json.dumps(data['injuries']) if isinstance(data['injuries'], list) else data['injuries'])
+        
+        if 'health_conditions' in data:
+            profile_fields.append("health_conditions = %s")
+            profile_values.append(json.dumps(data['health_conditions']) if isinstance(data['health_conditions'], list) else data['health_conditions'])
+        
+        if 'health_notes' in data:
+            profile_fields.append("health_notes = %s")
+            profile_values.append(data['health_notes'])
         
         if profile_fields:
             profile_values.append(user_id)

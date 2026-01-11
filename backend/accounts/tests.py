@@ -1,13 +1,91 @@
 # backend/accounts/tests.py
-from django.test import TestCase
-from rest_framework.test import APITestCase
+from django.test import TestCase, TransactionTestCase
+from django.db import connection
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from django.urls import reverse
 from .models import AuthAccount, UserProfile
 import json
 
-class AuthAccountModelTest(TestCase):
+def create_test_tables():
+    """Pomocnicza funkcja do tworzenia tabel testowych"""
+    with connection.cursor() as cursor:
+        # Sprawdź czy tabela auth_accounts istnieje
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'auth_accounts'
+            );
+        """)
+        table_exists = cursor.fetchone()[0]
+        
+        if not table_exists:
+            # Utwórz tabelę auth_accounts
+            cursor.execute("""
+                CREATE TABLE auth_accounts (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(50) UNIQUE NOT NULL,
+                    email VARCHAR(100) UNIQUE NOT NULL,
+                    password VARCHAR(255) NOT NULL,
+                    first_name VARCHAR(50),
+                    is_superuser BOOLEAN DEFAULT FALSE,
+                    is_staff BOOLEAN DEFAULT FALSE,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    date_joined TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_login TIMESTAMP,
+                    is_admin BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    groups JSONB DEFAULT '[]',
+                    user_permissions JSONB DEFAULT '[]'
+                );
+            """)
+        
+        # Sprawdź czy tabela user_profiles istnieje
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'user_profiles'
+            );
+        """)
+        profile_table_exists = cursor.fetchone()[0]
+        
+        if not profile_table_exists:
+            # Utwórz tabelę user_profiles
+            cursor.execute("""
+                CREATE TABLE user_profiles (
+                    auth_account_id INTEGER PRIMARY KEY REFERENCES auth_accounts(id) ON DELETE CASCADE,
+                    first_name VARCHAR(50),
+                    date_of_birth DATE,
+                    profile_picture VARCHAR(500),
+                    bio TEXT,
+                    goal VARCHAR(50),
+                    level VARCHAR(50),
+                    training_days_per_week INTEGER,
+                    equipment_preference VARCHAR(50),
+                    preferred_session_duration INTEGER DEFAULT 60,
+                    avoid_exercises TEXT[],
+                    focus_areas TEXT[],
+                    recommendation_method VARCHAR(50) DEFAULT 'hybrid',
+                    weight_kg DECIMAL(5,2),
+                    height_cm INTEGER,
+                    injuries JSONB DEFAULT '[]',
+                    health_conditions JSONB DEFAULT '[]',
+                    health_notes TEXT,
+                    last_survey_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+    # W TransactionTestCase zmiany są commitowane automatycznie
+
+
+class AuthAccountModelTest(TransactionTestCase):
+    """Testy modelu AuthAccount - używa TransactionTestCase bo model ma managed=False"""
+    
     def setUp(self):
+        # Utwórz tabele ręcznie w testowej bazie danych
+        create_test_tables()
+        
         self.account = AuthAccount.objects.create(
             username='testuser',
             email='test@example.com',
@@ -26,19 +104,25 @@ class AuthAccountModelTest(TestCase):
         self.assertEqual(str(self.account), 'testuser')
 
 
-class RegistrationAPITest(APITestCase):
+class RegistrationAPITest(TransactionTestCase):
+    """Testy API rejestracji - używa TransactionTestCase bo model ma managed=False"""
     def setUp(self):
-        self.register_url = reverse('accounts:register')
+        self.client = APIClient()  # Dodaj APIClient dla TransactionTestCase
+        # Utwórz tabele jeśli nie istnieją
+        create_test_tables()
+        
+        # Użyj pełnej ścieżki URL zamiast reverse z namespace (namespace nie istnieje)
+        self.register_url = '/api/auth/register/'
         self.valid_payload = {
             'username': 'newuser',
             'email': 'newuser@example.com',
             'password': 'SecurePass123',
             'password_confirm': 'SecurePass123',
             'first_name': 'Jan',
-            'goal': 'masa_mięśniowa',
-            'level': 'początkujący',
+            'goal': 'masa',  # Poprawna wartość z GOAL_CHOICES
+            'level': 'poczatkujacy',  # Poprawna wartość z LEVEL_CHOICES
             'training_days_per_week': 3,
-            'equipment_preference': 'siłownia'
+            'equipment_preference': 'silownia'  # Poprawna wartość z EQUIPMENT_CHOICES
         }
 
     def test_successful_registration(self):
@@ -78,10 +162,13 @@ class RegistrationAPITest(APITestCase):
     def test_registration_duplicate_username(self):
         """Test rejestracji z istniejącą nazwą użytkownika"""
         # Utwórz pierwszego użytkownika
-        AuthAccount.objects.create(
+        existing_account = AuthAccount.objects.create(
             username='newuser',
-            email='existing@example.com'
+            email='existing@example.com',
+            first_name='Existing'
         )
+        existing_account.set_password('ExistingPass123')
+        existing_account.save()
         
         response = self.client.post(
             self.register_url,
@@ -105,9 +192,16 @@ class RegistrationAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class LoginAPITest(APITestCase):
+class LoginAPITest(TransactionTestCase):
+    """Testy API logowania - używa TransactionTestCase bo model ma managed=False"""
     def setUp(self):
-        self.login_url = reverse('accounts:login')
+        self.client = APIClient()  # Dodaj APIClient dla TransactionTestCase
+        # Utwórz tabele jeśli nie istnieją
+        create_test_tables()
+        
+        # Użyj pełnej ścieżki URL zamiast reverse z namespace
+        self.login_url = '/api/auth/login/'
+        
         self.account = AuthAccount.objects.create(
             username='testuser',
             email='test@example.com',
@@ -119,8 +213,8 @@ class LoginAPITest(APITestCase):
         # Utwórz profil
         UserProfile.objects.create(
             auth_account=self.account,
-            goal='masa_mięśniowa',
-            level='początkujący'
+            goal='masa',  # Poprawna wartość
+            level='poczatkujacy'  # Poprawna wartość
         )
 
     def test_successful_login_with_username(self):
@@ -170,92 +264,3 @@ class LoginAPITest(APITestCase):
         )
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-
-# backend/test_integration.py
-"""
-Skrypt do testowania integracji z bazą danych
-Uruchom: python backend/test_integration.py
-"""
-
-import os
-import sys
-import django
-from pathlib import Path
-
-# Dodaj backend do PYTHONPATH
-backend_path = Path(__file__).resolve().parent
-sys.path.append(str(backend_path))
-
-# Ustaw Django settings
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lasko_backend.settings')
-django.setup()
-
-from accounts.models import AuthAccount, UserProfile
-
-def test_database_connection():
-    """Test połączenia z bazą danych"""
-    try:
-        # Sprawdź czy możemy wykonać podstawowe operacje
-        count = AuthAccount.objects.count()
-        print(f"✅ Połączenie z bazą OK. Liczba użytkowników: {count}")
-        return True
-    except Exception as e:
-        print(f"❌ Błąd połączenia z bazą: {e}")
-        return False
-
-def test_user_creation():
-    """Test tworzenia użytkownika"""
-    try:
-        # Sprawdź czy użytkownik już istnieje
-        if AuthAccount.objects.filter(username='test_user_integration').exists():
-            print("🔄 Usuwam istniejącego użytkownika testowego")
-            AuthAccount.objects.filter(username='test_user_integration').delete()
-        
-        # Utwórz nowego użytkownika
-        account = AuthAccount.objects.create(
-            username='test_user_integration',
-            email='test@integration.com',
-            first_name='Test'
-        )
-        account.set_password('TestPass123')
-        account.save()
-        
-        # Utwórz profil
-        profile = UserProfile.objects.create(
-            auth_account=account,
-            goal='masa_mięśniowa',
-            level='początkujący',
-            training_days_per_week=3,
-            equipment_preference='siłownia'
-        )
-        
-        print(f"✅ Użytkownik utworzony: {account.username} (ID: {account.id})")
-        print(f"✅ Profil utworzony: {profile.goal}, {profile.level}")
-        
-        # Sprawdź hasło
-        if account.check_password('TestPass123'):
-            print("✅ Hashowanie hasła działa poprawnie")
-        else:
-            print("❌ Problem z hashowaniem hasła")
-        
-        # Usuń użytkownika testowego
-        account.delete()
-        print("🗑️ Użytkownik testowy usunięty")
-        
-        return True
-    except Exception as e:
-        print(f"❌ Błąd tworzenia użytkownika: {e}")
-        return False
-
-if __name__ == '__main__':
-    print("🚀 Rozpoczynam testy integracji...")
-    print("=" * 50)
-    
-    if test_database_connection():
-        if test_user_creation():
-            print("\n🎉 Wszystkie testy przeszły pomyślnie!")
-        else:
-            print("\n❌ Testy nie powiodły się")
-    else:
-        print("\n❌ Nie można połączyć się z bazą danych")

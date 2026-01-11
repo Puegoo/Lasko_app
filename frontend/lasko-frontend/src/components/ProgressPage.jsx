@@ -63,6 +63,10 @@ const SimpleLineChart = ({ data, xKey, yKey, color = '#10B981', height = 200 }) 
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
   const range = maxValue - minValue || 1;
+  const padding = range * 0.1; // 10% padding
+  const adjustedMin = Math.max(0, minValue - padding);
+  const adjustedMax = maxValue + padding;
+  const adjustedRange = adjustedMax - adjustedMin;
 
   // Dla pojedynczego punktu
   if (data.length === 1) {
@@ -70,7 +74,7 @@ const SimpleLineChart = ({ data, xKey, yKey, color = '#10B981', height = 200 }) 
       <div className="relative flex items-center justify-center" style={{ height: `${height}px` }}>
         <div className="text-center">
           <div className="text-4xl font-bold text-emerald-400 mb-2">
-            {data[0][yKey]}
+            {data[0][yKey]?.toFixed(1)}
           </div>
           <div className="text-sm text-gray-400">
             {data[0][xKey]}
@@ -83,9 +87,25 @@ const SimpleLineChart = ({ data, xKey, yKey, color = '#10B981', height = 200 }) 
     );
   }
 
+  // Oblicz punkty dla wykresu
+  const points = data.map((d, i) => {
+    const x = data.length === 1 ? 50 : (i / (data.length - 1)) * 100;
+    const y = 100 - (((d[yKey] - adjustedMin) / adjustedRange) * 90 + 5); // 5% padding top/bottom
+    return { x, y, value: d[yKey] };
+  });
+
+  const pointsString = points.map(p => `${p.x},${p.y}`).join(' ');
+
   return (
     <div className="relative" style={{ height: `${height}px` }}>
-      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="overflow-visible">
+      <svg 
+        width="100%" 
+        height="100%" 
+        viewBox="0 0 100 100" 
+        preserveAspectRatio="none" 
+        className="overflow-visible"
+        style={{ minHeight: `${height}px`, display: 'block' }}
+      >
         {/* Grid lines */}
         {[0, 25, 50, 75, 100].map(percent => (
           <line
@@ -100,36 +120,30 @@ const SimpleLineChart = ({ data, xKey, yKey, color = '#10B981', height = 200 }) 
           />
         ))}
 
+        {/* Gradient fill */}
+        <defs>
+          <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Area fill */}
+        <polygon
+          points={`0,100 ${pointsString} 100,100`}
+          fill={`url(#gradient-${color.replace('#', '')})`}
+        />
+
         {/* Line */}
         <polyline
-          points={data.map((d, i) => {
-            const x = (i / (data.length - 1)) * 100;
-            const y = 100 - ((d[yKey] - minValue) / range) * 100;
-            return `${x},${y}`;
-          }).join(' ')}
+          points={pointsString}
           fill="none"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
         />
-
-        {/* Points */}
-        {data.map((d, i) => {
-          const x = (i / (data.length - 1)) * 100;
-          const y = 100 - ((d[yKey] - minValue) / range) * 100;
-          return (
-            <circle
-              key={i}
-              cx={x}
-              cy={y}
-              r="2"
-              fill={color}
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })}
       </svg>
     </div>
   );
@@ -630,14 +644,14 @@ export default function ProgressPage() {
                       onChange={(e) => setNewMetric(prev => ({ ...prev, metric_name: e.target.value }))}
                       className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 appearance-none cursor-pointer"
                     >
-                      <option value="biceps_cm">💪 Obwód bicepsa (cm)</option>
-                      <option value="chest_cm">🫁 Obwód klatki (cm)</option>
-                      <option value="waist_cm">⭕ Obwód talii (cm)</option>
-                      <option value="thigh_cm">🦵 Obwód uda (cm)</option>
-                      <option value="calf_cm">🦵 Obwód łydki (cm)</option>
-                      <option value="1rm_bench">🏋️ 1RM Wyciskanie (kg)</option>
-                      <option value="1rm_squat">🏋️ 1RM Przysiad (kg)</option>
-                      <option value="1rm_deadlift">🏋️ 1RM Martwy ciąg (kg)</option>
+                      <option value="biceps_cm">Obwód bicepsa (cm)</option>
+                      <option value="chest_cm">Obwód klatki (cm)</option>
+                      <option value="waist_cm">Obwód talii (cm)</option>
+                      <option value="thigh_cm">Obwód uda (cm)</option>
+                      <option value="calf_cm">Obwód łydki (cm)</option>
+                      <option value="1rm_bench">1RM Wyciskanie (kg)</option>
+                      <option value="1rm_squat">1RM Przysiad (kg)</option>
+                      <option value="1rm_deadlift">1RM Martwy ciąg (kg)</option>
                     </select>
                   </div>
 

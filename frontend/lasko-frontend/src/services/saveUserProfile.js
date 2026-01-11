@@ -77,6 +77,29 @@ const saveUserProfile = async (userData) => {
       payload.recommendation_method = userData.recommendationMethod;
     }
     
+    // Dane biometryczne - weight_kg
+    if (userData.weight_kg !== undefined && userData.weight_kg !== null && userData.weight_kg !== '') {
+      payload.weight_kg = parseFloat(userData.weight_kg);
+    }
+    
+    // Dane biometryczne - height_cm
+    if (userData.height_cm !== undefined && userData.height_cm !== null && userData.height_cm !== '') {
+      payload.height_cm = parseInt(userData.height_cm, 10);
+    }
+    
+    // Dane zdrowotne
+    if (userData.injuries !== undefined) {
+      payload.injuries = Array.isArray(userData.injuries) ? userData.injuries : [];
+    }
+    
+    if (userData.health_conditions !== undefined) {
+      payload.health_conditions = Array.isArray(userData.health_conditions) ? userData.health_conditions : [];
+    }
+    
+    if (userData.health_notes !== undefined && userData.health_notes !== null && userData.health_notes !== '') {
+      payload.health_notes = userData.health_notes;
+    }
+    
     // Sprawdź czy są jakieś dane do wysłania
     if (Object.keys(payload).length === 0) {
       console.log('⚠️ [saveUserProfile] Brak danych do wysłania');

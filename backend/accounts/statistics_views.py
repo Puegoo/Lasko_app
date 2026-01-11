@@ -319,6 +319,17 @@ def get_general_statistics(request):
             pr_row = cursor.fetchone()
             pr_count = pr_row[0] if pr_row else 0
             
+            # Treningi w tym miesiącu
+            cursor.execute("""
+                SELECT COUNT(DISTINCT ts.id) as workouts_this_month
+                FROM training_sessions ts
+                WHERE ts.auth_account_id = %s
+                AND DATE_TRUNC('month', ts.session_date) = DATE_TRUNC('month', CURRENT_DATE)
+            """, [user_id])
+            
+            month_row = cursor.fetchone()
+            workouts_this_month = month_row[0] if month_row else 0
+            
             logger.info(f"[GetGeneralStatistics] Stats for user {user_id}: {total_workouts} workouts, {current_streak} day streak")
             
             return Response({
@@ -333,7 +344,8 @@ def get_general_statistics(request):
                     "best_month": best_month,
                     "best_month_count": best_month_count,
                     "total_volume": round(total_volume, 2),
-                    "personal_records": pr_count
+                    "personal_records": pr_count,
+                    "workouts_this_month": workouts_this_month
                 }
             }, status=status.HTTP_200_OK)
 

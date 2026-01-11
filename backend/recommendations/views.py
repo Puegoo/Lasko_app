@@ -220,7 +220,7 @@ def _generate_with_engine(user_id, mode, top, preferences):
                 elif cf_pct >= 40:
                     match_reasons.append(f"👥 Bazuje na społeczności i preferencjach ({cb_pct}% treść, {cf_pct}% społeczność)")
                 else:
-                    match_reasons.append(f"⚖️ Równowaga między treścią a społecznością ({cb_pct}/{cf_pct})")
+                    match_reasons.append(f"Równowaga między treścią a społecznością ({cb_pct}/{cf_pct})")
 
             # Użyj nazwy z ankiety jeśli dostępna, w przeciwnym razie nazwa z bazy
             plan_name = preferences.get('plan_name') or plan_detail['name']
